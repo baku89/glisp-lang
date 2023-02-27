@@ -5,7 +5,6 @@ const config: Config.InitialOptions = {
 	preset: 'ts-jest',
 	passWithNoTests: true,
 	maxWorkers: 1,
-	watchAll: true,
 	projects: [
 		{
 			transform: {
