@@ -218,7 +218,7 @@ PreludeScope.defs(
 inc: (=> [x:Num] (+ x 1))
 dec: (=> [x:Num] (- x 1))
 
-isEven: (=> [x:Num] (== (mod x 2) 0))
+isEven: (=> [x:Num] (== (% x 2) 0))
 
 compose: (=> (T U V) [f:(-> [t:T] U) g:(-> [u:U] V)]
              (=> [x:T] (g (f x))))
