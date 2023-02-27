@@ -4,13 +4,7 @@ module.exports = {
 		node: true,
 		commonjs: true,
 	},
-	extends: [
-		'eslint:recommended',
-		'plugin:vue/vue3-essential',
-		'@vue/typescript/recommended',
-		'@vue/prettier',
-		'@vue/prettier/@typescript-eslint',
-	],
+	extends: ['eslint:recommended'],
 	parserOptions: {
 		ecmaVersion: 2020,
 	},
@@ -23,7 +17,6 @@ module.exports = {
 		'@typescript-eslint/explicit-module-boundary-types': 'off',
 		'simple-import-sort/imports': 'error',
 		'unused-imports/no-unused-imports-ts': 'error',
-		'vue/no-unused-components': 'warn',
 	},
 	globals: {
 		__PAGES__: 'readonly',
