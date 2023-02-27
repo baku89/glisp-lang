@@ -313,7 +313,7 @@ export class NumLiteral extends BaseNode {
 
 	protected forceEval = () => withLog(Val.num(this.value))
 
-	protected forceInfer = () => withLog(Val.num(this.value))
+	protected forceInfer = () => withLog(Val.NumType)
 
 	protected printExceptMeta = () => {
 		if (!this.extras) {
@@ -344,7 +344,7 @@ export class StrLiteral extends BaseNode {
 
 	protected forceEval = () => withLog(Val.str(this.value))
 
-	protected forceInfer = () => withLog(Val.str(this.value))
+	protected forceInfer = () => withLog(Val.StrType)
 
 	protected printExceptMeta = () => '"' + this.value + '"'
 
