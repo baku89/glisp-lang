@@ -2,7 +2,7 @@ import {range} from 'lodash'
 
 import * as Ast from '../ast'
 import {Log, withLog} from '../log'
-import {parseModule, parse} from '../parser'
+import {parse, parseModule} from '../parser'
 import {Writer} from '../util/Writer'
 import * as Val from '../val'
 

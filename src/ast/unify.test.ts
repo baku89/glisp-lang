@@ -33,7 +33,7 @@ describe('getTypeVars', () => {
 			const diff = _.differenceWith(tvs, expected, Val.isEqual)
 
 			if (diff.length > 0) {
-				fail('Got={' + tvs.map(t => t.print()).join(', ') + '}')
+				throw new Error('Got={' + tvs.map(t => t.print()).join(', ') + '}')
 			}
 		})
 	}

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import chalk from 'chalk'
 import * as os from 'os'
 import * as repl from 'repl'

@@ -94,7 +94,7 @@ abstract class BaseValue {
 		return node
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	// eslint-disable-next-line no-unused-vars
 	ofDefault = (defaultValue: Atomic): Value => this as any
 
 	withMeta = (meta: Dict) => {
