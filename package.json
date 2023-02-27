@@ -10,7 +10,7 @@
 	"scripts": {
 		"build": "npm run build:tsc; npm run build:peggy",
 		"build:tsc": "tsc",
-		"build:peggy": "peggy -o ./src/parser/parser.peg.js  -o ./lib/parser/parser.peg.js --format umd ./src/parser/parser.pegjs",
+		"build:peggy": "peggy -o  ./src/parser/parser.peg.js --format umd ./src/parser/parser.pegjs; mkdir -p ./lib/parser; cp ./src/parser/parser.peg.js ./lib/parser/parser.peg.js",
 		"lint": "eslint src",
 		"test": "npm run build:peggy; jest --slient=false",
 		"serve": "npm run test -- --watch",
