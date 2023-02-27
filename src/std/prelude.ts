@@ -105,7 +105,7 @@ PreludeScope.defs({
 	'**': defn('(-> [x:Num a:Num^{1}] Num)', (x: Val.Num, a: Val.Num) =>
 		Val.num(Math.pow(x.value, a.value))
 	),
-	mod: defn('(-> [x:Num y:Num] Num)', (x: Val.Num, y: Val.Num) =>
+	'%': defn('(-> [x:Num y:Num] Num)', (x: Val.Num, y: Val.Num) =>
 		Val.num(x.value % y.value)
 	),
 	'<': defn('(-> [x:Num y:Num] Bool)', (x: Val.Num, y: Val.Num) =>
@@ -120,7 +120,7 @@ PreludeScope.defs({
 			Val.isEqual(test(), Val.True) ? then() : _else(),
 		{lazy: true}
 	),
-	and: defn(
+	'&&': defn(
 		'(-> [...xs:Bool^{true}] Bool)',
 		(...xs: Ast.Arg<Val.Enum>[]) => {
 			for (const x of xs) {
@@ -130,7 +130,7 @@ PreludeScope.defs({
 		},
 		{lazy: true}
 	),
-	or: defn(
+	'||': defn(
 		'(-> [...xs:Bool] Bool)',
 		(...xs: Ast.Arg<Val.Enum>[]) => {
 			for (const x of xs) {
@@ -140,7 +140,7 @@ PreludeScope.defs({
 		},
 		{lazy: true}
 	),
-	not: defn('(-> [x:Bool] Bool)', (x: Val.Enum) =>
+	'!': defn('(-> [x:Bool] Bool)', (x: Val.Enum) =>
 		Val.bool(x.isEqualTo(Val.False))
 	),
 	len: defn('(-> [x:(| Str [..._])] Num)', (x: Val.Str | Val.Vec) => {
@@ -211,20 +211,17 @@ PreludeScope.defs({
 
 PreludeScope.defs(
 	parseModule(`
-<=: (=> [x:Num y:Num] (or (== x y) (< x y)))
+<=: (=> [x:Num y:Num] (|| (== x y) (< x y)))
 >: (=> [x:Num y:Num] (< y x))
->=: (=> [x:Num y:Num] ((<= y x))
+>=: (=> [x:Num y:Num] (<= y x))
 
 inc: (=> [x:Num] (+ x 1))
-
 dec: (=> [x:Num] (- x 1))
 
 isEven: (=> [x:Num] (== (mod x 2) 0))
 
-compose: (=> <T U V> [f:(-> [t:T] U) g:(-> [u:U] V)] 
+compose: (=> <T U V> [f:(-> [t:T] U) g:(-> [u:U] V)]
              (=> [x:T] (g (f x))))
-
-twice: (=> <T> [f:(-> [t:T] T)] (compose f f))
 
 const: (=> <T> [x:T] (=> [] x))
 
@@ -233,12 +230,13 @@ first: (=> <T> [coll:[...T]] (coll 0))
 id: (=> <T> [x:T] x)
 
 sqrt: (=> [x:Num] (if (<= 0 x)
-                      (** x 0.5)
-                      (log 0 "warn" "Negative number")))
+											(** x 0.5)
+											(log 0 "warn" "Negative number")))
 
 square: (=> [x:Num] (** x 2))
-hypot:  (=> [x:Num y:Num] (sqrt (+ (* x x) (* y y))))
-PI: 3.1415926535897932384626433832795028841971693993
 
-`)
+hypot:  (=> [x:Num y:Num] (sqrt (+ (* x x) (* y y))))
+
+PI: 3.1415926535897932384626433832795028841971693993
+	`)
 )
