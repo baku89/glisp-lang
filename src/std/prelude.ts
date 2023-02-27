@@ -64,7 +64,7 @@ PreludeScope.defs({
 	true: Ast.value(Val.True),
 	false: Ast.value(Val.False),
 	log: defn(
-		'(-> <T> [value:T level:(| "error" "warn" "info") reason:Str] T)',
+		'(-> (T) [value:T level:(| "error" "warn" "info") reason:Str] T)',
 		(value: Val.Value, level: Val.Str, reason: Val.Str) =>
 			Writer.of(value, {
 				level: level.value as Log['level'],
@@ -115,7 +115,7 @@ PreludeScope.defs({
 		Val.bool(Val.isEqual(x, y))
 	),
 	if: defn(
-		'(-> <T> [test:Bool then:T else:T] T)',
+		'(-> (T) [test:Bool then:T else:T] T)',
 		(test: Ast.Arg, then: Ast.Arg, _else: Ast.Arg) =>
 			Val.isEqual(test(), Val.True) ? then() : _else(),
 		{lazy: true}
@@ -160,18 +160,18 @@ PreludeScope.defs({
 			return gcd
 		})()
 	),
-	rest: defn('(-> <T> [coll:[...T]] [...T])', (coll: Val.Vec) =>
+	rest: defn('(-> (T) [coll:[...T]] [...T])', (coll: Val.Vec) =>
 		Val.vec(coll.items.slice(1))
 	),
 	map: defn(
-		'(-> <T U> [f: (-> [t:T] U) coll:[...T]] [...U])',
+		'(-> (T U) [f: (-> [t:T] U) coll:[...T]] [...U])',
 		(f: Val.Fn, coll: Val.Vec) => {
 			const [items] = Writer.map(coll.items, i => f.fn(() => i)).asTuple
 			return Val.vec(items)
 		}
 	),
 	reduce: defn(
-		'(-> <T U> [f: (-> [u:U t:T] U) coll: [...T] initial: U] U)',
+		'(-> (T U) [f: (-> [u:U t:T] U) coll: [...T] initial: U] U)',
 		(f: Val.Fn, coll: Val.Vec, initial: Val.Value) => {
 			return coll.items.reduce(
 				(prev: Val.Value, curt: Val.Value) =>
@@ -220,14 +220,14 @@ dec: (=> [x:Num] (- x 1))
 
 isEven: (=> [x:Num] (== (mod x 2) 0))
 
-compose: (=> <T U V> [f:(-> [t:T] U) g:(-> [u:U] V)]
+compose: (=> (T U V) [f:(-> [t:T] U) g:(-> [u:U] V)]
              (=> [x:T] (g (f x))))
 
-const: (=> <T> [x:T] (=> [] x))
+const: (=> (T) [x:T] (=> [] x))
 
-first: (=> <T> [coll:[...T]] (coll 0))
+first: (=> (T) [coll:[...T]] (coll 0))
 
-id: (=> <T> [x:T] x)
+id: (=> (T) [x:T] x)
 
 sqrt: (=> [x:Num] (if (<= 0 x)
 											(** x 0.5)

@@ -686,7 +686,7 @@ export class TypeVarsDef {
 			this.extras = {delimiters}
 		}
 
-		return '<' + insertDelimiters(this.names, this.extras.delimiters) + '>'
+		return '(' + insertDelimiters(this.names, this.extras.delimiters) + ')'
 	}
 
 	extras?: {delimiters: string[]}

@@ -145,14 +145,14 @@ describe('parsing function definition', () => {
 
 	// Polymorphic functions
 	testParsing(
-		'(=> <T> [x:T] x)',
+		'(=> (T) [x:T] x)',
 		fn({typeVars: ['T'], param: {x: id('T')}, body: x})
 	)
 	testParsing(
-		'(=> <T U> [x:T] x)',
+		'(=> (T U) [x:T] x)',
 		fn({typeVars: ['T', 'U'], param: {x: id('T')}, body: x})
 	)
-	testParsing('(=> <> [] Num)', fn({typeVars: [], body: Num}))
+	testParsing('(=> () [] Num)', fn({typeVars: [], body: Num}))
 	testErrorParsing('(=> <1> [] Num)')
 
 	// functions with rest parameter
@@ -180,15 +180,15 @@ describe('parsing function type', () => {
 	testParsing('(-> [x:x y:y] z)', fnType({param: {x, y}, out: z}))
 
 	testParsing(
-		'(-> <T> [x:T] T)',
+		'(-> (T) [x:T] T)',
 		fnType({typeVars: ['T'], param: {x: id('T')}, out: id('T')})
 	)
 	testParsing(
-		'(-> <T U> [x:T] T)',
+		'(-> (T U) [x:T] T)',
 		fnType({typeVars: ['T', 'U'], param: {x: id('T')}, out: id('T')})
 	)
-	testErrorParsing('(-> <> [] Num)')
-	testErrorParsing('(-> <1> [] Num)')
+	testErrorParsing('(-> () [] Num)')
+	testErrorParsing('(-> (1) [] Num)')
 
 	testParsing('(-> [x?:x] y)', fnType({param: param({x}, 0), out: y}))
 	testParsing('(-> [x?:x] y)', fnType({param: param({x}, 0), out: y}))

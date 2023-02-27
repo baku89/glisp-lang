@@ -231,7 +231,7 @@ FnParam =
 		return param
 	}
 
-TypeVars = "<" d0:_ namesDs:($([a-zA-Z] [a-zA-Z0-9]*) _)* ">"
+TypeVars = "(" d0:_ namesDs:($([a-zA-Z] [a-zA-Z0-9]*) _)* ")"
 	{
 		const [names, ds] = zip(namesDs)
 

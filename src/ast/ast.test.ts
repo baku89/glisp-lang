@@ -112,10 +112,10 @@ describe('inferring expression type', () => {
 	test('(let a: 10)', '()')
 	test('(let a: (+ 1 2) b: a b)', 'Num')
 
-	test('((=> <T> [x:T] x) 4)', '4')
-	test('((=> <T> [x:T] x) (+ 1 2))', 'Num')
-	test('((=> <T> [f:(-> [t:T] T)] f) inc)', '(-> [t:Num] Num)')
-	test('((=> <T> [f:(-> [t:T] T)] (=> [x:T] (f x))) inc)', '(-> [t:Num] Num)')
+	test('((=> (T) [x:T] x) 4)', '4')
+	test('((=> (T) [x:T] x) (+ 1 2))', 'Num')
+	test('((=> (T) [f:(-> [t:T] T)] f) inc)', '(-> [t:Num] Num)')
+	test('((=> (T) [f:(-> [t:T] T)] (=> [x:T] (f x))) inc)', '(-> [t:Num] Num)')
 	test('(try 1 2)', '(| 1 2)')
 
 	function test(input: string, expected: string) {
@@ -132,7 +132,7 @@ describe('evaluating function body', () => {
 	test('(=> [x:Num] x)', '0')
 	test('(=> [x:Num] (+ x 10))', '10')
 	test('(=> [x:Bool] x)', 'false')
-	test('(=> <T> [x:T] x)', '()')
+	test('(=> (T) [x:T] x)', '()')
 
 	function test(input: string, expected: string) {
 		it(`body of ${input} should evaluate to ${expected}`, () => {
