@@ -16,6 +16,10 @@ import {createListDelimiters, insertDelimiters} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
 
 export type Node = LeafNode | InnerNode
+
+/**
+ * 子要素を持ち得ないAST
+ */
 export type LeafNode =
 	| Identifier
 	| ValueContainer
@@ -24,6 +28,9 @@ export type LeafNode =
 	| NumLiteral
 	| StrLiteral
 
+/**
+ * 子要素を持ち得るAST
+ */
 export type InnerNode =
 	| Call
 	| Scope
@@ -33,6 +40,9 @@ export type InnerNode =
 	| VecLiteral
 	| DictLiteral
 
+/**
+ * 親要素となり得るASTの種類
+ */
 export type ParentNode = InnerNode | ValueMeta | NodeMeta | ParamDef
 
 export type Arg<T extends Val.Value = Val.Value> = () => T
@@ -41,6 +51,9 @@ export interface PrintOptions {
 	omitMeta?: boolean
 }
 
+/**
+ * すべてのASTの基底クラス
+ */
 export abstract class BaseNode {
 	abstract readonly type: string
 
@@ -67,8 +80,16 @@ export abstract class BaseNode {
 		return node
 	}
 
+	/**
+	 * Memoizeした値を使わず強制的にevalするための内部関数
+	 * @param env 環境
+	 */
 	protected abstract forceEval(env: Env): WithLog
 
+	/**
+	 * Memoizeした値を使わず強制的にinferするための内部関数
+	 * @param env 環境
+	 */
 	protected abstract forceInfer(env: Env): WithLog
 
 	protected abstract isSameExceptMetaTo(node: Node): boolean
@@ -156,7 +177,7 @@ export class Identifier extends BaseNode {
 		env: Env
 	): Writer<{node: Node; mode?: 'param' | 'arg' | 'TypeVar'}, Log> {
 		if (!ref) {
-			// If no parent and still couldn't resolve the symbol,
+			// If the ast has no parent and still couldn't resolve the symbol,
 			// assume there's no bound expression for it.
 			const log: Log = {
 				level: 'error',
@@ -249,6 +270,10 @@ export class Identifier extends BaseNode {
 	}
 }
 
+/**
+ * 文字列からパースすることはできない値を格納するためのAST
+ * 例: DOM，Imageなど
+ */
 export class ValueContainer<V extends Val.Value = Val.Value> extends BaseNode {
 	readonly type = 'ValueContainer' as const
 
