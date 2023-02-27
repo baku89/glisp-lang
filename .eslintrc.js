@@ -1,24 +1,25 @@
 module.exports = {
 	root: true,
+	parser: '@typescript-eslint/parser',
 	env: {
 		node: true,
 		commonjs: true,
+		'jest/globals': true,
 	},
-	extends: ['eslint:recommended'],
+	extends: ['eslint:recommended', 'prettier'],
+
 	parserOptions: {
-		ecmaVersion: 2020,
+		ecmaVersion: 2022,
+		sourceType: 'module',
 	},
-	plugins: ['simple-import-sort', 'unused-imports'],
+	plugins: ['jest', 'simple-import-sort', 'unused-imports'],
 	rules: {
-		'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
-		'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+		'no-console': 'warn',
+		'no-debugger': 'warn',
 		'@typescript-eslint/no-explicit-any': 'off',
 		'@typescript-eslint/no-use-before-define': 'off',
 		'@typescript-eslint/explicit-module-boundary-types': 'off',
 		'simple-import-sort/imports': 'error',
 		'unused-imports/no-unused-imports-ts': 'error',
-	},
-	globals: {
-		__PAGES__: 'readonly',
 	},
 }
