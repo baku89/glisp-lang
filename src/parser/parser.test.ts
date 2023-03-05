@@ -99,6 +99,7 @@ describe('parsing vector', () => {
 	testParsing('[    1   \t]', vec([num(1)]))
 	testParsing('[1 2 3]', vec([num(1), num(2), num(3)]))
 	testParsing('[1 [2] 3]', vec([num(1), vec([num(2)]), num(3)]))
+	testParsing('[1[2] 3]', vec([num(1), vec([num(2)]), num(3)]))
 	testParsing(
 		'[(+) false (+) +]',
 		vec([app(id('+')), id('false'), app(id('+')), id('+')])
