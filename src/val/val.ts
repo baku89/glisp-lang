@@ -943,7 +943,7 @@ export class UnionType extends BaseValue {
 
 	toAstExceptMeta = (): Ast.Call => {
 		const types = this.types.map(ty => ty.toAst())
-		return Ast.call(Ast.id('|'), ...types)
+		return Ast.call(Ast.id('union'), ...types)
 	}
 
 	isEqualTo = (value: Value): boolean =>

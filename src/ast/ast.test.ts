@@ -116,7 +116,7 @@ describe('inferring expression type', () => {
 	test('((=> (T) [x:T] x) (+ 1 2))', 'Num')
 	test('((=> (T) [f:(-> [t:T] T)] f) inc)', '(-> [t:Num] Num)')
 	test('((=> (T) [f:(-> [t:T] T)] (=> [x:T] (f x))) inc)', '(-> [t:Num] Num)')
-	test('(try 1 2)', '(| 1 2)')
+	test('(try 1 2)', '(union 1 2)')
 
 	function test(input: string, expected: string) {
 		it(`${input} is inferred to be ${expected}`, () => {

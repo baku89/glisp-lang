@@ -55,7 +55,7 @@ export const PreludeScope = Ast.scope({
 	Num: Ast.value(Val.NumType),
 	Str: Ast.value(Val.StrType),
 	Bool: Ast.value(Val.BoolType),
-	'|': defn('(-> [...types:_] _)', (...types: Val.Value[]) =>
+	union: defn('(-> [...types:_] _)', (...types: Val.Value[]) =>
 		Val.unionType(...types)
 	),
 })
@@ -64,7 +64,7 @@ PreludeScope.defs({
 	true: Ast.value(Val.True),
 	false: Ast.value(Val.False),
 	log: defn(
-		'(-> (T) [value:T level:(| "error" "warn" "info") reason:Str] T)',
+		'(-> (T) [value:T level:(union "error" "warn" "info") reason:Str] T)',
 		(value: Val.Value, level: Val.Str, reason: Val.Str) =>
 			Writer.of(value, {
 				level: level.value as Log['level'],
@@ -143,7 +143,7 @@ PreludeScope.defs({
 	'!': defn('(-> [x:Bool] Bool)', (x: Val.Enum) =>
 		Val.bool(x.isEqualTo(Val.False))
 	),
-	len: defn('(-> [x:(| Str [..._])] Num)', (x: Val.Str | Val.Vec) => {
+	len: defn('(-> [x:(union Str [..._])] Num)', (x: Val.Str | Val.Vec) => {
 		if (x.type === 'Vec') return Val.num(x.items.length)
 		else return Val.num(x.value.length)
 	}),

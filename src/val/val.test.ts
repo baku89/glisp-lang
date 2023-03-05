@@ -15,7 +15,7 @@ describe('value equality', () => {
 	test('{a?: 10}')
 	test('{...Num}')
 	test('(-> [n:Num] Num)')
-	test('(| 1 2 3)')
+	test('(union 1 2 3)')
 
 	function test(input: string) {
 		it(`${input} equals to itself`, () => {
@@ -63,7 +63,7 @@ describe('subtyping', () => {
 	test('[1 2]', '[1]', '<')
 	test('[1]', '[true]', '!=')
 	test('[1]', '[Num]', '<')
-	//run('[1 Num]', '[(| 1 Bool) Num]', '<')
+	//run('[1 Num]', '[(union 1 Bool) Num]', '<')
 	test('[1 2]', '[Num Num]', '<')
 	test('[...0]', '[...0]', '=')
 	test('[...0]', '[...1]', '!=')
@@ -196,9 +196,9 @@ describe('default values of types', () => {
 	test('Num', '0')
 	test('Str', '""')
 	test('Bool', 'false')
-	test('(| 3 4)', '3')
-	test('(| Num Bool)', '0')
-	test('(| Bool Num)', 'false')
+	test('(union 3 4)', '3')
+	test('(union Num Bool)', '0')
+	test('(union Bool Num)', 'false')
 	test('()', '()')
 	test('_', '()')
 	test('Never', 'Never')
