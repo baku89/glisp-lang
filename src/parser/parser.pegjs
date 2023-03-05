@@ -142,7 +142,7 @@ NodeMeta = d:_ "#" fields:Dict
 		return new Ast.NodeMeta(fields, {delimiter: [d]})
 	}
 
-Reserved = "_" / "Never" / "=>" / "->" / "let" / "try"
+Reserved = "_" / "Never" / "=>" / "->" / "let" / "return" / "try" / "type" / "enum" / "struct" / "interface" / "data" / "match"
 
 Unit = "(" d:_ ")"
 {
