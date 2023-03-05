@@ -32,7 +32,7 @@ export type LeafNode =
  * 子要素を持ち得るAST
  */
 export type InnerNode =
-	| Call
+	| App
 	| Scope
 	| TryCatch
 	| FnDef
@@ -185,7 +185,7 @@ export class Identifier extends BaseNode {
 				reason: 'Variable not bound: ' + this.name,
 			}
 
-			return Writer.of({node: Call.of()}, log)
+			return Writer.of({node: App.of()}, log)
 		}
 
 		if (ref.type === 'Scope') {
@@ -870,21 +870,21 @@ export class DictLiteral extends BaseNode {
 	}
 }
 
-export class Call extends BaseNode {
-	readonly type = 'Call' as const
+export class App extends BaseNode {
+	readonly type = 'App' as const
 
-	private constructor(public callee?: Node, public readonly args: Node[] = []) {
+	private constructor(public fn?: Node, public readonly args: Node[] = []) {
 		super()
 	}
 
 	#unify(env: Env): [Unifier, Val.Value[], Set<Log>] {
-		if (!this.callee) throw new Error('Cannot unify unit literal')
+		if (!this.fn) throw new Error('Cannot unify unit literal')
 
-		const [calleeType, calleeLog] = this.callee.infer(env).asTuple
+		const [fnInferred, fnLog] = this.fn.infer(env).asTuple
 
-		if (!('fnType' in calleeType)) return [new Unifier(), [], calleeLog]
+		if (!('fnType' in fnInferred)) return [new Unifier(), [], fnLog]
 
-		const fnType = calleeType.fnType
+		const fnType = fnInferred.fnType
 
 		const params = values(fnType.param)
 		const args = fnType.rest ? this.args : this.args.slice(0, params.length)
@@ -899,18 +899,18 @@ export class Call extends BaseNode {
 
 		const unifier = new Unifier([paramsType, '>=', argsType])
 
-		return [unifier, shadowedArgs, union(calleeLog, argLog)]
+		return [unifier, shadowedArgs, union(fnLog, argLog)]
 	}
 
 	protected forceEval = (env: Env): WithLog => {
-		if (!this.callee) return withLog(Val.unit)
+		if (!this.fn) return withLog(Val.unit)
 
 		// Evaluate the function itself at first
-		const [callee, calleeLog] = this.callee.eval(env).asTuple
+		const [fn, fnLog] = this.fn.eval(env).asTuple
 
 		// Check if it's not a function
-		if (!('fn' in callee)) {
-			return Writer.of(callee, ...calleeLog, {
+		if (!('fn' in fn)) {
+			return Writer.of(fn, ...fnLog, {
 				level: 'warn',
 				ref: this,
 				reason: 'Not a function',
@@ -918,8 +918,8 @@ export class Call extends BaseNode {
 		}
 
 		// Start function application
-		const names = keys(callee.fnType.param)
-		const params = values(callee.fnType.param)
+		const names = keys(fn.fnType.param)
+		const params = values(fn.fnType.param)
 
 		// Unify FnType and args
 		const [unifier, shadowedArgs, argLog] = this.#unify(env)
@@ -928,7 +928,7 @@ export class Call extends BaseNode {
 
 		// Length-check of arguments
 		const lenArgs = this.args.length
-		const lenRequiredParams = callee.fnType.optionalPos
+		const lenRequiredParams = fn.fnType.optionalPos
 
 		if (lenArgs < lenRequiredParams) {
 			argLog.add({
@@ -971,8 +971,8 @@ export class Call extends BaseNode {
 		})
 
 		// For rest argument
-		if (callee.fnType.rest) {
-			const {name, value: pType} = callee.fnType.rest
+		if (fn.fnType.rest) {
+			const {name, value: pType} = fn.fnType.rest
 
 			for (let i = unifiedParams.length; i < this.args.length; i++) {
 				const aType = unifiedArgs[i]
@@ -1005,9 +1005,9 @@ export class Call extends BaseNode {
 		}
 
 		// Call the function
-		let result: Val.Value, callLog: Set<Log | Omit<Log, 'ref'>>
+		let result: Val.Value, appLog: Set<Log | Omit<Log, 'ref'>>
 		try {
-			;[result, callLog] = callee.fn(...args).asTuple
+			;[result, appLog] = fn.fn(...args).asTuple
 		} catch (e) {
 			if (env.isGlobal) {
 				const message = e instanceof Error ? e.message : 'Run-time error'
@@ -1021,15 +1021,15 @@ export class Call extends BaseNode {
 		const unifiedResult = unifier.substitute(result, true)
 
 		// Set this as 'ref'
-		const callLogWithRef = [...callLog].map(log => ({...log, ref: this}))
+		const callLogWithRef = [...appLog].map(log => ({...log, ref: this}))
 
-		return withLog(unifiedResult, ...calleeLog, ...argLog, ...callLogWithRef)
+		return withLog(unifiedResult, ...fnLog, ...argLog, ...callLogWithRef)
 	}
 
 	protected forceInfer = (env: Env): WithLog => {
-		if (!this.callee) return this.forceEval(env)
+		if (!this.fn) return this.forceEval(env)
 
-		const [ty, log] = this.callee.infer(env).asTuple
+		const [ty, log] = this.fn.infer(env).asTuple
 		if (!('fnType' in ty)) return withLog(ty, ...log)
 
 		/**
@@ -1047,10 +1047,10 @@ export class Call extends BaseNode {
 
 	protected printExceptMeta = (options: PrintOptions): string => {
 		if (!this.extras) {
-			if (!this.callee) {
+			if (!this.fn) {
 				this.extras = {delimiters: ['']}
 			} else {
-				const elementsCount = (this.callee ? 1 : 0) + this.args.length
+				const elementsCount = (this.fn ? 1 : 0) + this.args.length
 				const delimiters = createListDelimiters(elementsCount)
 
 				this.extras = {delimiters}
@@ -1058,16 +1058,16 @@ export class Call extends BaseNode {
 		}
 
 		// Print unit literal
-		if (!this.callee) {
+		if (!this.fn) {
 			return '(' + this.extras.delimiters[0] + ')'
 		}
 
-		const callee = this.callee.print(options)
+		const fn = this.fn.print(options)
 		const args = this.args.map(a => a.print(options))
 
 		const {delimiters} = this.extras
 
-		return '(' + insertDelimiters([callee, ...args], delimiters) + ')'
+		return '(' + insertDelimiters([fn, ...args], delimiters) + ')'
 	}
 
 	extras?: {delimiters: string[]}
@@ -1075,11 +1075,11 @@ export class Call extends BaseNode {
 	protected isSameExceptMetaTo = (node: Node) =>
 		this.type === node.type && isEqualArray(this.args, node.args, isSame)
 
-	clone = (): Call => Call.of(this.callee, ...this.args.map(clone))
+	clone = (): App => App.of(this.fn, ...this.args.map(clone))
 
-	static of(callee?: Node, ...args: Node[]) {
-		const app = new Call(callee, args)
-		if (callee) setParent(callee, app)
+	static of(fn?: Node, ...args: Node[]) {
+		const app = new App(fn, args)
+		if (fn) setParent(fn, app)
 		args.forEach(a => setParent(a, app))
 		return app
 	}

@@ -108,7 +108,7 @@ Node =
 NodeContent =
 	Unit / Never / All /
 	Num / Str / Identifier /
-	Fn / FnType / Scope / TryCatch / Call /
+	Fn / FnType / Scope / TryCatch / App /
 	Vec / Dict
 
 ValueMeta =
@@ -146,9 +146,9 @@ Reserved = "_" / "Never" / "=>" / "->" / "let" / "try"
 
 Unit = "(" d:_ ")"
 {
-	const call = Ast.call()
-	call.extras = {delimiters: [d]}
-	return call
+	const app = Ast.app()
+	app.extras = {delimiters: [d]}
+	return app
 }
 
 All = "_" { return Ast.all() }
@@ -178,15 +178,15 @@ Str "string" = '"' value:$(!'"' .)* '"'
 		return Ast.str(value)
 	}
 
-Call "function application" = "(" d0:_ fn:Node d1:__ argsDs:(Node __)* ")"
+App "function application" = "(" d0:_ fn:Node d1:__ argsDs:(Node __)* ")"
 	{
 		const [args, ds] = zip(argsDs)
 
 		const delimiters = [d0, d1, ...ds]
 
-		const call = Ast.call(fn, ...args)
-		call.extras = {delimiters}
-		return call
+		const app = Ast.app(fn, ...args)
+		app.extras = {delimiters}
+		return app
 	}
 
 Fn "function definition" =

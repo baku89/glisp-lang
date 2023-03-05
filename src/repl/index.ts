@@ -15,7 +15,7 @@ const IO = Val.primType('IO', () => {
 	return
 })
 
-const defaultNode = Ast.call()
+const defaultNode = Ast.app()
 
 function printLog({level, reason, ref}: Log) {
 	let header: string

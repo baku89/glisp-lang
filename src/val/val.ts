@@ -132,7 +132,7 @@ export class Unit extends BaseValue {
 
 	isEqualTo = (value: Value) => this.type === value.type
 
-	toAstExceptMeta = () => Ast.call()
+	toAstExceptMeta = () => Ast.app()
 
 	protected clone = () => {
 		const value = new Unit()
@@ -850,7 +850,7 @@ export class Struct extends BaseValue {
 	toAstExceptMeta = (): Ast.Node => {
 		const items = this.items.map(it => it.toAst())
 		const fn = this.superType.toAst()
-		return Ast.call(fn, ...items)
+		return Ast.app(fn, ...items)
 	}
 
 	isEqualTo = (value: Value) =>
@@ -943,7 +943,7 @@ export class UnionType extends BaseValue {
 
 	toAstExceptMeta = (): Ast.Call => {
 		const types = this.types.map(ty => ty.toAst())
-		return Ast.call(Ast.id('union'), ...types)
+		return Ast.app(Ast.id('union'), ...types)
 	}
 
 	isEqualTo = (value: Value): boolean =>

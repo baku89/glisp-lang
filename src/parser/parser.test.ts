@@ -1,6 +1,6 @@
 import {
 	all,
-	call,
+	app,
 	dict,
 	fn,
 	fnType,
@@ -33,8 +33,8 @@ describe('parsing literals', () => {
 	testParsing('true', id('true'))
 	testParsing('"hello"', str('hello'))
 	testParsing('"hello, world"', str('hello, world'))
-	testParsing(' () ', call())
-	testParsing(' (  \t   ) ', call())
+	testParsing(' () ', app())
+	testParsing(' (  \t   ) ', app())
 	testParsing(' _ ', all())
 	testParsing('Never', never())
 })
@@ -75,14 +75,14 @@ describe('parsing line comment', () => {
 	testParsing(';;\n1', num(1))
 })
 
-describe('parsing call expressions', () => {
-	testParsing('(+ 1 2)', call(id('+'), num(1), num(2)))
-	testParsing('(* 1 2)', call(id('*'), num(1), num(2)))
-	testParsing('(x _)', call(x, all()))
-	testParsing('(x ())', call(x, call()))
-	testParsing('(x)', call(x))
-	testParsing('(0 false)', call(num(1), id('false')))
-	testParsing('((true) x)', call(call(id('true')), x))
+describe('parsing app expressions', () => {
+	testParsing('(+ 1 2)', app(id('+'), num(1), num(2)))
+	testParsing('(* 1 2)', app(id('*'), num(1), num(2)))
+	testParsing('(x _)', app(x, all()))
+	testParsing('(x ())', app(x, app()))
+	testParsing('(x)', app(x))
+	testParsing('(0 false)', app(num(1), id('false')))
+	testParsing('((true) x)', app(app(id('true')), x))
 })
 
 describe('parsing scope', () => {
@@ -100,7 +100,7 @@ describe('parsing vector', () => {
 	testParsing('[1 [2] 3]', vec([num(1), vec([num(2)]), num(3)]))
 	testParsing(
 		'[(+) false (+) +]',
-		vec([call(id('+')), id('false'), call(id('+')), id('+')])
+		vec([app(id('+')), id('false'), app(id('+')), id('+')])
 	)
 	testParsing('[...1]', vec([], 0, num(1)))
 	testParsing('[1?]', vec([num(1)], 0))
@@ -139,8 +139,8 @@ describe('parsing function definition', () => {
 		fn({param: {x: Num, y: Bool}, body: x})
 	)
 	testParsing('(=> [] _)', fn({body: all()}))
-	testParsing('(=> [] ())', fn({body: call()}))
-	testParsing('(=> [] (+ 1 2))', fn({body: call(id('+'), num(1), num(2))}))
+	testParsing('(=> [] ())', fn({body: app()}))
+	testParsing('(=> [] (+ 1 2))', fn({body: app(id('+'), num(1), num(2))}))
 	testParsing('(=> [] (=> [] 1))', fn({body: fn({body: num(1)})}))
 
 	// Polymorphic functions
@@ -169,7 +169,7 @@ describe('parsing function definition', () => {
 describe('parsing function type', () => {
 	testParsing('(-> [a:[...x]] x)', fnType({param: {a: vec([], 0, x)}, out: x}))
 	testParsing('(-> [x:_] _)', fnType({param: {x: all()}, out: all()}))
-	testParsing('(-> [x:[]] ())', fnType({param: {x: vec()}, out: call()}))
+	testParsing('(-> [x:[]] ())', fnType({param: {x: vec()}, out: app()}))
 	testParsing('(-> [] z)', fnType({out: z}))
 	testParsing('(-> [] [])', fnType({out: vec()}))
 	testParsing('(-> [x:x] z)', fnType({param: {x}, out: z}))
@@ -202,8 +202,8 @@ describe('parsing metadata', () => {
 	testParsing('0 \n^{0}', num(0).setValueMeta(new ValueMeta(num(0))))
 
 	testParsing('_^{"hello"}', all().setValueMeta(new ValueMeta(str('hello'))))
-	testParsing('()^{{}}', call().setValueMeta(new ValueMeta(dict())))
-	testParsing('()^{}', call().setValueMeta(new ValueMeta()))
+	testParsing('()^{{}}', app().setValueMeta(new ValueMeta(dict())))
+	testParsing('()^{}', app().setValueMeta(new ValueMeta()))
 
 	testParsing('Bool^{true}', id('Bool').setValueMeta(new ValueMeta(id('true'))))
 

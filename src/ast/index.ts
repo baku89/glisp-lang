@@ -1,6 +1,6 @@
 import {
 	AllKeyword,
-	Call,
+	App,
 	DictLiteral,
 	FnDef,
 	FnTypeDef,
@@ -30,7 +30,7 @@ export {
 	NeverKeyword,
 	NumLiteral,
 	StrLiteral,
-	Call,
+	App as Call,
 	Scope,
 	TryCatch,
 	FnDef,
@@ -47,7 +47,7 @@ export const all = AllKeyword.of
 export const never = NeverKeyword.of
 export const num = NumLiteral.of
 export const str = StrLiteral.of
-export const call = Call.of
+export const app = App.of
 export const scope = Scope.of
 export const tryCatch = TryCatch.of
 
