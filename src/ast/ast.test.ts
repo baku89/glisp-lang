@@ -77,20 +77,20 @@ describe('inferring expression type', () => {
 	test('_', '_')
 	test('Never', '_')
 	test('()', '()')
-	test('0', 'Num')
-	test('"foo"', 'Str')
+	test('0', '0')
+	test('"foo"', '"foo"')
 	test('true', 'true')
 
 	test('Num', '_')
 	test('Bool', '_')
 
 	test('[]', '[]')
-	test('[0 1]', '[Num Num]')
+	test('[0 1]', '[0 1]')
 	test('[Num]', '[_]')
 	test('[...0]', '_')
 
 	test('{}', '{}')
-	test('{a:0}', '{a:Num}')
+	test('{a:0}', '{a:0}')
 	test('{a:Num}', '{a:_}')
 	test('{a?:0}', '_')
 	test('{...0}', '_')
@@ -100,8 +100,8 @@ describe('inferring expression type', () => {
 	test('(+ 1 2)', 'Num')
 	test('[(+ 1 2)]', '[Num]')
 
-	test('(=> [] 5)', '(-> [] Num)')
-	test('(=> [x:Num] "foo")', '(-> [x:Num] Str)')
+	test('(=> [] 5)', '(-> [] 5)')
+	test('(=> [x:Num] "foo")', '(-> [x:Num] "foo")')
 	test('(=> [x:Num] x)', '(-> [x:Num] Num)')
 	test('(=> [x:(+ 1 2)] (+ x 4))', '(-> [x:3] Num)')
 	test('(=> [x:_] Num)', '(-> [x:_] _)')
@@ -112,11 +112,11 @@ describe('inferring expression type', () => {
 	test('(let a: 10)', '()')
 	test('(let a: (+ 1 2) b: a b)', 'Num')
 
-	test('((=> (T) [x:T] x) 4)', 'Num')
+	test('((=> (T) [x:T] x) 4)', '4')
 	test('((=> (T) [x:T] x) (+ 1 2))', 'Num')
 	test('((=> (T) [f:(-> [t:T] T)] f) inc)', '(-> [t:Num] Num)')
 	test('((=> (T) [f:(-> [t:T] T)] (=> [x:T] (f x))) inc)', '(-> [t:Num] Num)')
-	test('(try 1 2)', 'Num')
+	test('(try 1 2)', '(| 1 2)')
 
 	function test(input: string, expected: string) {
 		it(`${input} is inferred to be ${expected}`, () => {
