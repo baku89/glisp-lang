@@ -178,7 +178,7 @@ Str "string" = '"' value:$(!'"' .)* '"'
 		return Ast.str(value)
 	}
 
-App "function application" = "(" d0:_ fn:Node d1:__ argsDs:(Node __)* ")"
+App "function application" = "(" d0:_ fn:Node d1:_ argsDs:(Node _)* ")"
 	{
 		const [args, ds] = zip(argsDs)
 
@@ -246,7 +246,7 @@ NamedNode = id:Identifier optional:"?"? ":" _ node:Node
 	}
 
 Vec "vector" =
-	"[" d0:_ entries:(Node "?"? __)* restDs:("..." @Node @_)? "]"
+	"[" d0:_ entries:(Node "?"? _)* restDs:("..." @Node @_)? "]"
 	{
 		const [items, optionalFlags, ds] = zip(entries)
 		const [rest, dsr] = restDs ?? [undefined, []]

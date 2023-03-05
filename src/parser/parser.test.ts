@@ -78,6 +78,7 @@ describe('parsing line comment', () => {
 describe('parsing app expressions', () => {
 	testParsing('(+ 1 2)', app(id('+'), num(1), num(2)))
 	testParsing('(* 1 2)', app(id('*'), num(1), num(2)))
+	testParsing('(()2())', app(app(), num(2), app()))
 	testParsing('(x _)', app(x, all()))
 	testParsing('(x ())', app(x, app()))
 	testParsing('(x)', app(x))
