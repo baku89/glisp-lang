@@ -1,3 +1,8 @@
+/**
+ * Creates delimiters for S-expression.
+ * e.g. if count=2, returns ['', ' ', ' ', '']
+ * @param count: Number of elements
+ */
 export function createListDelimiters(count: number): string[] {
 	if (count === 0) {
 		return ['']
