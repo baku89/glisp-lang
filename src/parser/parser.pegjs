@@ -29,19 +29,21 @@
 	const fromPairs = Object.fromEntries
 
 	function getOptionalPos(optionalFlags, label) {
-		let optionalPos = undefined
+		let optionalPos = optionalFlags.length
+		let i = 0
 		
-		for (let i = 0; i < optionalFlags.length; i++) {
+		for (;i < optionalFlags.length; i++) {
 			if (optionalFlags[i]) {
-				if (optionalPos === undefined) {
-					optionalPos = i
-				}
-			} else {
-				if (optionalPos !== undefined) {
-					throw new Error(
-						`A required ${label} cannot follow an optional ${label}`
-					)
-				}
+				optionalPos = i
+				break
+			}
+		}
+
+		for (i++; i < optionalFlags.length; i++) {
+			if (!optionalFlags[i]) {
+				throw new Error(
+					`A required ${label} cannot follow an optional ${label}`
+				)
 			}
 		}
 
