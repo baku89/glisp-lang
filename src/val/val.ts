@@ -134,7 +134,7 @@ export class Unit extends BaseValue {
 
 	isEqualTo = (value: Value) => this.type === value.type
 
-	toAstExceptMeta = () => Ast.app()
+	protected toAstExceptMeta = () => Ast.app()
 
 	protected clone = () => {
 		const value = new Unit()
@@ -157,7 +157,7 @@ export class All extends BaseValue {
 
 	readonly initialDefaultValue = Unit.instance
 
-	toAstExceptMeta = () => Ast.all()
+	protected toAstExceptMeta = () => Ast.all()
 
 	isEqualTo = (value: Value) => this.type === value.type
 
@@ -189,7 +189,7 @@ export class Never extends BaseValue {
 	readonly defaultValue = this
 	readonly initialDefaultValue = this
 
-	toAstExceptMeta = () => Ast.never()
+	protected toAstExceptMeta = () => Ast.never()
 
 	isEqualTo = (value: Value) => this.type === value.type
 
@@ -217,7 +217,7 @@ export class Prim<T = any> extends BaseValue {
 	readonly defaultValue = this
 	readonly initialDefaultValue = this
 
-	toAstExceptMeta = (): Ast.Node => Ast.value(this)
+	protected toAstExceptMeta = (): Ast.Node => Ast.value(this)
 
 	isEqualTo = (value: Value) =>
 		this.type === value.type &&
@@ -236,7 +236,7 @@ export class Prim<T = any> extends BaseValue {
 }
 
 export class Num extends Prim<number> {
-	toAstExceptMeta = () => Ast.num(this.value)
+	protected toAstExceptMeta = () => Ast.num(this.value)
 
 	static of(value: number) {
 		return new Num(NumType, value)
@@ -244,7 +244,7 @@ export class Num extends Prim<number> {
 }
 
 export class Str extends Prim<string> {
-	toAstExceptMeta = () => Ast.str(this.value)
+	protected toAstExceptMeta = () => Ast.str(this.value)
 
 	static of(value: string) {
 		return new Str(StrType, value)
@@ -271,7 +271,7 @@ export class PrimType<T = any> extends BaseValue {
 	}
 
 	// TODO: fix this
-	toAstExceptMeta = () => Ast.id(this.name)
+	protected toAstExceptMeta = () => Ast.id(this.name)
 
 	isEqualTo = (value: Value) =>
 		this.type === value.type && this.name === value.name
@@ -337,7 +337,7 @@ export class Enum extends BaseValue {
 	readonly initialDefaultValue = this
 
 	// TODO: fix this
-	toAstExceptMeta = () => Ast.id(this.name)
+	protected toAstExceptMeta = () => Ast.id(this.name)
 
 	isEqualTo = (value: Value) =>
 		this.type === value.type &&
@@ -375,7 +375,7 @@ export class EnumType extends BaseValue {
 	readonly initialDefaultValue = this.types[0]
 
 	// TODO: fix this
-	toAstExceptMeta = () => Ast.id(this.name)
+	protected toAstExceptMeta = () => Ast.id(this.name)
 
 	isEqualTo = (value: Value) =>
 		this.type === value.type && this.name === value.name
@@ -429,7 +429,7 @@ export class TypeVar extends BaseValue {
 	readonly defaultValue = Unit.instance
 	readonly initialDefaultValue = Unit.instance
 
-	toAstExceptMeta = () => Ast.id(this.name)
+	protected toAstExceptMeta = () => Ast.id(this.name)
 
 	isEqualTo = (value: Value) => this === value
 
@@ -468,7 +468,7 @@ export class Fn extends BaseValue implements IFnLike {
 
 	isEqualTo = (value: Value) => this === value
 
-	toAstExceptMeta = (): Ast.Node => {
+	protected toAstExceptMeta = (): Ast.Node => {
 		if (!this.body) {
 			return Ast.value(this)
 		}
@@ -538,7 +538,7 @@ export class FnType extends BaseValue implements IFnType {
 		return this.#initialDefaultValue
 	}
 
-	toAstExceptMeta = (): Ast.FnTypeDef => {
+	protected toAstExceptMeta = (): Ast.FnTypeDef => {
 		const rest = this.rest
 			? {name: this.rest.name, node: this.rest.value.toAst()}
 			: undefined
@@ -645,7 +645,7 @@ export class Vec<TItems extends Value[] = Value[]>
 		return Vec.of(items)
 	}
 
-	toAstExceptMeta = (): Ast.Node => {
+	protected toAstExceptMeta = (): Ast.Node => {
 		const items = this.items.map(it => it.toAst())
 		return Ast.vec(items, this.optionalPos, this.rest?.toAst())
 	}
@@ -767,7 +767,7 @@ export class Dict<
 		return Dict.of(fromPairs(itemEntries))
 	}
 
-	toAstExceptMeta = (): Ast.DictLiteral => {
+	protected toAstExceptMeta = (): Ast.DictLiteral => {
 		const items = mapValues(this.items, it => it.toAst())
 		return Ast.dict(items, this.optionalKeys, this.rest?.toAst())
 	}
@@ -849,7 +849,7 @@ export class Struct extends BaseValue {
 	readonly defaultValue = this
 	readonly initialDefaultValue = this
 
-	toAstExceptMeta = (): Ast.Node => {
+	protected toAstExceptMeta = (): Ast.Node => {
 		const items = this.items.map(it => it.toAst())
 		const fn = this.superType.toAst()
 		return Ast.app(fn, ...items)
@@ -897,7 +897,7 @@ export class StructType extends BaseValue implements IFnLike {
 	fn = (...items: Ast.Arg[]) => withLog(this.of(...items.map(i => i())))
 
 	// TODO: Fix this
-	toAstExceptMeta = () => Ast.id(this.name)
+	protected toAstExceptMeta = () => Ast.id(this.name)
 
 	isEqualTo = (value: Value) =>
 		this.type === value.type && this.name === value.name
@@ -943,7 +943,7 @@ export class UnionType extends BaseValue {
 	}
 	initialDefaultValue: Atomic = this.types[0].defaultValue
 
-	toAstExceptMeta = (): Ast.Call => {
+	protected toAstExceptMeta = (): Ast.Call => {
 		const types = this.types.map(ty => ty.toAst())
 		return Ast.app(Ast.id('union'), ...types)
 	}
