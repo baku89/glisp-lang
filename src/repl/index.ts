@@ -37,7 +37,7 @@ function printLog({level, reason, ref}: Log) {
 	return content + loc
 }
 
-const replScope = PreludeScope.extend(MathScope.vars).extend({
+const replScope = PreludeScope.extend({
 	IO: Ast.value(IO),
 	def: Ast.value(
 		Val.fn(

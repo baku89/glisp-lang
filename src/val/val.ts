@@ -111,7 +111,7 @@ abstract class BaseValue {
 
 	print = (options?: PrintOptions) => this.toAst().print(options)
 
-	protected abstract clone(): Value
+	abstract clone(): Value
 }
 
 export type IFn = (...params: Ast.Arg<any>[]) => Writer<Value, Omit<Log, 'ref'>>
@@ -136,7 +136,7 @@ export class Unit extends BaseValue {
 
 	protected toAstExceptMeta = () => Ast.app()
 
-	protected clone = () => {
+	clone = () => {
 		const value = new Unit()
 		value.meta = this.meta
 		return value
@@ -169,7 +169,7 @@ export class All extends BaseValue {
 		return value
 	}
 
-	protected clone = () => {
+	clone = () => {
 		const value = new All()
 		value.#defaultValue = this.#defaultValue
 		value.meta = this.meta
@@ -195,7 +195,7 @@ export class Never extends BaseValue {
 
 	isSubtypeOf = () => true
 
-	protected clone = () => {
+	clone = () => {
 		const value = new Never()
 		value.meta = this.meta
 		return value
@@ -224,7 +224,7 @@ export class Prim<T = any> extends BaseValue {
 		this.value === value.value &&
 		isEqual(this.superType, value.superType)
 
-	protected clone = () => {
+	clone = () => {
 		const value = new Prim(this.superType, this.value)
 		value.meta = this.meta
 		return value
@@ -288,7 +288,7 @@ export class PrimType<T = any> extends BaseValue {
 		return value
 	}
 
-	protected clone = () => {
+	clone = () => {
 		const value = new PrimType(this.name)
 		value.#defaultValue = this.defaultValue
 		value.#initialDefaultValue = this.#initialDefaultValue
@@ -344,7 +344,7 @@ export class Enum extends BaseValue {
 		this.name === value.name &&
 		this.superType.isEqualTo(value.superType)
 
-	protected clone = () => {
+	clone = () => {
 		const value = new Enum(this.name)
 		value.meta = this.meta
 		return value
@@ -397,7 +397,7 @@ export class EnumType extends BaseValue {
 		return value
 	}
 
-	protected clone = () => {
+	clone = () => {
 		const value = new EnumType(this.name, this.types)
 		value.#defaultValue = this.#defaultValue
 		value.meta = this.meta
@@ -433,7 +433,7 @@ export class TypeVar extends BaseValue {
 
 	isEqualTo = (value: Value) => this === value
 
-	protected clone = () => {
+	clone = () => {
 		throw new Error('TypeVar cannot be cloned')
 	}
 
@@ -488,7 +488,7 @@ export class Fn extends BaseValue implements IFnLike {
 		})
 	}
 
-	protected clone = () => {
+	clone = () => {
 		const value = new Fn(this.superType, this.fn, this.body)
 		value.meta = this.meta
 		return value
@@ -591,7 +591,7 @@ export class FnType extends BaseValue implements IFnType {
 		return value
 	}
 
-	protected clone = () => {
+	clone = () => {
 		const value = new FnType(this.param, this.optionalPos, this.rest, this.out)
 		value.#defaultValue = this.#defaultValue
 		value.#initialDefaultValue = this.#initialDefaultValue
@@ -719,7 +719,7 @@ export class Vec<TItems extends Value[] = Value[]>
 		return value
 	}
 
-	protected clone = () => {
+	clone = () => {
 		const value = new Vec(this.items, this.optionalPos, this.rest)
 		value.#defaultValue = this.#defaultValue
 		value.meta = this.meta
@@ -820,7 +820,7 @@ export class Dict<
 		return value
 	}
 
-	protected clone = () => {
+	clone = () => {
 		const value = new Dict(this.items, this.optionalKeys, this.rest)
 		value.#defaultValue = this.#defaultValue
 		value.meta = this.meta
@@ -860,7 +860,7 @@ export class Struct extends BaseValue {
 		isEqual(this.superType, value.superType) &&
 		isEqualArray(this.items, value.items, isEqual)
 
-	protected clone = () => {
+	clone = () => {
 		const value = new Struct(this.superType, this.items)
 		value.meta = this.meta
 		return value
@@ -916,7 +916,7 @@ export class StructType extends BaseValue implements IFnLike {
 		return value
 	}
 
-	protected clone = () => {
+	clone = () => {
 		const value = new StructType(this.name, this.param)
 		value.#defaultValue = this.#defaultValue
 		value.meta = this.meta
@@ -970,7 +970,7 @@ export class UnionType extends BaseValue {
 		return value
 	}
 
-	protected clone = () => {
+	clone = () => {
 		const value = new UnionType(this.types)
 		value.#defaultValue = this.#defaultValue
 		value.meta = this.meta
