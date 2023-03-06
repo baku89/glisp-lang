@@ -98,8 +98,10 @@ abstract class BaseValue {
 	ofDefault = (defaultValue: Atomic): Value => this as any
 
 	withMeta = (meta: Dict) => {
+		const thisMetaItems = this.meta?.items ?? {}
+
 		const value = this.clone()
-		value.meta = meta
+		value.meta = Dict.of({...thisMetaItems, ...meta.items})
 		return value
 	}
 
