@@ -18,7 +18,7 @@ import {shadowTypeVars, Unifier} from './unify'
 export type Node = LeafNode | InnerNode
 
 /**
- * 子要素を持ち得ないAST
+ * ASTs that cannot have child elements
  */
 export type LeafNode =
 	| Identifier
@@ -29,7 +29,7 @@ export type LeafNode =
 	| StrLiteral
 
 /**
- * 子要素を持ち得るAST
+ * ASTs that can have child elements
  */
 export type InnerNode =
 	| App
@@ -41,7 +41,7 @@ export type InnerNode =
 	| DictLiteral
 
 /**
- * 親要素となり得るASTの種類
+ * ASTs that can be a parent of other nodes
  */
 export type ParentNode = InnerNode | ValueMeta | NodeMeta | ParamDef
 
@@ -52,7 +52,7 @@ export interface PrintOptions {
 }
 
 /**
- * すべてのASTの基底クラス
+ * Base class for all kind of ASTs
  */
 export abstract class BaseNode {
 	abstract readonly type: string
@@ -80,16 +80,7 @@ export abstract class BaseNode {
 		return node
 	}
 
-	/**
-	 * Memoizeした値を使わず強制的にevalするための内部関数
-	 * @param env 環境
-	 */
 	protected abstract forceEval(env: Env): WithLog
-
-	/**
-	 * Memoizeした値を使わず強制的にinferするための内部関数
-	 * @param env 環境
-	 */
 	protected abstract forceInfer(env: Env): WithLog
 
 	protected abstract isSameExceptMetaTo(node: Node): boolean
@@ -271,8 +262,8 @@ export class Identifier extends BaseNode {
 }
 
 /**
- * 文字列からパースすることはできない値を格納するためのAST
- * 例: DOM，Imageなど
+ * AST to store values that cannot be parsed from strings
+ * e.g. DOM，Image
  */
 export class ValueContainer<V extends Val.Value = Val.Value> extends BaseNode {
 	readonly type = 'ValueContainer' as const
