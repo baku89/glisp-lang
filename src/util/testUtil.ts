@@ -13,7 +13,7 @@ export function parse(
 		ast = Parser.parse(input, parent)
 	} else {
 		ast = input
-		Ast.setParent(ast, parent)
+		ast.parent = parent
 	}
 	return ast
 }

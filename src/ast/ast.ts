@@ -58,10 +58,6 @@ export interface PrintOptions {
 export abstract class BaseNode {
 	abstract readonly type: string
 
-	protected constructor() {
-		return this
-	}
-
 	parent: ParentNode | null = null
 
 	abstract print(options?: PrintOptions): string
@@ -95,7 +91,7 @@ export abstract class BaseNode {
 export class Identifier extends BaseNode {
 	readonly type = 'Identifier' as const
 
-	private constructor(public readonly name: string) {
+	constructor(public readonly name: string) {
 		super()
 	}
 
@@ -112,7 +108,7 @@ export class Identifier extends BaseNode {
 				reason: 'Variable not bound: ' + this.name,
 			}
 
-			return Writer.of({node: App.of()}, log)
+			return Writer.of({node: new App()}, log)
 		}
 
 		if (ref.type === 'Scope') {
@@ -133,7 +129,7 @@ export class Identifier extends BaseNode {
 				// Situation B. In a context of function appliction
 				const arg = env.get(this.name)
 				if (arg) {
-					return Writer.of({node: ValueContainer.of(arg()), mode: 'arg'})
+					return Writer.of({node: new ValueContainer(arg()), mode: 'arg'})
 				}
 			}
 			// If no corresponding arg has found for the fn, pop the env.
@@ -145,7 +141,7 @@ export class Identifier extends BaseNode {
 			const tv = ref.typeVars?.get(this.name)
 			if (tv) {
 				return Writer.of({
-					node: ValueContainer.of(tv),
+					node: new ValueContainer(tv),
 					mode: 'TypeVar',
 				})
 			}
@@ -185,11 +181,7 @@ export class Identifier extends BaseNode {
 
 	isSameTo = (node: Node) => this.type === node.type && this.name === node.name
 
-	clone = () => Identifier.of(this.name)
-
-	static of(name: string) {
-		return new Identifier(name)
-	}
+	clone = () => new Identifier(this.name)
 }
 
 /**
@@ -199,7 +191,7 @@ export class Identifier extends BaseNode {
 export class ValueContainer<V extends Val.Value = Val.Value> extends BaseNode {
 	readonly type = 'ValueContainer' as const
 
-	private constructor(public readonly value: V) {
+	constructor(public readonly value: V) {
 		super()
 	}
 
@@ -216,11 +208,7 @@ export class ValueContainer<V extends Val.Value = Val.Value> extends BaseNode {
 	isSameTo = (node: Node) =>
 		this.type === node.type && this.value === node.value
 
-	clone = () => ValueContainer.of(this.value)
-
-	static of<V extends Val.Value = Val.Value>(value: V) {
-		return new ValueContainer(value)
-	}
+	clone = () => new ValueContainer(this.value)
 }
 
 export class AllKeyword extends BaseNode {
@@ -230,11 +218,7 @@ export class AllKeyword extends BaseNode {
 	protected forceInfer = () => withLog(Val.all)
 	print = () => '_'
 	isSameTo = (node: Node) => this.type === node.type
-	clone = () => AllKeyword.of()
-
-	static of() {
-		return new AllKeyword()
-	}
+	clone = () => new AllKeyword()
 }
 
 export class NeverKeyword extends BaseNode {
@@ -244,17 +228,13 @@ export class NeverKeyword extends BaseNode {
 	protected forceInfer = () => withLog(Val.all)
 	print = () => 'Never'
 	isSameTo = (node: Node) => this.type === node.type
-	clone = () => NeverKeyword.of()
-
-	static of() {
-		return new NeverKeyword()
-	}
+	clone = () => new NeverKeyword()
 }
 
 export class NumLiteral extends BaseNode {
 	readonly type = 'NumLiteral' as const
 
-	private constructor(public readonly value: number) {
+	constructor(public readonly value: number) {
 		super()
 	}
 
@@ -273,19 +253,15 @@ export class NumLiteral extends BaseNode {
 	isSameTo = (node: Node) =>
 		this.type === node.type && this.value === node.value
 
-	clone = () => NumLiteral.of(this.value)
+	clone = () => new NumLiteral(this.value)
 
 	extras?: {raw: string}
-
-	static of(value: number) {
-		return new NumLiteral(value)
-	}
 }
 
 export class StrLiteral extends BaseNode {
 	readonly type = 'StrLiteral' as const
 
-	private constructor(public readonly value: string) {
+	constructor(public readonly value: string) {
 		super()
 	}
 
@@ -308,12 +284,18 @@ export class StrLiteral extends BaseNode {
 export class FnDef extends BaseNode {
 	readonly type = 'FnDef' as const
 
-	private constructor(
-		public typeVars: TypeVarsDef | undefined,
+	public readonly typeVars?: TypeVarsDef
+
+	constructor(
+		typeVars: TypeVarsDef | null | undefined,
 		public readonly param: ParamDef,
 		public body: Node
 	) {
 		super()
+
+		if (typeVars) {
+			this.typeVars = typeVars
+		}
 	}
 
 	protected forceEval = (env: Env): WithLog => {
@@ -420,12 +402,18 @@ export class FnDef extends BaseNode {
 export class FnTypeDef extends BaseNode {
 	readonly type = 'FnTypeDef' as const
 
-	private constructor(
-		public readonly typeVars: TypeVarsDef | undefined,
+	public readonly typeVars?: TypeVarsDef
+
+	constructor(
+		typeVars: TypeVarsDef | undefined | null,
 		public readonly param: ParamDef,
 		public out: Node
 	) {
 		super()
+
+		if (typeVars) {
+			this.typeVars = typeVars
+		}
 	}
 
 	protected forceEval = (env: Env): WithLog => {
@@ -471,41 +459,14 @@ export class FnTypeDef extends BaseNode {
 		isSame(this.out, node.out)
 
 	clone = (): FnTypeDef =>
-		FnTypeDef.of({
-			typeVars: this.typeVars?.clone(),
-			param: this.param.clone(),
-			out: this.out.clone(),
-		})
-
-	static of({
-		typeVars,
-		param = ParamDef.of(),
-		out,
-	}: {
-		typeVars?: string[] | TypeVarsDef
-		param?: ParamDef | Record<string, Node>
-		out: Node
-	}) {
-		const _typeVars = !typeVars
-			? undefined
-			: Array.isArray(typeVars)
-			? new TypeVarsDef(typeVars)
-			: typeVars
-
-		const _param = param instanceof ParamDef ? param : ParamDef.of(param)
-
-		const fnTypeDef = new FnTypeDef(_typeVars, _param, out)
-		_param.parent = fnTypeDef
-		out.parent = fnTypeDef
-		return fnTypeDef
-	}
+		new FnTypeDef(this.typeVars?.clone(), this.param.clone(), this.out.clone())
 }
 
 export class ParamDef {
 	readonly type = 'ParamDef' as const
 	parent!: FnDef | FnTypeDef
 
-	private constructor(
+	constructor(
 		public param: Record<string, Node>,
 		public optionalPos: number,
 		public rest?: {name: string; node: Node}
@@ -577,7 +538,7 @@ export class ParamDef {
 		}
 		if (this.rest && this.rest.name === name) {
 			const [rest, lr] = this.rest.node.eval(env).asTuple
-			const node = ValueContainer.of(Val.vec([], undefined, rest))
+			const node = new ValueContainer(Val.vec([], undefined, rest))
 			return Writer.of(node, ...lr)
 		}
 	}
@@ -648,13 +609,25 @@ export class TypeVarsDef {
 export class VecLiteral extends BaseNode {
 	readonly type = 'VecLiteral' as const
 
-	private constructor(
-		public readonly items: Node[],
-		public readonly optionalPos: number,
-		public rest?: Node
-	) {
+	public readonly items: Node[]
+	public readonly optionalPos: number
+	public readonly rest?: Node
+
+	constructor(items: Node[] = [], optionalPos?: number, rest?: Node) {
 		super()
-		if (optionalPos < 0 || items.length < optionalPos || optionalPos % 1 !== 0)
+
+		this.items = items
+		this.optionalPos = optionalPos ?? items.length
+		this.rest = rest
+
+		items.forEach(it => (it.parent = this))
+		if (rest) rest.parent = this
+
+		if (
+			this.optionalPos < 0 ||
+			items.length < this.optionalPos ||
+			this.optionalPos % 1 !== 0
+		)
 			throw new Error('Invalid optionalPos: ' + optionalPos)
 	}
 
@@ -699,25 +672,29 @@ export class VecLiteral extends BaseNode {
 		nullishEqual(this.rest, this.rest, isSame)
 
 	clone = (): VecLiteral =>
-		VecLiteral.of(this.items.map(clone), this.optionalPos, this.rest?.clone())
-
-	static of(items: Node[] = [], optionalPos?: number, rest?: Node) {
-		const vec = new VecLiteral(items, optionalPos ?? items.length, rest)
-		items.forEach(it => setParent(it, vec))
-		if (rest) setParent(rest, vec)
-		return vec
-	}
+		new VecLiteral(this.items.map(clone), this.optionalPos, this.rest?.clone())
 }
 
 export class DictLiteral extends BaseNode {
 	readonly type = 'DictLiteral' as const
 
-	private constructor(
-		public readonly items: Record<string, Node>,
-		public readonly optionalKeys: Set<string>,
-		public rest?: Node
+	public readonly items: Record<string, Node>
+	public readonly optionalKeys: Set<string>
+	public readonly rest?: Node
+
+	constructor(
+		items: Record<string, Node> = {},
+		optionalKeys: Iterable<string> = [],
+		rest?: Node
 	) {
 		super()
+
+		this.items = items
+		this.optionalKeys = new Set(optionalKeys)
+		this.rest = rest
+
+		values(items).forEach(it => (it.parent = this))
+		if (rest) rest.parent = this
 	}
 
 	#isOptional(key: string) {
@@ -774,29 +751,26 @@ export class DictLiteral extends BaseNode {
 		nullishEqual(this.rest, node.rest, isSame)
 
 	clone = (): DictLiteral =>
-		DictLiteral.of(
+		new DictLiteral(
 			mapValues(this.items, clone),
 			this.optionalKeys,
 			this.rest?.clone()
 		)
-
-	static of(
-		items: Record<string, Node> = {},
-		optionalKeys: Iterable<string> = [],
-		rest?: Node
-	) {
-		const dict = new DictLiteral(items, new Set(optionalKeys), rest)
-		values(items).forEach(it => setParent(it, dict))
-		if (rest) setParent(rest, dict)
-		return dict
-	}
 }
 
 export class App extends BaseNode {
 	readonly type = 'App' as const
 
-	private constructor(public fn?: Node, public readonly args: Node[] = []) {
+	readonly fn?: Node
+	readonly args: Node[]
+
+	constructor(fn?: Node, ...args: Node[]) {
 		super()
+		this.fn = fn
+		this.args = args
+
+		if (fn) fn.parent = this
+		args.forEach(a => (a.parent = this))
 	}
 
 	#unify(env: Env): [Unifier, Val.Value[], Set<Log>] {
@@ -997,24 +971,16 @@ export class App extends BaseNode {
 	isSameTo = (node: Node) =>
 		this.type === node.type && isEqualArray(this.args, node.args, isSame)
 
-	clone = (): App => App.of(this.fn, ...this.args.map(clone))
-
-	static of(fn?: Node, ...args: Node[]) {
-		const app = new App(fn, args)
-		if (fn) setParent(fn, app)
-		args.forEach(a => setParent(a, app))
-		return app
-	}
+	clone = (): App => new App(this.fn, ...this.args.map(clone))
 }
 
 export class Scope extends BaseNode {
 	readonly type = 'Scope' as const
 
-	private constructor(
-		public readonly vars: Record<string, Node>,
-		public out?: Node
-	) {
+	constructor(public readonly vars: Record<string, Node>, public out?: Node) {
 		super()
+		values(vars).forEach(v => (v.parent = this))
+		if (out) out.parent = this
 	}
 
 	protected forceInfer = (env: Env): WithLog =>
@@ -1047,7 +1013,7 @@ export class Scope extends BaseNode {
 		nullishEqual(this.out, node.out, isSame) &&
 		isEqualDict(this.vars, node.vars, isSame)
 
-	clone = (): Scope => Scope.of(mapValues(this.vars, clone), this.out?.clone())
+	clone = (): Scope => new Scope(mapValues(this.vars, clone), this.out?.clone())
 
 	extend(vars: Record<string, Node>, out?: Node): Scope {
 		const scope = new Scope(vars, out)
@@ -1059,7 +1025,7 @@ export class Scope extends BaseNode {
 		if (name in this.vars)
 			throw new Error(`Variable '${name}' is already defined`)
 
-		setParent(node, this)
+		node.parent = this
 		this.vars[name] = node
 
 		return this
@@ -1070,20 +1036,15 @@ export class Scope extends BaseNode {
 			this.def(name, exp)
 		}
 	}
-
-	static of(vars: Record<string, Node>, out?: Node) {
-		const scope = new Scope(vars, out)
-		values(vars).forEach(v => setParent(v, scope))
-		if (out) setParent(out, scope)
-		return scope
-	}
 }
 
 export class TryCatch extends BaseNode {
 	readonly type = 'TryCatch'
 
-	private constructor(public block: Node, public handler: Node) {
+	constructor(public block: Node, public handler: Node) {
 		super()
+		block.parent = this
+		handler.parent = this
 	}
 
 	protected forceEval = (env: Env): WithLog => {
@@ -1130,16 +1091,7 @@ export class TryCatch extends BaseNode {
 		isSame(this.block, node.block) &&
 		nullishEqual(this.handler, node.handler, isSame)
 
-	clone = (): TryCatch => TryCatch.of(this.block.clone(), this.handler.clone())
-
-	static of(block: Node, handler: Node) {
-		const tryCatch = new TryCatch(block, handler)
-
-		setParent(block, tryCatch)
-		setParent(handler, tryCatch)
-
-		return tryCatch
-	}
+	clone = (): TryCatch => new TryCatch(this.block.clone(), this.handler.clone())
 }
 
 export class ValueMeta extends BaseNode {
@@ -1147,11 +1099,10 @@ export class ValueMeta extends BaseNode {
 
 	extras?: {delimiters: [string, string]}
 
-	private constructor(
-		public readonly fields: Node,
-		public readonly node: Node
-	) {
+	constructor(public readonly fields: Node, public readonly node: Node) {
 		super()
+		fields.parent = this
+		node.parent = this
 	}
 
 	protected forceEval = (env: Env): WithLog<Val.Value> => {
@@ -1205,7 +1156,7 @@ export class ValueMeta extends BaseNode {
 		return this.node.infer(env)
 	}
 
-	clone = () => ValueMeta.of(this.fields, this.node)
+	clone = (): ValueMeta => new ValueMeta(this.fields.clone(), this.node.clone())
 
 	isSameTo = (node: Node): boolean => {
 		return (
@@ -1225,13 +1176,6 @@ export class ValueMeta extends BaseNode {
 		const node = this.node.print(options)
 
 		return `^${d0}${fields}${d1}${node}`
-	}
-
-	static of(fields: Node, node: Node) {
-		const valueMeta = new ValueMeta(fields, node)
-		setParent(fields, valueMeta)
-		setParent(node, valueMeta)
-		return valueMeta
 	}
 }
 
@@ -1260,10 +1204,6 @@ export class NodeMeta {
 	static isSame(a: NodeMeta, b: NodeMeta) {
 		return isSame(a.fields, b.fields)
 	}
-}
-
-export function setParent(node: Node, parent: ParentNode | null) {
-	node.parent = parent
 }
 
 export function isSame(a: Node, b: Node): boolean {

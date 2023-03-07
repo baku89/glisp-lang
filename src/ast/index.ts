@@ -1,3 +1,4 @@
+import {Value} from '../val'
 import {
 	AllKeyword,
 	App,
@@ -6,6 +7,7 @@ import {
 	FnTypeDef,
 	Identifier,
 	NeverKeyword,
+	Node,
 	NumLiteral,
 	ParamDef,
 	Scope,
@@ -17,14 +19,15 @@ import {
 	VecLiteral,
 } from './ast'
 
-export {Node, LeafNode, InnerNode, Arg} from './ast'
+export {LeafNode, InnerNode, Arg} from './ast'
 
 export {NodeMeta} from './ast'
 
-export {isSame, print, setParent, clone} from './ast'
+export {isSame, print, clone} from './ast'
 
 // Exp
 export {
+	Node,
 	Identifier,
 	ValueContainer,
 	AllKeyword,
@@ -43,20 +46,52 @@ export {
 	ValueMeta,
 }
 
-export const id = Identifier.of
-export const value = ValueContainer.of
-export const all = AllKeyword.of
-export const never = NeverKeyword.of
-export const num = NumLiteral.of
-export const str = StrLiteral.of
-export const app = App.of
-export const scope = Scope.of
-export const tryCatch = TryCatch.of
-export const valueMeta = ValueMeta.of
+export const id = (name: string) => new Identifier(name)
 
-export const fn = FnDef.of
-export const fnType = FnTypeDef.of
-export const param = ParamDef.of
+export const value = <V extends Value = Value>(value: V) =>
+	new ValueContainer(value)
 
-export const vec = VecLiteral.of
-export const dict = DictLiteral.of
+export const all = () => new AllKeyword()
+
+export const never = () => new NeverKeyword()
+
+export const num = (value: number) => new NumLiteral(value)
+
+export const str = (value: string) => new StrLiteral(value)
+
+export const app = (fn?: Node, ...args: Node[]) => new App(fn, ...args)
+
+export const scope = (items: Record<string, Node>, ret?: Node) =>
+	new Scope(items, ret)
+
+export const tryCatch = (block: Node, handler: Node) =>
+	new TryCatch(block, handler)
+
+export const valueMeta = (meta: Node, value: Node) => new ValueMeta(meta, value)
+
+export const fnDef = (
+	typeVars: TypeVarsDef | null | undefined,
+	param: ParamDef,
+	body: Node
+) => new FnDef(typeVars, param, body)
+
+export const fnType = (
+	typeVars: TypeVarsDef | null | undefined,
+	param: ParamDef,
+	out: Node
+) => new FnTypeDef(typeVars, param, out)
+
+export const param = (
+	items: Record<string, Node>,
+	optionalPos: number,
+	rest?: {name: string; node: Node}
+) => new ParamDef(items, optionalPos, rest)
+
+export const vec = (items: Node[] = [], optionalPos?: number, rest?: Node) =>
+	new VecLiteral(items, optionalPos, rest)
+
+export const dict = (
+	items: Record<string, Node> = {},
+	optionalKeys: Iterable<string> = [],
+	rest?: Node
+) => new DictLiteral(items, optionalKeys, rest)
