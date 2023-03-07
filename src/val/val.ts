@@ -22,27 +22,10 @@ import {createFoldFn} from './walk'
 
 export type Value = Type | Atomic
 
-type Type =
-	| All
-	| PrimType
-	| EnumType
-	| FnType
-	| StructType
-	| UnionType
-	| TypeVar
+type Type = All | PrimType | EnumType | FnType | UnionType | TypeVar
 
 // Value that can be a default value
-type Atomic =
-	| Never
-	| Unit
-	| Prim<any>
-	| Num
-	| Str
-	| Enum
-	| Fn
-	| Vec
-	| Dict
-	| Struct
+type Atomic = Never | Unit | Prim<any> | Num | Str | Enum | Fn | Vec | Dict
 
 export type UnitableType = Exclude<Value, All | Never>
 
@@ -55,7 +38,7 @@ abstract class BaseValue {
 
 	abstract readonly superType: Value
 
-	abstract readonly defaultValue: Atomic
+	abstract readonly defaultValue: Value
 	abstract readonly initialDefaultValue: Atomic
 
 	meta?: Dict
@@ -86,16 +69,21 @@ abstract class BaseValue {
 				? this.defaultValue.toAst()
 				: undefined
 
-			const fields = this.meta?.toAst()
+			let metaItems = {...(this.meta?.toAst().items ?? {})}
 
-			return node.setValueMeta(new Ast.ValueMeta(defaultValue, fields))
+			if (defaultValue) {
+				delete metaItems.default
+				metaItems = {default: defaultValue, ...metaItems}
+			}
+
+			return Ast.valueMeta(Ast.dict(metaItems), node)
+		} else {
+			return node
 		}
-
-		return node
 	}
 
 	// eslint-disable-next-line no-unused-vars
-	ofDefault = (defaultValue: Atomic): Value => this as any
+	withDefault = (defaultValue: Atomic): Value => this as any
 
 	withMeta = (meta: Dict) => {
 		const thisMetaItems = this.meta?.items ?? {}
@@ -163,7 +151,7 @@ export class All extends BaseValue {
 
 	isSubtypeOf = this.isEqualTo
 
-	ofDefault = (defaultValue: Atomic): Value => {
+	withDefault = (defaultValue: Atomic): Value => {
 		const value = this.clone()
 		value.#defaultValue = defaultValue
 		return value
@@ -280,7 +268,7 @@ export class PrimType<T = any> extends BaseValue {
 		return Prim.from(this, value)
 	}
 
-	ofDefault = (defaultValue: Atomic): Value => {
+	withDefault = (defaultValue: Atomic): Value => {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
 
 		const value = this.clone()
@@ -389,7 +377,7 @@ export class EnumType extends BaseValue {
 	isTypeFor = (value: Value): value is Enum =>
 		value.type === 'Enum' && value.isSubtypeOf(this)
 
-	ofDefault = (defaultValue: Atomic): Value => {
+	withDefault = (defaultValue: Atomic): Value => {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
 
 		const value = this.clone()
@@ -583,7 +571,7 @@ export class FnType extends BaseValue implements IFnType {
 
 	isTypeFor!: (value: Value) => value is Fn
 
-	ofDefault = (defaultValue: Atomic): Value => {
+	withDefault = (defaultValue: Atomic): Value => {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
 
 		const value = this.clone()
@@ -711,7 +699,7 @@ export class Vec<TItems extends Value[] = Value[]>
 
 	isTypeFor!: (value: Value) => value is Vec
 
-	ofDefault = (defaultValue: Atomic): Value => {
+	withDefault = (defaultValue: Atomic): Value => {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
 
 		const value = this.clone()
@@ -812,7 +800,7 @@ export class Dict<
 
 	isTypeFor!: (value: Value) => value is Dict
 
-	ofDefault = (defaultValue: Atomic): Value => {
+	withDefault = (defaultValue: Atomic): Value => {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
 
 		const value = this.clone()
@@ -820,7 +808,7 @@ export class Dict<
 		return value
 	}
 
-	clone = () => {
+	clone = (): Dict<TItems> => {
 		const value = new Dict(this.items, this.optionalKeys, this.rest)
 		value.#defaultValue = this.#defaultValue
 		value.meta = this.meta
@@ -833,98 +821,6 @@ export class Dict<
 		rest?: Value
 	) {
 		return new Dict<TItems>(items, new Set(optionalKeys), rest)
-	}
-}
-
-export class Struct extends BaseValue {
-	readonly type = 'Struct' as const
-
-	private constructor(
-		public readonly superType: StructType,
-		public readonly items: Value[]
-	) {
-		super()
-	}
-
-	readonly defaultValue = this
-	readonly initialDefaultValue = this
-
-	protected toAstExceptMeta = (): Ast.Node => {
-		const items = this.items.map(it => it.toAst())
-		const fn = this.superType.toAst()
-		return Ast.app(fn, ...items)
-	}
-
-	isEqualTo = (value: Value) =>
-		this.type === value.type &&
-		isEqual(this.superType, value.superType) &&
-		isEqualArray(this.items, value.items, isEqual)
-
-	clone = () => {
-		const value = new Struct(this.superType, this.items)
-		value.meta = this.meta
-		return value
-	}
-
-	static of(ctor: StructType, items: Value[]) {
-		return new Struct(ctor, items)
-	}
-}
-
-export class StructType extends BaseValue implements IFnLike {
-	readonly type = 'StructType' as const
-	superType = All.instance
-
-	private constructor(
-		public readonly name: string,
-		public readonly param: Record<string, Value>
-	) {
-		super()
-	}
-
-	#defaultValue?: Struct
-	get defaultValue() {
-		return (this.#defaultValue ??= this.initialDefaultValue)
-	}
-
-	get initialDefaultValue(): Struct {
-		const items = values(this.param).map(p => p.defaultValue)
-		return Struct.of(this, items)
-	}
-
-	fnType: FnType = FnType.of({param: this.param, out: this})
-
-	fn = (...items: Ast.Arg[]) => withLog(this.of(...items.map(i => i())))
-
-	// TODO: Fix this
-	protected toAstExceptMeta = () => Ast.id(this.name)
-
-	isEqualTo = (value: Value) =>
-		this.type === value.type && this.name === value.name
-
-	of(...items: Value[]) {
-		return Struct.of(this, items)
-	}
-
-	isTypeFor!: (value: Value) => value is Struct
-
-	ofDefault = (defaultValue: Atomic): Value => {
-		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
-
-		const value = this.clone()
-		value.#defaultValue = defaultValue
-		return value
-	}
-
-	clone = () => {
-		const value = new StructType(this.name, this.param)
-		value.#defaultValue = this.#defaultValue
-		value.meta = this.meta
-		return value
-	}
-
-	static of(name: string, param: Record<string, Value>) {
-		return new StructType(name, param)
 	}
 }
 
@@ -962,7 +858,7 @@ export class UnionType extends BaseValue {
 	isSupertypeOf = (s: Pick<Value, 'isSubtypeOf'>) =>
 		this.types.some(s.isSubtypeOf)
 
-	ofDefault = (defaultValue: Atomic): Value => {
+	withDefault = (defaultValue: Atomic): Value => {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
 
 		const value = this.clone()
@@ -1001,7 +897,6 @@ const isType = createFoldFn(
 		PrimType: () => true,
 		EnumType: () => true,
 		FnType: () => true,
-		StructType: () => true,
 		UnionType: () => true,
 
 		Fn: () => false,
