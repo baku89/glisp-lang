@@ -75,7 +75,7 @@ PreludeScope.defs({
 	'+': defn('(-> [...xs:Num] Num)', (...xs: Val.Num[]) =>
 		Val.num(xs.reduce((sum, x) => sum + x.value, 0))
 	),
-	'-': defn('(-> [...xs:Num^{1}] Num)', (...xs: Val.Num[]) => {
+	'-': defn('(-> [...xs:^{default: 1} Num] Num)', (...xs: Val.Num[]) => {
 		switch (xs.length) {
 			case 0:
 				return Val.num(0)
@@ -87,10 +87,10 @@ PreludeScope.defs({
 				)
 		}
 	}),
-	'*': defn('(-> [...xs:Num^{1}] Num)', (...xs: Val.Num[]) =>
+	'*': defn('(-> [...xs:^{default: 1} Num] Num)', (...xs: Val.Num[]) =>
 		Val.num(xs.reduce((prod, x) => prod * x.value, 1))
 	),
-	'/': defn('(-> [...xs:Num^{1}] Num)', (...xs: Val.Num[]) => {
+	'/': defn('(-> [...xs:^{default: 1} Num] Num)', (...xs: Val.Num[]) => {
 		switch (xs.length) {
 			case 0:
 				return Val.num(1)
@@ -102,7 +102,7 @@ PreludeScope.defs({
 				)
 		}
 	}),
-	'**': defn('(-> [x:Num a:Num^{1}] Num)', (x: Val.Num, a: Val.Num) =>
+	'**': defn('(-> [x:Num a:^{default: 1} Num] Num)', (x: Val.Num, a: Val.Num) =>
 		Val.num(Math.pow(x.value, a.value))
 	),
 	'%': defn('(-> [x:Num y:Num] Num)', (x: Val.Num, y: Val.Num) =>
@@ -121,7 +121,7 @@ PreludeScope.defs({
 		{lazy: true}
 	),
 	'&&': defn(
-		'(-> [...xs:Bool^{true}] Bool)',
+		'(-> [...xs:^{default: true} Bool] Bool)',
 		(...xs: Ast.Arg<Val.Enum>[]) => {
 			for (const x of xs) {
 				if (x().isEqualTo(Val.False)) return Val.bool(false)
@@ -148,7 +148,7 @@ PreludeScope.defs({
 		else return Val.num(x.value.length)
 	}),
 	range: defn(
-		'(-> [start:Num end:Num step?:Num^{1}] [...Num])',
+		'(-> [start:Num end:Num step?:^{default: 1}Num] [...Num])',
 		(start: Val.Num, end: Val.Num, step: Val.Num) =>
 			Val.vec(range(start.value, end.value, step.value).map(Val.num))
 	),
@@ -182,10 +182,6 @@ PreludeScope.defs({
 				initial
 			)
 		}
-	),
-	struct: defn(
-		'(-> [name:Str param:{..._}] _)',
-		(name: Val.Str, {items}: Val.Dict) => Val.structType(name.value, items)
 	),
 	enum: defn(
 		'(-> [name:Str ...label:Str] _)',

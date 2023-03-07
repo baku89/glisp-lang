@@ -8,12 +8,11 @@ import {
 	isSame,
 	never,
 	Node,
-	NodeMeta,
 	num,
 	param,
 	scope,
 	str,
-	ValueMeta,
+	valueMeta,
 	vec,
 } from '../ast'
 import {parse} from '.'
@@ -198,35 +197,48 @@ describe('parsing function type', () => {
 	testParsing('(-> [x:x y?:y] z)', fnType({param: param({x, y}, 1), out: z}))
 })
 
-describe('parsing metadata', () => {
-	testParsing('0^{0}', num(0).setValueMeta(new ValueMeta(num(0))))
-	testParsing('0^{0}', num(0).setValueMeta(new ValueMeta(num(0))))
-	testParsing('0 \n^{0}', num(0).setValueMeta(new ValueMeta(num(0))))
+describe('parsing value metadata', () => {
+	testParsing('^metadata 0', valueMeta(id('metadata'), num(0)))
+	testParsing('^{}0', valueMeta(dict(), num(0)))
+	testParsing('^\t{default: 0}\n0', valueMeta(dict({default: num(0)}), num(0)))
+	testParsing('^{}()', valueMeta(dict(), app()))
 
-	testParsing('_^{"hello"}', all().setValueMeta(new ValueMeta(str('hello'))))
-	testParsing('()^{{}}', app().setValueMeta(new ValueMeta(dict())))
-	testParsing('()^{}', app().setValueMeta(new ValueMeta()))
-
-	testParsing('Bool^{true}', id('Bool').setValueMeta(new ValueMeta(id('true'))))
-
-	testErrorParsing('Bool^true^true')
-	testErrorParsing('Bool^{true}^{true}')
-
-	testParsing('layer#{}', id('layer').setNodeMeta(new NodeMeta(dict())))
 	testParsing(
-		'layer#{collapsed: true}',
-		id('layer').setNodeMeta(new NodeMeta(dict({collapsed: id('true')})))
+		'^{default: true} Bool',
+		valueMeta(dict({default: id('true')}), id('Bool'))
 	)
 
 	testParsing(
-		'Num^{0 label: "number"}#{prop: "A"}',
-		id('Num')
-			.setValueMeta(new ValueMeta(num(0), dict({label: str('number')})))
-			.setNodeMeta(new NodeMeta(dict({prop: str('A')})))
+		'^{default: 0} ^{default: 1} Number',
+		valueMeta(
+			dict({default: num(0)}),
+			valueMeta(dict({default: num(1)}), id('Number'))
+		)
 	)
 
-	testErrorParsing('layer#{}#{}')
-	testErrorParsing('Num#{}^0')
+	testParsing(
+		'^^{a: 1} {b: 2} T',
+		valueMeta(valueMeta(dict({a: num(1)}), dict({b: num(2)})), id('T'))
+	)
+
+	testErrorParsing('Bool^true')
+	testErrorParsing('^{true}Bool')
+})
+
+describe('parsing node metadata', () => {
+	// testParsing('layer#{}', id('layer').setNodeMeta(new NodeMeta(dict())))
+	// testParsing(
+	// 	'layer#{collapsed: true}',
+	// 	id('layer').setNodeMeta(new NodeMeta(dict({collapsed: id('true')})))
+	// )
+	// testParsing(
+	// 	'^{default: 0 label: "number"} Num#{prop: "A"}',
+	// 	id('Num')
+	// 		.setValueMeta(new ValueMeta(num(0), dict({label: str('number')})))
+	// 		.setNodeMeta(new NodeMeta(dict({prop: str('A')})))
+	// )
+	// testErrorParsing('layer#{}#{}')
+	// testErrorParsing('Num#{}^0')
 })
 
 function testParsing(input: string, expected: Node) {

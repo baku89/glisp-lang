@@ -93,13 +93,8 @@ Program = _ exp:Node _
 
 Node =
 	node:NodeContent
-	valueMeta:ValueMeta?
 	nodeMeta:NodeMeta?
 	{
-		if (valueMeta) {
-			node.setValueMeta(valueMeta)
-		}
-
 		if (nodeMeta) {
 			node.setNodeMeta(nodeMeta)
 		}
@@ -111,40 +106,24 @@ NodeContent =
 	Unit / Never / All /
 	Num / Str / Identifier /
 	Fn / FnType / Scope / TryCatch / App /
-	Vec / Dict
-
-ValueMeta =
-	d:_ "^{" di0:_ defaultValueDi1:(@Node !":" @__)? fields:ValueMetaFields "}"
-	{
-		const [defaultValue, di1] = defaultValueDi1 ?? [undefined, undefined]
-
-		const valueMeta = new Ast.ValueMeta(defaultValue, fields)
-		valueMeta.extras = {
-			delimiter: d,
-			innerDelimiters: [di0, ...(di1 ? [di1] : [])]
-		}
-		return valueMeta
-	}
-
-ValueMetaFields = entries:(@DictKey ":" @_ @Node @__)*
-	{
-		if (!entries) return undefined
-
-		const [keys, ds0, nodes, ds1] = zip(entries)
-
-		checkDuplicatedKey(keys, 'key')
-
-		const dict = Ast.dict(fromPairs(unzip([keys, nodes])))
-		dict.extras = {delimiters: ['', ...unzip([ds0, ds1]).flat()]}
-		return dict
-	}
+	Vec / Dict / ValueMeta
 
 NodeMeta = d:_ "#" fields:Dict
 	{
 		return new Ast.NodeMeta(fields, {delimiter: [d]})
 	}
 
-Reserved = "_" / "Never" / "=>" / "->" / "let" / "return" / "try" / "type" / "enum" / "struct" / "interface" / "data" / "match"
+ValueMeta =
+	"^" d0:_ fields:NodeContent d1:_ node:Node
+	{
+		const meta = Ast.valueMeta(fields, node)
+		meta.extras = {
+			delimiters: [d0, d1]
+		}
+		return meta
+	}
+	
+Reserved = "_" / "Never" / "=>" / "->" / "let" / "return" / "try" / "type" / "enum" / "data" / "match"
 
 Unit = "(" d:_ ")"
 {

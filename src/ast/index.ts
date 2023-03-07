@@ -13,12 +13,13 @@ import {
 	TryCatch,
 	TypeVarsDef,
 	ValueContainer,
+	ValueMeta,
 	VecLiteral,
 } from './ast'
 
 export {Node, LeafNode, InnerNode, Arg} from './ast'
 
-export {ValueMeta, NodeMeta} from './ast'
+export {NodeMeta} from './ast'
 
 export {isSame, print, setParent, clone} from './ast'
 
@@ -39,6 +40,7 @@ export {
 	ParamDef,
 	VecLiteral,
 	DictLiteral,
+	ValueMeta,
 }
 
 export const id = Identifier.of
@@ -50,6 +52,7 @@ export const str = StrLiteral.of
 export const app = App.of
 export const scope = Scope.of
 export const tryCatch = TryCatch.of
+export const valueMeta = ValueMeta.of
 
 export const fn = FnDef.of
 export const fnType = FnTypeDef.of

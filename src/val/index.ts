@@ -13,8 +13,6 @@ import {
 	PrimType,
 	Str,
 	StrType,
-	Struct,
-	StructType,
 	TypeVar,
 	UnionType,
 	Unit,
@@ -40,8 +38,6 @@ export {
 	FnType,
 	Vec,
 	Dict,
-	Struct,
-	StructType,
 	UnionType,
 }
 
@@ -65,7 +61,6 @@ export const fnType = FnType.of
 export const typeVar = TypeVar.of
 export const vec = Vec.of
 export const dict = Dict.of
-export const structType = StructType.of
 
 export {isEqual, isSubtype} from './val'
 
