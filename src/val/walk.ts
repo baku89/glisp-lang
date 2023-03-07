@@ -18,8 +18,6 @@ type TypeToValue<T extends ValueType> = T extends 'All'
 	? Val.EnumType
 	: T extends 'FnType'
 	? Val.FnType
-	: T extends 'StructType'
-	? Val.StructType
 	: T extends 'UnionType'
 	? Val.UnionType
 	: T extends 'TypeVar'
@@ -38,8 +36,6 @@ type TypeToValue<T extends ValueType> = T extends 'All'
 	? Val.Vec
 	: T extends 'Dict'
 	? Val.Dict
-	: T extends 'Struct'
-	? Val.Struct
 	: Val.Value
 
 type Visitors<U> = {
