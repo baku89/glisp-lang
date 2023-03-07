@@ -7,7 +7,6 @@ import * as Ast from '../ast'
 import {GlispError} from '../GlispError'
 import {Log, WithLog, withLog} from '../log'
 import {parse} from '../parser'
-import {MathScope} from '../std/math'
 import {PreludeScope} from '../std/prelude'
 import * as Val from '../val'
 
