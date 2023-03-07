@@ -464,16 +464,16 @@ export class Fn extends BaseValue implements IFnLike {
 		const {fnType} = this
 
 		const typeVars = [...getTypeVars(fnType)].map(tv => tv.name)
-		const param = mapValues(fnType.param, p => p.toAst())
+		const params = mapValues(fnType.params, p => p.toAst())
 		const rest = fnType.rest
 			? {name: fnType.rest.name ?? '', node: fnType.rest.value.toAst()}
 			: undefined
 
-		return Ast.fn({
+		return Ast.fnDef(
 			typeVars,
-			param: Ast.param(param, fnType.optionalPos, rest),
-			body: this.body.clone(),
-		})
+			Ast.params(params, fnType.optionalPos, rest),
+			this.body.clone()
+		)
 	}
 
 	clone = () => {
@@ -482,8 +482,8 @@ export class Fn extends BaseValue implements IFnLike {
 		return value
 	}
 
-	static of(param: Record<string, Value>, out: Value, fn: IFn) {
-		return new Fn(FnType.of({param, out}), fn)
+	static of(params: Record<string, Value>, returnType: Value, fn: IFn) {
+		return new Fn(FnType.of({params, returnType}), fn)
 	}
 	static from(ty: FnType, fn: IFn, body?: Ast.Node) {
 		return new Fn(ty, fn, body)
@@ -495,15 +495,15 @@ export class FnType extends BaseValue implements IFnType {
 	readonly superType = All.instance
 
 	private constructor(
-		public readonly param: Record<string, Value>,
+		public readonly params: Record<string, Value>,
 		public readonly optionalPos: number,
 		public readonly rest: {name: string; value: Value} | undefined,
-		public readonly out: Value
+		public readonly returnType: Value
 	) {
 		super()
 		if (
 			optionalPos < 0 ||
-			values(param).length < optionalPos ||
+			values(params).length < optionalPos ||
 			optionalPos % 1 !== 0
 		) {
 			throw new Error('Invalid optionalPos: ' + optionalPos)
@@ -520,7 +520,7 @@ export class FnType extends BaseValue implements IFnType {
 	#initialDefaultValue?: Fn
 	get initialDefaultValue(): Fn {
 		if (!this.#initialDefaultValue) {
-			const fn = Fn.from(this, () => withLog(this.out.defaultValue))
+			const fn = Fn.from(this, () => withLog(this.returnType.defaultValue))
 			this.#initialDefaultValue = fn
 		}
 		return this.#initialDefaultValue
@@ -531,24 +531,25 @@ export class FnType extends BaseValue implements IFnType {
 			? {name: this.rest.name, node: this.rest.value.toAst()}
 			: undefined
 
-		const param = mapValues(this.param, p => p.toAst())
+		const params = mapValues(this.params, p => p.toAst())
 
-		return Ast.fnType({
-			param: Ast.param(param, this.optionalPos, rest),
-			out: this.out.toAst(),
-		})
+		return Ast.fnTypeDef(
+			null,
+			Ast.params(params, this.optionalPos, rest),
+			this.returnType.toAst()
+		)
 	}
 
 	isEqualTo = (value: Value) =>
 		this.type === value.type &&
-		isEqualArray(values(this.param), values(value.param), isEqual) &&
+		isEqualArray(values(this.params), values(value.params), isEqual) &&
 		this.optionalPos === value.optionalPos &&
 		nullishEqual(
 			this.rest,
 			value.rest,
 			(a, b) => a.name === b.name && isEqual(a.value, b.value)
 		) &&
-		isEqual(this.out, value.out)
+		isEqual(this.returnType, value.returnType)
 
 	isSubtypeOf = (value: Value): boolean => {
 		if (this.superType.isSubtypeOf(value)) return true
@@ -556,17 +557,20 @@ export class FnType extends BaseValue implements IFnType {
 		if (value.type !== 'FnType') return false
 
 		const thisParam = Vec.of(
-			values(this.param),
+			values(this.params),
 			this.optionalPos,
 			this.rest?.value
 		)
 		const valueParam = Vec.of(
-			values(value.param),
+			values(value.params),
 			value.optionalPos,
 			value.rest?.value
 		)
 
-		return isSubtype(valueParam, thisParam) && isSubtype(this.out, value.out)
+		return (
+			isSubtype(valueParam, thisParam) &&
+			isSubtype(this.returnType, value.returnType)
+		)
 	}
 
 	isTypeFor!: (value: Value) => value is Fn
@@ -580,7 +584,12 @@ export class FnType extends BaseValue implements IFnType {
 	}
 
 	clone = () => {
-		const value = new FnType(this.param, this.optionalPos, this.rest, this.out)
+		const value = new FnType(
+			this.params,
+			this.optionalPos,
+			this.rest,
+			this.returnType
+		)
 		value.#defaultValue = this.#defaultValue
 		value.#initialDefaultValue = this.#initialDefaultValue
 		value.meta = this.meta
@@ -588,18 +597,18 @@ export class FnType extends BaseValue implements IFnType {
 	}
 
 	static of({
-		param = {},
+		params = {},
 		optionalPos,
 		rest = undefined,
-		out,
+		returnType,
 	}: {
-		param?: Record<string, Value>
+		params?: Record<string, Value>
 		optionalPos?: number
 		rest?: FnType['rest']
-		out: Value
+		returnType: Value
 	}) {
-		const _optionalPos = optionalPos ?? values(param).length
-		return new FnType(param, _optionalPos, rest, out)
+		const _optionalPos = optionalPos ?? values(params).length
+		return new FnType(params, _optionalPos, rest, returnType)
 	}
 }
 
@@ -682,8 +691,8 @@ export class Vec<TItems extends Value[] = Value[]>
 
 	get fnType() {
 		return FnType.of({
-			param: {index: NumType},
-			out: unionType(...this.items),
+			params: {index: NumType},
+			returnType: unionType(...this.items),
 		})
 	}
 
@@ -839,7 +848,7 @@ export class UnionType extends BaseValue {
 	}
 	initialDefaultValue: Atomic = this.types[0].defaultValue
 
-	protected toAstExceptMeta = (): Ast.Call => {
+	protected toAstExceptMeta = (): Ast.App => {
 		const types = this.types.map(ty => ty.toAst())
 		return Ast.app(Ast.id('union'), ...types)
 	}

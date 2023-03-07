@@ -45,7 +45,7 @@ const replScope = PreludeScope.extend({
 			(name: Ast.Arg<Val.Str>, value: Ast.Arg<Val.Value>) => {
 				return withLog(
 					IO.of(() => {
-						replScope.vars[name().value] = Ast.value(value())
+						replScope.items[name().value] = Ast.value(value())
 					})
 				)
 			}

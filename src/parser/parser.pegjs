@@ -105,7 +105,7 @@ Node =
 NodeContent =
 	Unit / Never / All /
 	Num / Str / Identifier /
-	Fn / FnType / Scope / TryCatch / App /
+	FnDef / FnTypeDef / Scope / TryCatch / App /
 	Vec / Dict / ValueMeta
 
 NodeMeta = d:_ "#" fields:Dict
@@ -170,27 +170,27 @@ App "function application" = "(" d0:_ fn:Node d1:_ argsDs:(Node _)* ")"
 		return app
 	}
 
-Fn "function definition" =
-	"(" d0:_ "=>" d1:__ typeVarsDs:(TypeVars __)? param:FnParam d3:__ body:Node d4:_ ")"
+FnDef "function definition" =
+	"(" d0:_ "=>" d1:__ typeVarsDs:(TypeVars __)? param:ParamsDef d3:__ body:Node d4:_ ")"
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
-		const fn = Ast.fn({typeVars, param, body})
-		fn.extras = {delimiters: [d0, d1, ...(d2 ? [d2] : []), d3, d4]}
-		return fn
+		const fnDef = Ast.fnDef(typeVars, param, body)
+		fnDef.extras = {delimiters: [d0, d1, ...(d2 ? [d2] : []), d3, d4]}
+		return fnDef
 	}
 
-FnType "function type definition" =
-	"(" d0:_ "->" d1:__ typeVarsDs:(TypeVars __)? param:FnParam d3:__ out:Node d4:_ ")"
+FnTypeDef "function type definition" =
+	"(" d0:_ "->" d1:__ typeVarsDs:(TypeVars __)? params:ParamsDef d3:__ out:Node d4:_ ")"
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
-		const fnType = Ast.fnType({typeVars, param, out})
+		const fnType = Ast.fnTypeDef(typeVars, params, out)
 		fnType.extras = {delimiters: [d0, d1, ...(d2 ? [d2] : []), d3, d4]}
 		return fnType
 	}
 	
-FnParam =
+ParamsDef =
 	"[" d0:_ entries:(NamedNode __)* rest:("..." @NamedNode @_)? "]"
 	{
 		let optionalFlags, d1s, d2s
@@ -207,9 +207,9 @@ FnParam =
 		if (rest) paramNames.push(rest.name)
 		checkDuplicatedKey(paramNames, 'parameter')
 
-		const param = Ast.param(paramDict, optionalPos, rest) 
-		param.extras = {delimiters: [d0, ...d1s, ...d2s]}
-		return param
+		const params = Ast.params(paramDict, optionalPos, rest) 
+		params.extras = {delimiters: [d0, ...d1s, ...d2s]}
+		return params
 	}
 
 TypeVars = "(" d0:_ namesDs:($([a-zA-Z] [a-zA-Z0-9]*) _)* ")"

@@ -44,7 +44,7 @@ export type InnerNode =
 /**
  * ASTs that can be a parent of other nodes
  */
-export type ParentNode = InnerNode | ValueMeta | NodeMeta | ParamDef
+export type ParentNode = InnerNode | ValueMeta | NodeMeta | ParamsDef
 
 export type Arg<T extends Val.Value = Val.Value> = () => T
 
@@ -96,7 +96,7 @@ export class Identifier extends BaseNode {
 	}
 
 	#resolve(
-		ref: Node | ValueMeta | NodeMeta | ParamDef | null,
+		ref: Node | ValueMeta | NodeMeta | ParamsDef | null,
 		env: Env
 	): Writer<{node: Node; mode?: 'param' | 'arg' | 'TypeVar'}, Log> {
 		if (!ref) {
@@ -112,15 +112,15 @@ export class Identifier extends BaseNode {
 		}
 
 		if (ref.type === 'Scope') {
-			if (this.name in ref.vars) {
-				return Writer.of({node: ref.vars[this.name]})
+			if (this.name in ref.items) {
+				return Writer.of({node: ref.items[this.name]})
 			}
 		}
 
 		if (ref.type === 'FnDef') {
 			if (env.isGlobal) {
 				// Situation A. While normal evaluation
-				const res = ref.param.get(this.name, env)
+				const res = ref.params.get(this.name, env)
 				if (res) {
 					const [node, l] = res.asTuple
 					return Writer.of({node, mode: 'param'}, ...l)
@@ -285,21 +285,34 @@ export class FnDef extends BaseNode {
 	readonly type = 'FnDef' as const
 
 	public readonly typeVars?: TypeVarsDef
+	public readonly params: ParamsDef
+	public body: Node
 
 	constructor(
-		typeVars: TypeVarsDef | null | undefined,
-		public readonly param: ParamDef,
-		public body: Node
+		typeVars: TypeVarsDef | string[] | null | undefined,
+		params: ParamsDef | ParamsDef['params'],
+		body: Node
 	) {
 		super()
 
 		if (typeVars) {
-			this.typeVars = typeVars
+			if (Array.isArray(typeVars)) {
+				this.typeVars = new TypeVarsDef(typeVars)
+			} else {
+				this.typeVars = typeVars
+			}
 		}
+
+		if (params instanceof ParamsDef) {
+			this.params = params
+		} else {
+			this.params = new ParamsDef(params)
+		}
+		this.body = body
 	}
 
 	protected forceEval = (env: Env): WithLog => {
-		const {names, restName} = this.param.getNames()
+		const {names, restName} = this.params.getNames()
 
 		const fn: Val.IFn = (...args: Arg[]) => {
 			const arg = fromPairs(zip(names, args))
@@ -320,10 +333,10 @@ export class FnDef extends BaseNode {
 
 	protected forceInfer = (env: Env): WithLog<Val.FnType> => {
 		// Infer parameter types by simply evaluating 'em
-		const [{param, rest}, lp] = this.param.eval(env).asTuple
+		const [{params, rest}, lp] = this.params.eval(env).asTuple
 
 		// Then, infer the function body
-		const arg = mapValues(param, p => () => p)
+		const arg = mapValues(params, p => () => p)
 		if (rest) {
 			const {name, value} = rest
 			arg[name as any] = () => Val.vec([], undefined, value)
@@ -331,13 +344,13 @@ export class FnDef extends BaseNode {
 
 		const innerEnv = env.extend(arg)
 
-		const [out, lo] = this.body.infer(innerEnv).asTuple
+		const [returnType, lo] = this.body.infer(innerEnv).asTuple
 
 		const fnType = Val.fnType({
-			param,
-			optionalPos: this.param.optionalPos,
+			params: params,
+			optionalPos: this.params.optionalPos,
 			rest,
-			out,
+			returnType,
 		})
 
 		return withLog(fnType, ...lp, ...lo)
@@ -352,7 +365,7 @@ export class FnDef extends BaseNode {
 		}
 
 		const typeVars = this.typeVars ? [this.typeVars.print()] : []
-		const param = this.param.print(options)
+		const param = this.params.print(options)
 		const body = this.body.print(options)
 
 		const elements = ['=>', ...typeVars, param, body]
@@ -365,70 +378,57 @@ export class FnDef extends BaseNode {
 	isSameTo = (node: Node) =>
 		this.type === node.type &&
 		nullishEqual(this.typeVars, node.typeVars, TypeVarsDef.isSame) &&
-		ParamDef.isSame(this.param, node.param) &&
+		ParamsDef.isSame(this.params, node.params) &&
 		isSame(this.body, node.body)
 
 	clone = (): FnDef =>
-		FnDef.of({
-			typeVars: this.typeVars?.clone(),
-			param: this.param.clone(),
-			body: this.body.clone(),
-		})
-
-	static of({
-		typeVars,
-		param = ParamDef.of(),
-		body,
-	}: {
-		typeVars?: string[] | TypeVarsDef
-		param?: ParamDef | Record<string, Node>
-		body: Node
-	}) {
-		const _typeVars = !typeVars
-			? undefined
-			: Array.isArray(typeVars)
-			? new TypeVarsDef(typeVars)
-			: typeVars
-
-		const _param = param instanceof ParamDef ? param : ParamDef.of(param)
-
-		const fnDef = new FnDef(_typeVars, _param, body)
-		_param.parent = fnDef
-		body.parent = fnDef
-		return fnDef
-	}
+		new FnDef(this.typeVars?.clone(), this.params.clone(), this.body.clone())
 }
 
 export class FnTypeDef extends BaseNode {
 	readonly type = 'FnTypeDef' as const
 
 	public readonly typeVars?: TypeVarsDef
+	public readonly params: ParamsDef
+	public readonly returnType: Node
 
 	constructor(
-		typeVars: TypeVarsDef | undefined | null,
-		public readonly param: ParamDef,
-		public out: Node
+		typeVars: TypeVarsDef | string[] | undefined | null,
+		params: ParamsDef | ParamsDef['params'],
+		returnType: Node
 	) {
 		super()
 
 		if (typeVars) {
-			this.typeVars = typeVars
+			if (Array.isArray(typeVars)) {
+				this.typeVars = new TypeVarsDef(typeVars)
+			} else {
+				this.typeVars = typeVars
+			}
 		}
+
+		if (params instanceof ParamsDef) {
+			this.params = params
+		} else {
+			this.params = new ParamsDef(params)
+		}
+
+		this.returnType = returnType
 	}
 
 	protected forceEval = (env: Env): WithLog => {
-		const [{param, rest}, lp] = this.param.eval(env).asTuple
+		const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
 
-		const [out, lo] = this.out.eval(env).asTuple
+		const [returnType, returnTypeLog] = this.returnType.eval(env).asTuple
 
 		const fnType = Val.fnType({
-			param,
-			optionalPos: this.param.optionalPos,
+			params,
+			optionalPos: this.params.optionalPos,
 			rest,
-			out,
+			returnType,
 		})
 
-		return withLog(fnType, ...lp, ...lo)
+		return withLog(fnType, ...paramsLog, ...returnTypeLog)
 	}
 
 	protected forceInfer = () => withLog(Val.all)
@@ -442,10 +442,10 @@ export class FnTypeDef extends BaseNode {
 		}
 
 		const typeVars = this.typeVars ? [this.typeVars.print()] : []
-		const param = this.param.print(options)
-		const out = this.out.print(options)
+		const params = this.params.print(options)
+		const returnType = this.returnType.print(options)
 
-		const elements = ['->', ...typeVars, param, out]
+		const elements = ['->', ...typeVars, params, returnType]
 
 		return '(' + insertDelimiters(elements, this.extras.delimiters) + ')'
 	}
@@ -455,26 +455,38 @@ export class FnTypeDef extends BaseNode {
 	isSameTo = (node: Node): boolean =>
 		this.type === node.type &&
 		nullishEqual(this.typeVars, node.typeVars, TypeVarsDef.isSame) &&
-		ParamDef.isSame(this.param, node.param) &&
-		isSame(this.out, node.out)
+		ParamsDef.isSame(this.params, node.params) &&
+		isSame(this.returnType, node.returnType)
 
 	clone = (): FnTypeDef =>
-		new FnTypeDef(this.typeVars?.clone(), this.param.clone(), this.out.clone())
+		new FnTypeDef(
+			this.typeVars?.clone(),
+			this.params.clone(),
+			this.returnType.clone()
+		)
 }
 
-export class ParamDef {
-	readonly type = 'ParamDef' as const
+export class ParamsDef {
+	readonly type = 'ParamsDef' as const
 	parent!: FnDef | FnTypeDef
 
+	public readonly optionalPos: number
+	public readonly params: Record<string, Node>
+	public readonly rest?: {name: string; node: Node}
+
 	constructor(
-		public param: Record<string, Node>,
-		public optionalPos: number,
-		public rest?: {name: string; node: Node}
-	) {}
+		params: Record<string, Node>,
+		optionalPos?: number,
+		rest?: {name: string; node: Node}
+	) {
+		this.params = params
+		this.optionalPos = optionalPos ?? values(params).length
+		this.rest = rest
+	}
 
 	eval = (env: Env) => {
 		// Infer parameter types by simply evaluating 'em
-		const [param, lp] = Writer.mapValues(this.param, p => p.eval(env)).asTuple
+		const [params, lp] = Writer.mapValues(this.params, p => p.eval(env)).asTuple
 
 		let rest: Val.FnType['rest'], lr: Set<Log>
 		if (this.rest) {
@@ -485,11 +497,11 @@ export class ParamDef {
 			lr = new Set()
 		}
 
-		return Writer.of({param, rest}, ...lp, ...lr)
+		return Writer.of({params, rest}, ...lp, ...lr)
 	}
 
 	print = (options?: PrintOptions) => {
-		const params = entries(this.param)
+		const params = entries(this.params)
 		const {optionalPos, rest} = this
 
 		const paramStrs = params.map(printNamedNode)
@@ -516,8 +528,8 @@ export class ParamDef {
 	extras?: {delimiters: string[]}
 
 	clone = () => {
-		return new ParamDef(
-			mapValues(this.param, clone),
+		return new ParamsDef(
+			mapValues(this.params, clone),
 			this.optionalPos,
 			this.rest
 				? {name: this.rest.name, node: this.rest.node.clone()}
@@ -527,14 +539,14 @@ export class ParamDef {
 
 	getNames = () => {
 		return {
-			names: keys(this.param),
+			names: keys(this.params),
 			restName: this.rest?.name,
 		}
 	}
 
 	get = (name: string, env: Env) => {
-		if (name in this.param) {
-			return Writer.of<Node, Log>(this.param[name])
+		if (name in this.params) {
+			return Writer.of<Node, Log>(this.params[name])
 		}
 		if (this.rest && this.rest.name === name) {
 			const [rest, lr] = this.rest.node.eval(env).asTuple
@@ -558,7 +570,7 @@ export class ParamDef {
 			throw new Error('Invalid optionalPos: ' + optionalPos)
 		}
 
-		const paramDef = new ParamDef(param, optionalPos, rest)
+		const paramDef = new ParamsDef(param, optionalPos, rest)
 
 		forOwn(param, p => (p.parent = paramDef))
 		if (rest) rest.node.parent = paramDef
@@ -566,9 +578,9 @@ export class ParamDef {
 		return paramDef
 	}
 
-	static isSame(a: ParamDef, b: ParamDef) {
+	static isSame(a: ParamsDef, b: ParamsDef) {
 		return (
-			isEqualDict(a.param, b.param, isSame) &&
+			isEqualDict(a.params, b.params, isSame) &&
 			a.optionalPos === b.optionalPos &&
 			nullishEqual(
 				a.rest,
@@ -782,7 +794,7 @@ export class App extends BaseNode {
 
 		const fnType = fnInferred.fnType
 
-		const params = values(fnType.param)
+		const params = values(fnType.params)
 		const args = fnType.rest ? this.args : this.args.slice(0, params.length)
 
 		const [shadowedArgs, argLog] = Writer.map(args, a => {
@@ -814,8 +826,8 @@ export class App extends BaseNode {
 		}
 
 		// Start function application
-		const names = keys(fn.fnType.param)
-		const params = values(fn.fnType.param)
+		const names = keys(fn.fnType.params)
+		const params = values(fn.fnType.params)
 
 		// Unify FnType and args
 		const [unifier, shadowedArgs, argLog] = this.#unify(env)
@@ -933,12 +945,12 @@ export class App extends BaseNode {
 		 * (e.g. 'struct' function), so it should be evaluated to infer a type of
 		 * the expression
 		 */
-		if (ty.fnType.out.isEqualTo(Val.all)) {
+		if (ty.fnType.returnType.isEqualTo(Val.all)) {
 			return this.eval(env)
 		}
 
 		const [unifier] = this.#unify(env)
-		return withLog(unifier.substitute(ty.fnType.out, true), ...log)
+		return withLog(unifier.substitute(ty.fnType.returnType, true), ...log)
 	}
 
 	print = (options?: PrintOptions): string => {
@@ -977,63 +989,70 @@ export class App extends BaseNode {
 export class Scope extends BaseNode {
 	readonly type = 'Scope' as const
 
-	constructor(public readonly vars: Record<string, Node>, public out?: Node) {
+	constructor(
+		public readonly items: Record<string, Node>,
+		public returnNode?: Node
+	) {
 		super()
-		values(vars).forEach(v => (v.parent = this))
-		if (out) out.parent = this
+		values(items).forEach(v => (v.parent = this))
+		if (returnNode) returnNode.parent = this
 	}
 
 	protected forceInfer = (env: Env): WithLog =>
-		this.out?.infer(env) ?? withLog(Val.unit)
+		this.returnNode?.infer(env) ?? withLog(Val.unit)
 
-	protected forceEval = (env: Env) => this.out?.eval(env) ?? Writer.of(Val.unit)
+	protected forceEval = (env: Env) =>
+		this.returnNode?.eval(env) ?? Writer.of(Val.unit)
 
 	print = (options?: PrintOptions): string => {
-		const varEntries = entries(this.vars)
+		const itemEntries = entries(this.items)
 
 		if (!this.extras) {
-			const tokensCount = 1 + varEntries.length * 2 + (this.out ? 1 : 0)
+			const tokensCount = 1 + itemEntries.length * 2 + (this.returnNode ? 1 : 0)
 			const delimiters = createListDelimiters(tokensCount)
 
 			this.extras = {delimiters}
 		}
 
-		const vars = varEntries.map(([k, v]) => [k + ':', v.print(options)]).flat()
-		const out = this.out ? [this.out.print(options)] : []
+		const items = itemEntries
+			.map(([k, v]) => [`${k}:${v.print(options)}`])
+			.flat()
+		const ret = this.returnNode ? [this.returnNode.print(options)] : []
 
 		const {delimiters} = this.extras
 
-		return '(' + insertDelimiters(['let', ...vars, ...out], delimiters) + ')'
+		return '(' + insertDelimiters(['let', ...items, ...ret], delimiters) + ')'
 	}
 
 	extras?: {delimiters: string[]}
 
 	isSameTo = (node: Node) =>
 		this.type === node.type &&
-		nullishEqual(this.out, node.out, isSame) &&
-		isEqualDict(this.vars, node.vars, isSame)
+		nullishEqual(this.returnNode, node.returnNode, isSame) &&
+		isEqualDict(this.items, node.items, isSame)
 
-	clone = (): Scope => new Scope(mapValues(this.vars, clone), this.out?.clone())
+	clone = (): Scope =>
+		new Scope(mapValues(this.items, clone), this.returnNode?.clone())
 
-	extend(vars: Record<string, Node>, out?: Node): Scope {
-		const scope = new Scope(vars, out)
+	extend(items: Record<string, Node>, out?: Node): Scope {
+		const scope = new Scope(items, out)
 		scope.parent = this
 		return scope
 	}
 
 	def(name: string, node: Node) {
-		if (name in this.vars)
+		if (name in this.items)
 			throw new Error(`Variable '${name}' is already defined`)
 
 		node.parent = this
-		this.vars[name] = node
+		this.items[name] = node
 
 		return this
 	}
 
-	defs(vars: Record<string, Node>) {
-		for (const [name, exp] of entries(vars)) {
-			this.def(name, exp)
+	defs(items: Record<string, Node>) {
+		for (const [name, node] of entries(items)) {
+			this.def(name, node)
 		}
 	}
 }
@@ -1099,47 +1118,47 @@ export class ValueMeta extends BaseNode {
 
 	extras?: {delimiters: [string, string]}
 
-	constructor(public readonly fields: Node, public readonly node: Node) {
+	constructor(public readonly meta: Node, public readonly node: Node) {
 		super()
-		fields.parent = this
+		meta.parent = this
 		node.parent = this
 	}
 
 	protected forceEval = (env: Env): WithLog<Val.Value> => {
-		const [_fields, fieldLog] = this.fields.eval(env).asTuple
+		const [_meta, fieldLog] = this.meta.eval(env).asTuple
 		const [_node, nodeLog] = this.node.eval(env).asTuple
 
-		let fields = _fields,
+		let meta = _meta,
 			node = _node
 
-		const metaLog = new Set<Log>()
+		const log = new Set<Log>()
 
 		// Check if the metadata is dictionary
-		if (fields.type !== 'Dict') {
+		if (meta.type !== 'Dict') {
 			// NOTE: これ、inferした時点でDictじゃなければ切る、でも良いのでは?
-			metaLog.add({
+			log.add({
 				level: 'warn',
 				ref: this,
-				reason: `Type metadata should be dictionary, but got ${fields.type}`,
+				reason: `Type metadata should be dictionary, but got ${meta.type}`,
 			})
 
 			// Just returns a value with logs
-			return withLog(node, ...nodeLog, ...metaLog)
+			return withLog(node, ...nodeLog, ...log)
 		}
 
 		// When the default key exists
-		const defaultValue = fields.items.default
+		const defaultValue = meta.items.default
 		if (defaultValue) {
-			fields = fields.clone()
-			delete fields.items.default
+			meta = meta.clone()
+			delete meta.items.default
 
-			node = node.withMeta(fields)
+			node = node.withMeta(meta)
 
 			// Check if the default value is valid
 			if (node.isTypeFor(defaultValue)) {
 				node = node.withDefault(defaultValue)
 			} else {
-				metaLog.add({
+				log.add({
 					level: 'warn',
 					ref: this,
 					reason:
@@ -1149,19 +1168,19 @@ export class ValueMeta extends BaseNode {
 			}
 		}
 
-		return withLog(node, ...fieldLog, ...nodeLog, ...metaLog)
+		return withLog(node, ...fieldLog, ...nodeLog, ...log)
 	}
 
 	protected forceInfer = (env: Env): WithLog<Val.Value> => {
 		return this.node.infer(env)
 	}
 
-	clone = (): ValueMeta => new ValueMeta(this.fields.clone(), this.node.clone())
+	clone = (): ValueMeta => new ValueMeta(this.meta.clone(), this.node.clone())
 
 	isSameTo = (node: Node): boolean => {
 		return (
 			this.type === node.type &&
-			this.fields.isSameTo(node.fields) &&
+			this.meta.isSameTo(node.meta) &&
 			this.node.isSameTo(node.node)
 		)
 	}
@@ -1172,10 +1191,10 @@ export class ValueMeta extends BaseNode {
 		}
 
 		const [d0, d1] = this.extras.delimiters
-		const fields = this.fields.print(options)
+		const meta = this.meta.print(options)
 		const node = this.node.print(options)
 
-		return `^${d0}${fields}${d1}${node}`
+		return `^${d0}${meta}${d1}${node}`
 	}
 }
 

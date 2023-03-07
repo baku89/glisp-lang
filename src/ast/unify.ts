@@ -175,11 +175,11 @@ export class Unifier {
 			const tf = t
 			const uf = u.fnType
 
-			const tParam = vec(values(tf.param), tf.optionalPos, tf.rest?.value)
-			const uParam = vec(values(uf.param), uf.optionalPos, uf.rest?.value)
+			const tParam = vec(values(tf.params), tf.optionalPos, tf.rest?.value)
+			const uParam = vec(values(uf.params), uf.optionalPos, uf.rest?.value)
 
-			const tOut = tf.out
-			const uOut = uf.out
+			const tOut = tf.returnType
+			const uOut = uf.returnType
 
 			const cParam: Const = [tParam, Ri, uParam]
 			const cOut: Const = [tOut, R, uOut]
@@ -259,12 +259,12 @@ export class Unifier {
 				return unshadow && v.type === 'TypeVar' ? v.unshadow() : v
 			}
 			case 'FnType': {
-				const param = mapValues(value.param, p => this.substitute(p, unshadow))
+				const param = mapValues(value.params, p => this.substitute(p, unshadow))
 				const rest = value.rest
 					? {...value.rest, value: this.substitute(value.rest.value, unshadow)}
 					: undefined
-				const out = this.substitute(value.out, unshadow)
-				return fnType({param, rest, out})
+				const returnType = this.substitute(value.returnType, unshadow)
+				return fnType({params: param, rest, returnType})
 			}
 			case 'UnionType': {
 				const types = value.types.map(ty => this.substitute(ty, unshadow))

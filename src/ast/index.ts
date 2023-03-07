@@ -9,7 +9,7 @@ import {
 	NeverKeyword,
 	Node,
 	NumLiteral,
-	ParamDef,
+	ParamsDef,
 	Scope,
 	StrLiteral,
 	TryCatch,
@@ -34,13 +34,13 @@ export {
 	NeverKeyword,
 	NumLiteral,
 	StrLiteral,
-	App as Call,
+	App,
 	Scope,
 	TryCatch,
 	FnDef,
 	FnTypeDef,
 	TypeVarsDef,
-	ParamDef,
+	ParamsDef,
 	VecLiteral,
 	DictLiteral,
 	ValueMeta,
@@ -70,22 +70,22 @@ export const tryCatch = (block: Node, handler: Node) =>
 export const valueMeta = (meta: Node, value: Node) => new ValueMeta(meta, value)
 
 export const fnDef = (
-	typeVars: TypeVarsDef | null | undefined,
-	param: ParamDef,
+	typeVars: TypeVarsDef | string[] | null | undefined,
+	params: ParamsDef | ParamsDef['params'],
 	body: Node
-) => new FnDef(typeVars, param, body)
+) => new FnDef(typeVars, params, body)
 
-export const fnType = (
-	typeVars: TypeVarsDef | null | undefined,
-	param: ParamDef,
-	out: Node
-) => new FnTypeDef(typeVars, param, out)
+export const fnTypeDef = (
+	typeVars: TypeVarsDef | string[] | null | undefined,
+	params: ParamsDef | ParamsDef['params'],
+	returnType: Node
+) => new FnTypeDef(typeVars, params, returnType)
 
-export const param = (
+export const params = (
 	items: Record<string, Node>,
-	optionalPos: number,
+	optionalPos?: number,
 	rest?: {name: string; node: Node}
-) => new ParamDef(items, optionalPos, rest)
+) => new ParamsDef(items, optionalPos, rest)
 
 export const vec = (items: Node[] = [], optionalPos?: number, rest?: Node) =>
 	new VecLiteral(items, optionalPos, rest)

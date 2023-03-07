@@ -17,5 +17,5 @@ export function parseModule(str: string): Record<string, Ast.Node> {
 	const node: Ast.Node | undefined = parser.parse('(let ' + str + ')', {Ast})
 	if (!node || node.type !== 'Scope') return {}
 
-	return node.vars
+	return node.items
 }
