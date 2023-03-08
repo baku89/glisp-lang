@@ -51,7 +51,7 @@
 	}
 
 	function checkDuplicatedKey(keys, label) {
-		const set = new Set()
+	const set = new Set()
 		for (const key of keys) {
 			if (typeof key !== 'string') continue
 
@@ -122,7 +122,7 @@ ValueMeta =
 		return meta
 	}
 	
-Reserved = "=>" / "->" / "let" / "return" / "try" / "type" / "enum" / "data" / "match"
+Reserved = "=>" / "let" / "return" / "try" / "type" / "enum" / "data" / "match"
 
 Identifier "identifier" =
 	!(Reserved End)
@@ -164,7 +164,7 @@ FnDef "function definition" =
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
-		const fn = Expr.fnDef(typeVars, param, body)
+		const fn = Expr.fnDef(typeVars, param, null,body)
 		fn.extras = {delimiters: [d0, d1, ...(d2 ? [d2] : []), d3, d4]}
 		return fn
 	}

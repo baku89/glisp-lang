@@ -479,6 +479,7 @@ export class Fn extends BaseValue implements IFnLike {
 
 	protected toExprExceptMeta = (): Expr => {
 		if (!this.body) {
+			// It means the function is defined in JS natively
 			return valueContainer(this)
 		}
 
@@ -493,6 +494,7 @@ export class Fn extends BaseValue implements IFnLike {
 		return fnDef(
 			typeVars,
 			paramsDef(_params, fnType.optionalPos, rest),
+			fnType.out.toExpr(),
 			this.body.clone()
 		)
 	}

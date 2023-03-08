@@ -140,7 +140,10 @@ describe('evaluating function body', () => {
 			const e = parse(expected).eval().result
 
 			if (i.type !== 'FnDef')
-				throw new Error('Not a function, got =' + i.print())
+				throw new Error('Not a function. Got=' + i.print())
+
+			if (!i.body)
+				throw new Error('Not a function definition. Got=' + i.print())
 
 			const result = i.body.eval().result
 

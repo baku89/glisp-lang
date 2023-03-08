@@ -64,8 +64,9 @@ export const valueMeta = (meta: Expr, value: Expr) => new ValueMeta(meta, value)
 export const fnDef = (
 	typeVars: TypeVarsDef | string[] | null | undefined,
 	param: ParamsDef | Record<string, Expr>,
-	body: Expr
-) => new FnDef(typeVars, param, body)
+	returnType: Expr | null,
+	body?: Expr
+) => new FnDef(typeVars, param, returnType, body)
 
 export const fnType = (
 	typeVars: TypeVarsDef | string[] | null | undefined,

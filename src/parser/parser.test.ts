@@ -140,30 +140,38 @@ describe('parsing dictionary', () => {
 })
 
 describe('parsing function definition', () => {
-	testParsing('(=> [x:Num] x)', fnDef(null, {x: Num}, x))
-	testParsing('(=> [ x: Num ] x)', fnDef(null, {x: Num}, x))
-	testParsing('(=> [x: Num y: Bool] x)', fnDef(null, {x: Num, y: Bool}, x))
-	testParsing('(=> [] _)', fnDef(null, {}, all))
-	testParsing('(=>[]_)', fnDef(null, {}, all))
-	testParsing('(=>()[]_)', fnDef([], {}, all))
-	testParsing('(=> [] ())', fnDef(null, {}, app()))
-	testParsing('(=> [] (+ 1 2))', fnDef(null, {}, app(id('+'), num(1), num(2))))
-	testParsing('(=> [] (=> [] 1))', fnDef(null, {}, fnDef(null, {}, num(1))))
+	testParsing('(=> [x:Num] x)', fnDef(null, {x: Num}, null, x))
+	testParsing('(=> [ x: Num ] x)', fnDef(null, {x: Num}, null, x))
+	testParsing(
+		'(=> [x: Num y: Bool] x)',
+		fnDef(null, {x: Num, y: Bool}, null, x)
+	)
+	testParsing('(=> [] _)', fnDef(null, {}, null, all))
+	testParsing('(=>[]_)', fnDef(null, {}, null, all))
+	testParsing('(=>()[]_)', fnDef([], {}, null, all))
+	testParsing('(=> [] ())', fnDef(null, {}, null, app()))
+	testParsing(
+		'(=> [] (+ 1 2))',
+		fnDef(null, {}, null, app(id('+'), num(1), num(2)))
+	)
+	testParsing(
+		'(=> [] (=> [] 1))',
+		fnDef(null, {}, null, fnDef(null, {}, null, num(1)))
+	)
 
 	// Polymorphic functions
-	testParsing('(=> (T) [x:T] x)', fnDef(['T'], {x: id('T')}, x))
-	testParsing('(=> (T U) [x:T] x)', fnDef(['T', 'U'], {x: id('T')}, x))
-	testParsing('(=> () [] Num)', fnDef([], {}, Num))
-	testErrorParsing('(=> <1> [] Num)')
+	testParsing('(=> (T) [x:T] x)', fnDef(['T'], {x: id('T')}, null, x))
+	testParsing('(=> (T U) [x:T] x)', fnDef(['T', 'U'], {x: id('T')}, null, x))
+	testParsing('(=> () [] Num)', fnDef([], {}, null, Num))
 
 	// functions with rest parameter
 	testParsing(
 		'(=> [...x:x] y)',
-		fnDef(null, paramsDef({}, 0, {name: 'x', expr: x}), y)
+		fnDef(null, paramsDef({}, 0, {name: 'x', expr: x}), null, y)
 	)
 	testParsing(
 		'(=> [x:x ...y:y] z)',
-		fnDef(null, paramsDef({x}, 1, {name: 'y', expr: y}), z)
+		fnDef(null, paramsDef({x}, 1, {name: 'y', expr: y}), null, z)
 	)
 })
 

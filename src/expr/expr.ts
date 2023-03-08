@@ -279,13 +279,22 @@ export class FnDef extends BaseExpr {
 
 	public readonly typeVars?: TypeVarsDef
 	public readonly params: ParamsDef
+	public readonly returnType?: Expr
+	public readonly body?: Expr
 
 	constructor(
 		typeVars: TypeVarsDef | string[] | null | undefined,
 		params: ParamsDef | Record<string, Expr>,
-		public readonly body: Expr
+		returnType: Expr | null,
+		body?: Expr
 	) {
 		super()
+
+		if (!returnType && !body) {
+			throw new Error(
+				'Invalid function definition. Neither return type nor body is defined.'
+			)
+		}
 
 		if (typeVars) {
 			if (Array.isArray(typeVars)) {
@@ -297,12 +306,24 @@ export class FnDef extends BaseExpr {
 
 		this.params = params instanceof ParamsDef ? params : new ParamsDef(params)
 
+		if (returnType) {
+			this.returnType = returnType
+		}
+
+		if (body) {
+			this.body = body
+		}
+
 		// Set parent
 		this.params.parent = this
-		this.body.parent = this
+		if (this.returnType) this.returnType.parent = this
+		if (this.body) this.body.parent = this
 	}
 
 	protected forceEval = (env: Env): WithLog => {
+		// TODO: Returns FnType
+		if (!this.body) throw new Error('Body is not defined')
+
 		const {names, restName} = this.params.getNames()
 
 		const fn: IFn = (...args: Arg[]) => {
@@ -312,6 +333,10 @@ export class FnDef extends BaseExpr {
 				arg[restName] = () => vec(restArgs.map(a => a()))
 			}
 			const innerEnv = env.extend(arg)
+
+			// TODO: Returns FnType
+			if (!this.body) throw new Error('Body is not defined')
+
 			return this.body.eval(innerEnv)
 		}
 
@@ -323,6 +348,9 @@ export class FnDef extends BaseExpr {
 	}
 
 	protected forceInfer = (env: Env): WithLog<FnType> => {
+		// TODO: Returns FnType
+		if (!this.body) throw new Error('Body is not defined')
+
 		// Infer parameter types by simply evaluating 'em
 		const [{params, rest}, lp] = this.params.eval(env).asTuple
 
@@ -349,17 +377,24 @@ export class FnDef extends BaseExpr {
 
 	print = (options?: PrintOptions): string => {
 		if (!this.extras) {
-			const tokensCount = this.typeVars ? 4 : 3
-			const delimiters = createListDelimiters(tokensCount)
+			const delimiters = [''] // ( _ =>
+			if (this.typeVars) delimiters.push(' ') // (_ => __ ()
+			if (this.returnType) delimiters.push('', ' ') // ... _ : __ ReturnType
+			if (this.body) delimiters.push(' ') // ... __ Body
+
+			delimiters.push('') // ... _ )
 
 			this.extras = {delimiters}
 		}
 
 		const typeVars = this.typeVars ? [this.typeVars.print()] : []
 		const params = this.params.print(options)
-		const body = this.body.print(options)
+		const returnType = this.returnType
+			? [':', this.returnType.print(options)]
+			: []
+		const body = this.body ? [this.body.print(options)] : []
 
-		const elements = ['=>', ...typeVars, params, body]
+		const elements = ['=>', ...typeVars, params, ...returnType, ...body]
 
 		return '(' + insertDelimiters(elements, this.extras.delimiters) + ')'
 	}
@@ -370,10 +405,17 @@ export class FnDef extends BaseExpr {
 		this.type === expr.type &&
 		nullishEqual(this.typeVars, expr.typeVars, TypeVarsDef.isSame) &&
 		ParamsDef.isSame(this.params, expr.params) &&
-		isSame(this.body, expr.body)
+		nullishEqual(this.returnType, expr.returnType, isSame) &&
+		nullishEqual(this.body, expr.body, isSame)
 
-	clone = (): FnDef =>
-		new FnDef(this.typeVars?.clone(), this.params.clone(), this.body.clone())
+	clone = (): FnDef => {
+		return new FnDef(
+			this.typeVars?.clone(),
+			this.params.clone(),
+			this.returnType?.clone() ?? null,
+			this.body?.clone()
+		)
+	}
 }
 
 export class FnTypeDef extends BaseExpr {
