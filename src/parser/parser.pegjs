@@ -171,7 +171,7 @@ App "function application" = "(" d0:_ fn:Node d1:_ argsDs:(Node _)* ")"
 	}
 
 Fn "function definition" =
-	"(" d0:_ "=>" d1:__ typeVarsDs:(TypeVars __)? param:FnParam d3:__ body:Node d4:_ ")"
+	"(" d0:_ "=>" d1:__ typeVarsDs:(TypeVars __)? param:Params d3:__ body:Node d4:_ ")"
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
@@ -181,7 +181,7 @@ Fn "function definition" =
 	}
 
 FnType "function type definition" =
-	"(" d0:_ "->" d1:__ typeVarsDs:(TypeVars __)? param:FnParam d3:__ out:Node d4:_ ")"
+	"(" d0:_ "->" d1:__ typeVarsDs:(TypeVars __)? param:Params d3:__ out:Node d4:_ ")"
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
@@ -190,7 +190,7 @@ FnType "function type definition" =
 		return fnType
 	}
 	
-FnParam =
+Params =
 	"[" d0:_ entries:(NamedNode __)* rest:("..." @NamedNode @_)? "]"
 	{
 		let optionalFlags, d1s, d2s
@@ -207,9 +207,9 @@ FnParam =
 		if (rest) paramNames.push(rest.name)
 		checkDuplicatedKey(paramNames, 'parameter')
 
-		const param = Ast.param(paramDict, optionalPos, rest) 
-		param.extras = {delimiters: [d0, ...d1s, ...d2s]}
-		return param
+		const params =  Ast.params(paramDict, optionalPos, rest) 
+		params.extras = {delimiters: [d0, ...d1s, ...d2s]}
+		return params
 	}
 
 TypeVars = "(" d0:_ namesDs:($([a-zA-Z] [a-zA-Z0-9]*) _)* ")"

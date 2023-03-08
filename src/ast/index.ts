@@ -9,7 +9,7 @@ import {
 	NeverKeyword,
 	Node,
 	NumLiteral,
-	ParamDef,
+	Params,
 	Scope,
 	StrLiteral,
 	TryCatch,
@@ -40,7 +40,7 @@ export {
 	FnDef,
 	FnTypeDef,
 	TypeVarsDef,
-	ParamDef,
+	Params,
 	VecLiteral,
 	DictLiteral,
 	ValueMeta,
@@ -71,21 +71,21 @@ export const valueMeta = (meta: Node, value: Node) => new ValueMeta(meta, value)
 
 export const fnDef = (
 	typeVars: TypeVarsDef | string[] | null | undefined,
-	param: ParamDef | Record<string, Node>,
+	param: Params | Record<string, Node>,
 	body: Node
 ) => new FnDef(typeVars, param, body)
 
 export const fnType = (
 	typeVars: TypeVarsDef | string[] | null | undefined,
-	param: ParamDef | Record<string, Node>,
+	param: Params | Record<string, Node>,
 	out: Node
 ) => new FnTypeDef(typeVars, param, out)
 
-export const param = (
+export const params = (
 	items: Record<string, Node>,
 	optionalPos: number,
 	rest?: {name: string; node: Node}
-) => new ParamDef(items, optionalPos, rest)
+) => new Params(items, optionalPos, rest)
 
 export const vec = (items: Node[] = [], optionalPos?: number, rest?: Node) =>
 	new VecLiteral(items, optionalPos, rest)

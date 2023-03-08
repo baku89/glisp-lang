@@ -9,7 +9,7 @@ import {
 	never,
 	Node,
 	num,
-	param,
+	params,
 	scope,
 	str,
 	valueMeta,
@@ -150,11 +150,11 @@ describe('parsing function definition', () => {
 	// functions with rest parameter
 	testParsing(
 		'(=> [...x:x] y)',
-		fnDef(null, param({}, 0, {name: 'x', node: x}), y)
+		fnDef(null, params({}, 0, {name: 'x', node: x}), y)
 	)
 	testParsing(
 		'(=> [x:x ...y:y] z)',
-		fnDef(null, param({x}, 1, {name: 'y', node: y}), z)
+		fnDef(null, params({x}, 1, {name: 'y', node: y}), z)
 	)
 })
 
@@ -176,10 +176,10 @@ describe('parsing function type', () => {
 	testErrorParsing('(-> () [] Num)')
 	testErrorParsing('(-> (1) [] Num)')
 
-	testParsing('(-> [x?:x] y)', fnType(null, param({x}, 0), y))
-	testParsing('(-> [x?:x] y)', fnType(null, param({x}, 0), y))
-	testParsing('(-> [x?:x] y)', fnType(null, param({x}, 0), y))
-	testParsing('(-> [x:x y?:y] z)', fnType(null, param({x, y}, 1), z))
+	testParsing('(-> [x?:x] y)', fnType(null, params({x}, 0), y))
+	testParsing('(-> [x?:x] y)', fnType(null, params({x}, 0), y))
+	testParsing('(-> [x?:x] y)', fnType(null, params({x}, 0), y))
+	testParsing('(-> [x:x y?:y] z)', fnType(null, params({x, y}, 1), z))
 })
 
 describe('parsing value metadata', () => {

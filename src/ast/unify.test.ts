@@ -12,10 +12,10 @@ const T = Val.typeVar('T'),
 	T5 = Val.typeVar('T5')
 
 function ft(param: Val.Value | Val.Value[], out: Val.Value) {
-	const _param = Array.isArray(param)
+	const _params = Array.isArray(param)
 		? fromPairs(param.map((p, i) => [i, p]))
 		: {0: param}
-	return Val.fnType({param: _param, out})
+	return Val.fnType({params: _params, out})
 }
 
 describe('getTypeVars', () => {
