@@ -377,12 +377,12 @@ export class FnDef extends BaseExpr {
 
 	print = (options?: PrintOptions): string => {
 		if (!this.extras) {
-			const delimiters = [''] // ( _ =>
-			if (this.typeVars) delimiters.push(' ') // (_ => __ ()
-			if (this.returnType) delimiters.push('', ' ') // ... _ : __ ReturnType
-			if (this.body) delimiters.push(' ') // ... __ Body
+			const delimiters = ['', ' ']
+			if (this.typeVars) delimiters.push(' ')
+			if (this.returnType) delimiters.push('', ' ')
+			if (this.body) delimiters.push(' ')
 
-			delimiters.push('') // ... _ )
+			delimiters.push('')
 
 			this.extras = {delimiters}
 		}
