@@ -20,13 +20,7 @@ export type Node = LeafNode | InnerNode
 /**
  * ASTs that cannot have child elements
  */
-export type LeafNode =
-	| Identifier
-	| ValueContainer
-	| AllKeyword
-	| NeverKeyword
-	| NumLiteral
-	| StrLiteral
+export type LeafNode = Identifier | ValueContainer | NumLiteral | StrLiteral
 
 /**
  * ASTs that can have child elements
@@ -209,26 +203,6 @@ export class ValueContainer<V extends Val.Value = Val.Value> extends BaseNode {
 		this.type === node.type && this.value === node.value
 
 	clone = () => new ValueContainer(this.value)
-}
-
-export class AllKeyword extends BaseNode {
-	readonly type = 'AllKeyword' as const
-
-	protected forceEval = () => withLog(Val.all)
-	protected forceInfer = () => withLog(Val.all)
-	print = () => '_'
-	isSameTo = (node: Node) => this.type === node.type
-	clone = () => new AllKeyword()
-}
-
-export class NeverKeyword extends BaseNode {
-	readonly type = 'NeverKeyword' as const
-
-	protected forceEval = () => withLog(Val.never)
-	protected forceInfer = () => withLog(Val.all)
-	print = () => 'Never'
-	isSameTo = (node: Node) => this.type === node.type
-	clone = () => new NeverKeyword()
 }
 
 export class NumLiteral extends BaseNode {

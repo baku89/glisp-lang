@@ -1,12 +1,10 @@
 import {Value} from '../val'
 import {
-	AllKeyword,
 	App,
 	DictLiteral,
 	FnDef,
 	FnTypeDef,
 	Identifier,
-	NeverKeyword,
 	Node,
 	NumLiteral,
 	Params,
@@ -30,8 +28,6 @@ export {
 	Node,
 	Identifier,
 	ValueContainer,
-	AllKeyword,
-	NeverKeyword,
 	NumLiteral,
 	StrLiteral,
 	App as Call,
@@ -50,10 +46,6 @@ export const id = (name: string) => new Identifier(name)
 
 export const value = <V extends Value = Value>(value: V) =>
 	new ValueContainer(value)
-
-export const all = () => new AllKeyword()
-
-export const never = () => new NeverKeyword()
 
 export const num = (value: number) => new NumLiteral(value)
 

@@ -1,12 +1,10 @@
 import {
-	all,
 	app,
 	dict,
 	fnDef,
 	fnType,
 	id,
 	isSame,
-	never,
 	Node,
 	num,
 	params,
@@ -16,6 +14,9 @@ import {
 	vec,
 } from '../ast'
 import {parse} from '.'
+
+const all = id('_')
+const never = id('Never')
 
 const Num = id('Num')
 const Bool = id('Bool')
@@ -34,8 +35,8 @@ describe('parsing literals', () => {
 	testParsing('"hello, world"', str('hello, world'))
 	testParsing(' () ', app())
 	testParsing(' (  \t   ) ', app())
-	testParsing(' _ ', all())
-	testParsing('Never', never())
+	testParsing(' _ ', all)
+	testParsing('Never', never)
 })
 
 describe('parsing symbols', () => {
@@ -78,7 +79,7 @@ describe('parsing app expressions', () => {
 	testParsing('(+ 1 2)', app(id('+'), num(1), num(2)))
 	testParsing('(* 1 2)', app(id('*'), num(1), num(2)))
 	testParsing('(()2())', app(app(), num(2), app()))
-	testParsing('(x _)', app(x, all()))
+	testParsing('(x _)', app(x, all))
 	testParsing('(x ())', app(x, app()))
 	testParsing('(x)', app(x))
 	testParsing('(0 false)', app(num(1), id('false')))
@@ -136,7 +137,7 @@ describe('parsing function definition', () => {
 	testParsing('(=> [x:Num] x)', fnDef(null, {x: Num}, x))
 	testParsing('(=> [ x: Num ] x)', fnDef(null, {x: Num}, x))
 	testParsing('(=> [x: Num y: Bool] x)', fnDef(null, {x: Num, y: Bool}, x))
-	testParsing('(=> [] _)', fnDef(null, {}, all()))
+	testParsing('(=> [] _)', fnDef(null, {}, all))
 	testParsing('(=> [] ())', fnDef(null, {}, app()))
 	testParsing('(=> [] (+ 1 2))', fnDef(null, {}, app(id('+'), num(1), num(2))))
 	testParsing('(=> [] (=> [] 1))', fnDef(null, {}, fnDef(null, {}, num(1))))
@@ -160,7 +161,7 @@ describe('parsing function definition', () => {
 
 describe('parsing function type', () => {
 	testParsing('(-> [a:[...x]] x)', fnType(null, {a: vec([], 0, x)}, x))
-	testParsing('(-> [x:_] _)', fnType(null, {x: all()}, all()))
+	testParsing('(-> [x:_] _)', fnType(null, {x: all}, all))
 	testParsing('(-> [x:[]] ())', fnType(null, {x: vec()}, app()))
 	testParsing('(-> [] z)', fnType(null, {}, z))
 	testParsing('(-> [] [])', fnType(null, {}, vec()))

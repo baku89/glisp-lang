@@ -55,6 +55,12 @@ export const PreludeScope = Ast.scope({
 	Num: Ast.value(Val.NumType),
 	Str: Ast.value(Val.StrType),
 	Bool: Ast.value(Val.BoolType),
+	_: Ast.value(Val.All.instance),
+	All: Ast.value(Val.All.instance),
+	Never: Ast.value(Val.Never.instance),
+})
+
+PreludeScope.defs({
 	union: defn('(-> [...types:_] _)', (...types: Val.Value[]) =>
 		Val.unionType(...types)
 	),

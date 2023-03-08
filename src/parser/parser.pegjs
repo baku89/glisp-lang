@@ -103,9 +103,8 @@ Node =
 	}
 
 NodeContent =
-	Unit / Never / All /
 	Num / Str / Identifier /
-	Fn / FnType / Scope / TryCatch / App /
+	FnDef / FnType / Scope / TryCatch / App /
 	Vec / Dict / ValueMeta
 
 NodeMeta = d:_ "#" fields:Dict
@@ -123,18 +122,7 @@ ValueMeta =
 		return meta
 	}
 	
-Reserved = "_" / "Never" / "=>" / "->" / "let" / "return" / "try" / "type" / "enum" / "data" / "match"
-
-Unit = "(" d:_ ")"
-{
-	const app = Ast.app()
-	app.extras = {delimiters: [d]}
-	return app
-}
-
-All = "_" { return Ast.all() }
-
-Never = "Never" { return Ast.never() }
+Reserved = "=>" / "->" / "let" / "return" / "try" / "type" / "enum" / "data" / "match"
 
 Identifier "identifier" =
 	!(Reserved End)
@@ -159,18 +147,19 @@ Str "string" = '"' value:$(!'"' .)* '"'
 		return Ast.str(value)
 	}
 
-App "function application" = "(" d0:_ fn:Node d1:_ argsDs:(Node _)* ")"
+App "function application" = "(" d0:_ itemsDs:(Node _)* ")"
 	{
-		const [args, ds] = zip(argsDs)
+		const [items, ds] = zip(itemsDs)
 
-		const delimiters = [d0, d1, ...ds]
+		const delimiters = [d0, ...ds]
 
-		const app = Ast.app(fn, ...args)
+		const app = Ast.app(...items)
 		app.extras = {delimiters}
+
 		return app
 	}
 
-Fn "function definition" =
+FnDef "function definition" =
 	"(" d0:_ "=>" d1:__ typeVarsDs:(TypeVars __)? param:Params d3:__ body:Node d4:_ ")"
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]

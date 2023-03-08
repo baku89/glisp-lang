@@ -145,7 +145,8 @@ export class All extends BaseValue {
 
 	readonly initialDefaultValue = Unit.instance
 
-	protected toAstExceptMeta = () => Ast.all()
+	// TODO: Resolve the name of symbol correctly
+	protected toAstExceptMeta = () => Ast.id('_')
 
 	isEqualTo = (value: Value) => this.type === value.type
 
@@ -177,7 +178,8 @@ export class Never extends BaseValue {
 	readonly defaultValue = this
 	readonly initialDefaultValue = this
 
-	protected toAstExceptMeta = () => Ast.never()
+	// TODO: Resolve the name of symbol correctly
+	protected toAstExceptMeta = () => Ast.id('Never')
 
 	isEqualTo = (value: Value) => this.type === value.type
 
