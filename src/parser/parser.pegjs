@@ -175,7 +175,7 @@ Fn "function definition" =
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
-		const fn = Ast.fn({typeVars, param, body})
+		const fn = Ast.fnDef(typeVars, param, body)
 		fn.extras = {delimiters: [d0, d1, ...(d2 ? [d2] : []), d3, d4]}
 		return fn
 	}
@@ -185,7 +185,7 @@ FnType "function type definition" =
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
-		const fnType = Ast.fnType({typeVars, param, out})
+		const fnType = Ast.fnType(typeVars, param, out)
 		fnType.extras = {delimiters: [d0, d1, ...(d2 ? [d2] : []), d3, d4]}
 		return fnType
 	}

@@ -274,28 +274,35 @@ export class StrLiteral extends BaseNode {
 	isSameTo = (node: Node) =>
 		this.type === node.type && this.value === node.value
 
-	clone = () => StrLiteral.of(this.value)
-
-	static of(value: string) {
-		return new StrLiteral(value)
-	}
+	clone = () => new StrLiteral(this.value)
 }
 
 export class FnDef extends BaseNode {
 	readonly type = 'FnDef' as const
 
 	public readonly typeVars?: TypeVarsDef
+	public readonly param: ParamDef
 
 	constructor(
-		typeVars: TypeVarsDef | null | undefined,
-		public readonly param: ParamDef,
-		public body: Node
+		typeVars: TypeVarsDef | string[] | null | undefined,
+		param: ParamDef | Record<string, Node>,
+		public readonly body: Node
 	) {
 		super()
 
 		if (typeVars) {
-			this.typeVars = typeVars
+			if (Array.isArray(typeVars)) {
+				this.typeVars = new TypeVarsDef(typeVars)
+			} else {
+				this.typeVars = typeVars
+			}
 		}
+
+		this.param = param instanceof ParamDef ? param : new ParamDef(param)
+
+		// Set parent
+		this.param.parent = this
+		this.body.parent = this
 	}
 
 	protected forceEval = (env: Env): WithLog => {
@@ -369,51 +376,35 @@ export class FnDef extends BaseNode {
 		isSame(this.body, node.body)
 
 	clone = (): FnDef =>
-		FnDef.of({
-			typeVars: this.typeVars?.clone(),
-			param: this.param.clone(),
-			body: this.body.clone(),
-		})
-
-	static of({
-		typeVars,
-		param = ParamDef.of(),
-		body,
-	}: {
-		typeVars?: string[] | TypeVarsDef
-		param?: ParamDef | Record<string, Node>
-		body: Node
-	}) {
-		const _typeVars = !typeVars
-			? undefined
-			: Array.isArray(typeVars)
-			? new TypeVarsDef(typeVars)
-			: typeVars
-
-		const _param = param instanceof ParamDef ? param : ParamDef.of(param)
-
-		const fnDef = new FnDef(_typeVars, _param, body)
-		_param.parent = fnDef
-		body.parent = fnDef
-		return fnDef
-	}
+		new FnDef(this.typeVars?.clone(), this.param.clone(), this.body.clone())
 }
 
 export class FnTypeDef extends BaseNode {
 	readonly type = 'FnTypeDef' as const
 
 	public readonly typeVars?: TypeVarsDef
+	public readonly param: ParamDef
 
 	constructor(
-		typeVars: TypeVarsDef | undefined | null,
-		public readonly param: ParamDef,
+		typeVars: TypeVarsDef | string[] | undefined | null,
+		param: ParamDef | Record<string, Node>,
 		public out: Node
 	) {
 		super()
 
 		if (typeVars) {
-			this.typeVars = typeVars
+			if (Array.isArray(typeVars)) {
+				this.typeVars = new TypeVarsDef(typeVars)
+			} else {
+				this.typeVars = typeVars
+			}
 		}
+
+		this.param = param instanceof ParamDef ? param : new ParamDef(param)
+
+		// Set parent
+		this.param.parent = this
+		this.out.parent = this
 	}
 
 	protected forceEval = (env: Env): WithLog => {
@@ -466,11 +457,19 @@ export class ParamDef {
 	readonly type = 'ParamDef' as const
 	parent!: FnDef | FnTypeDef
 
+	public optionalPos: number
+
 	constructor(
 		public param: Record<string, Node>,
-		public optionalPos: number,
+		optionalPos?: number,
 		public rest?: {name: string; node: Node}
-	) {}
+	) {
+		this.optionalPos = optionalPos ?? values(param).length
+
+		// Set parent
+		forOwn(param, p => (p.parent = this))
+		if (rest) rest.node.parent = this
+	}
 
 	eval = (env: Env) => {
 		// Infer parameter types by simply evaluating 'em
@@ -543,29 +542,6 @@ export class ParamDef {
 		}
 	}
 
-	static of(
-		param: Record<string, Node> = {},
-		optionalPos?: number,
-		rest?: {name: string; node: Node}
-	) {
-		if (!optionalPos) optionalPos = values(param).length
-
-		if (
-			optionalPos < 0 ||
-			values(param).length < optionalPos ||
-			optionalPos % 1 !== 0
-		) {
-			throw new Error('Invalid optionalPos: ' + optionalPos)
-		}
-
-		const paramDef = new ParamDef(param, optionalPos, rest)
-
-		forOwn(param, p => (p.parent = paramDef))
-		if (rest) rest.node.parent = paramDef
-
-		return paramDef
-	}
-
 	static isSame(a: ParamDef, b: ParamDef) {
 		return (
 			isEqualDict(a.param, b.param, isSame) &&
@@ -620,9 +596,11 @@ export class VecLiteral extends BaseNode {
 		this.optionalPos = optionalPos ?? items.length
 		this.rest = rest
 
+		// Set parent
 		items.forEach(it => (it.parent = this))
 		if (rest) rest.parent = this
 
+		// Check if the passed optionalPos is valid
 		if (
 			this.optionalPos < 0 ||
 			items.length < this.optionalPos ||
@@ -693,7 +671,8 @@ export class DictLiteral extends BaseNode {
 		this.optionalKeys = new Set(optionalKeys)
 		this.rest = rest
 
-		values(items).forEach(it => (it.parent = this))
+		// Set parent
+		forOwn(items, it => (it.parent = this))
 		if (rest) rest.parent = this
 	}
 
@@ -769,6 +748,7 @@ export class App extends BaseNode {
 		this.fn = fn
 		this.args = args
 
+		// Set parent
 		if (fn) fn.parent = this
 		args.forEach(a => (a.parent = this))
 	}
@@ -979,7 +959,9 @@ export class Scope extends BaseNode {
 
 	constructor(public readonly vars: Record<string, Node>, public out?: Node) {
 		super()
-		values(vars).forEach(v => (v.parent = this))
+
+		// Set parent
+		forOwn(vars, v => (v.parent = this))
 		if (out) out.parent = this
 	}
 
@@ -1043,6 +1025,8 @@ export class TryCatch extends BaseNode {
 
 	constructor(public block: Node, public handler: Node) {
 		super()
+
+		// Set parent
 		block.parent = this
 		handler.parent = this
 	}
@@ -1101,6 +1085,8 @@ export class ValueMeta extends BaseNode {
 
 	constructor(public readonly fields: Node, public readonly node: Node) {
 		super()
+
+		// Set parent
 		fields.parent = this
 		node.parent = this
 	}

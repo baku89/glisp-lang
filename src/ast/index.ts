@@ -70,14 +70,14 @@ export const tryCatch = (block: Node, handler: Node) =>
 export const valueMeta = (meta: Node, value: Node) => new ValueMeta(meta, value)
 
 export const fnDef = (
-	typeVars: TypeVarsDef | null | undefined,
-	param: ParamDef,
+	typeVars: TypeVarsDef | string[] | null | undefined,
+	param: ParamDef | Record<string, Node>,
 	body: Node
 ) => new FnDef(typeVars, param, body)
 
 export const fnType = (
-	typeVars: TypeVarsDef | null | undefined,
-	param: ParamDef,
+	typeVars: TypeVarsDef | string[] | null | undefined,
+	param: ParamDef | Record<string, Node>,
 	out: Node
 ) => new FnTypeDef(typeVars, param, out)
 
