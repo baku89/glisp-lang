@@ -710,7 +710,7 @@ export class Vec<TItems extends Value[] = Value[]>
 		return value
 	}
 
-	clone = () => {
+	clone = (): Vec => {
 		const value = new Vec(this.items, this.optionalPos, this.rest)
 		value.#defaultValue = this.#defaultValue
 		value.meta = this.meta
@@ -842,7 +842,7 @@ export class UnionType extends BaseValue {
 	}
 	initialDefaultValue: Atomic = this.types[0].defaultValue
 
-	protected toAstExceptMeta = (): Ast.Call => {
+	protected toAstExceptMeta = (): Ast.App => {
 		const types = this.types.map(ty => ty.toAst())
 		return Ast.app(Ast.id('union'), ...types)
 	}
