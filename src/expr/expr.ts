@@ -76,6 +76,12 @@ export abstract class BaseExpr {
 	protected abstract forceEval(env: Env): WithLog
 	protected abstract forceInfer(env: Env): WithLog
 
+	/**
+	 * 式が全く同じ構造かどうかを比較する
+	 * メタデータ、シンボルの記法等は区別する
+	 * デリミタ、数値リテラルの表記ゆれ、辞書式の順序は区別しない
+	 * 主にパーサーのテストコード用
+	 */
 	abstract isSameTo(expr: Expr): boolean
 
 	abstract clone(): Expr
