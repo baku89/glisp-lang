@@ -15,9 +15,8 @@ import {
 	Value,
 } from '.'
 import {unionType} from './TypeOperation'
-import {UnitableType} from './val'
 
-const unite = (...types: UnitableType[]) => UnionType.fromTypesUnsafe(types)
+const unite = (...types: Value[]) => UnionType.fromTypesUnsafe(types)
 
 const N1 = num(1)
 const N2 = num(2)

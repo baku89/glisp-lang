@@ -24,10 +24,10 @@ export type Value = Type | Atomic
 
 type Type = All | PrimType | EnumType | FnType | UnionType | TypeVar
 
-// Value that can be a default value
+/**
+ * Value that can be a default value. Non-type values
+ */
 type Atomic = Never | Unit | Prim<any> | Num | Str | Enum | Fn | Vec | Dict
-
-export type UnitableType = Exclude<Value, All | Never>
 
 abstract class BaseValue {
 	protected constructor() {
@@ -831,7 +831,7 @@ export class UnionType extends BaseValue {
 	readonly type = 'UnionType' as const
 	superType = All.instance
 
-	private constructor(public types: UnitableType[]) {
+	private constructor(public types: Value[]) {
 		super()
 		if (types.length < 2) throw new Error('Too few types to create union type')
 	}
@@ -876,7 +876,10 @@ export class UnionType extends BaseValue {
 		return value
 	}
 
-	static fromTypesUnsafe(types: UnitableType[]) {
+	/**
+	 * Creates an union type as it is with no type overwrapping detection.
+	 */
+	static fromTypesUnsafe(types: Value[]) {
 		return new UnionType(types)
 	}
 

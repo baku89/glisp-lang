@@ -1,8 +1,8 @@
 import {differenceWith, remove} from 'lodash'
 
-import {All, isEqual, Never, UnionType, UnitableType, Value} from './val'
+import {All, isEqual, Never, UnionType, Value} from './val'
 
-function asUnion<T extends Value>(ty: T): (T | UnitableType)[] {
+function asUnion<T extends Value>(ty: T): (T | Value)[] {
 	return ty.type === 'UnionType' ? ty.types : [ty]
 }
 
@@ -10,7 +10,7 @@ export function unionType(...types: Value[]): Value {
 	if (types.length === 0) return Never.instance
 	if (types.length === 1) return types[0]
 
-	const flattenedTypes: UnitableType[] = []
+	const flattenedTypes: Value[] = []
 
 	for (const ty of types) {
 		if (ty.type === 'All') return ty
@@ -44,7 +44,7 @@ export function unionType(...types: Value[]): Value {
 		}
 
 		return prevTypes
-	}, [] as UnitableType[])
+	}, [] as Value[])
 
 	if (normalizedTypes.length === 0) return Never.instance
 	if (normalizedTypes.length === 1) return normalizedTypes[0]
