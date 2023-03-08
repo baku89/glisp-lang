@@ -10,6 +10,7 @@ import {
 	paramsDef,
 	scope,
 	str,
+	tryCatch,
 	valueMeta,
 	vec,
 } from '../expr'
@@ -92,6 +93,11 @@ describe('parsing scope', () => {
 	testParsing('(let x: (let x: 1))', scope({x: scope({x: num(1)})}))
 	testParsing('(let (let 1))', scope({}, scope({}, num(1))))
 	testParsing('(let)', scope({}))
+	testParsing('(let x:[]y:[]z)', scope({x: vec(), y: vec()}, id('z')))
+
+	testParsing('(let+ 20)', app(id('let+'), num(20)))
+
+	testErrorParsing('(let==: 10)')
 })
 
 describe('parsing vector', () => {
@@ -138,6 +144,8 @@ describe('parsing function definition', () => {
 	testParsing('(=> [ x: Num ] x)', fnDef(null, {x: Num}, x))
 	testParsing('(=> [x: Num y: Bool] x)', fnDef(null, {x: Num, y: Bool}, x))
 	testParsing('(=> [] _)', fnDef(null, {}, all))
+	testParsing('(=>[]_)', fnDef(null, {}, all))
+	testParsing('(=>()[]_)', fnDef([], {}, all))
 	testParsing('(=> [] ())', fnDef(null, {}, app()))
 	testParsing('(=> [] (+ 1 2))', fnDef(null, {}, app(id('+'), num(1), num(2))))
 	testParsing('(=> [] (=> [] 1))', fnDef(null, {}, fnDef(null, {}, num(1))))
@@ -164,6 +172,9 @@ describe('parsing function type', () => {
 	testParsing('(-> [x:_] _)', fnType(null, {x: all}, all))
 	testParsing('(-> [x:[]] ())', fnType(null, {x: vec()}, app()))
 	testParsing('(-> [] z)', fnType(null, {}, z))
+	testParsing('(->[]z)', fnType(null, {}, z))
+	testParsing('(->()[]z)', fnType([], {}, z))
+	testParsing('(\n->[]z\n)', fnType(null, {}, z))
 	testParsing('(-> [] [])', fnType(null, {}, vec()))
 	testParsing('(-> [x:x] z)', fnType(null, {x}, z))
 	testParsing('(-> [x:x y:y] z)', fnType(null, {x, y}, z))
@@ -211,6 +222,12 @@ describe('parsing value metadata', () => {
 	testErrorParsing('^{true}Bool')
 })
 
+describe('parsing try catch', () => {
+	testParsing('(try 0 x)', tryCatch(num(0), id('x')))
+	testParsing('(try[]())', tryCatch(vec(), app()))
+	testParsing('(try+())', app(id('try+'), app()))
+})
+
 describe('parsing expression metadata', () => {
 	// testParsing('layer#{}', id('layer').setNodeMeta(new NodeMeta(dict())))
 	// testParsing(
@@ -231,6 +248,7 @@ function testParsing(input: string, expected: Expr) {
 	test(`parsing '${input}' to be ${expected.print()}`, () => {
 		const result = parse(input)
 		if (!isSame(result, expected)) {
+			console.log(result)
 			throw new Error('Not as same as expected, got=' + result.print())
 		}
 		// if (result.print() !== input) {

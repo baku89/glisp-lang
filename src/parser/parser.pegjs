@@ -104,7 +104,7 @@ Expr =
 
 ExprContent =
 	NumLiteral / StrLiteral / Identifier /
-	FnDef / FnTypeDef / Scope / TryCatch / App /
+	FnDef / FnTypeDef / Scope / App / TryCatch /
 	VecLiteral / DictLiteral / ValueMeta
 
 ExprMeta = d:_ "#" fields:DictLiteral
@@ -160,7 +160,7 @@ App "function application" = "(" d0:_ itemsDs:(Expr _)* ")"
 	}
 
 FnDef "function definition" =
-	"(" d0:_ "=>" d1:__ typeVarsDs:(TypeVars __)? param:Params d3:__ body:Expr d4:_ ")"
+	"(" d0:_ "=>" d1:_ typeVarsDs:(TypeVars _)? param:Params d3:_ body:Expr d4:_ ")"
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
@@ -170,7 +170,7 @@ FnDef "function definition" =
 	}
 
 FnTypeDef "function type definition" =
-	"(" d0:_ "->" d1:__ typeVarsDs:(TypeVars __)? param:Params d3:__ out:Expr d4:_ ")"
+	"(" d0:_ "->" d1:_ typeVarsDs:(TypeVars _)? param:Params d3:_ out:Expr d4:_ ")"
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
@@ -180,7 +180,7 @@ FnTypeDef "function type definition" =
 	}
 	
 Params =
-	"[" d0:_ entries:(NamedExpr __)* rest:("..." @NamedExpr @_)? "]"
+	"[" d0:_ entries:(NamedExpr _)* rest:("..." @NamedExpr @_)? "]"
 	{
 		let optionalFlags, d1s, d2s
 
@@ -255,7 +255,7 @@ DictLiteral "dictionary" = "{"
 		return dict
 	}
 
-DictEntry = key:DictKey optional:"?"? ":" d0:_ value:Expr d1:__
+DictEntry = key:DictKey optional:"?"? ":" d0:_ value:Expr d1:_
 	{
 		return [key, value, optional, [d0, d1]]
 	}
@@ -266,7 +266,7 @@ DictKey =
 	str: StrLiteral {return str.value }
 
 Scope "scope" =
-	"(" d0:_ "let" d1:__ pairs:(@Identifier ":" @_ @Expr @__)* out:Expr? dl:_ ")"
+	"(" d0:_ "let" d1:__ pairs:(@Identifier ":" @_ @Expr @_)* out:Expr? dl:_ ")"
 	{
 		const vars = {}
 		const delimiters = [d0, d1]
@@ -286,7 +286,7 @@ Scope "scope" =
 		return scope
 	}
 
-TryCatch = "(" d0:_ "try" d1:__ block:Expr d2:__ handler:Expr d3:_ ")"
+TryCatch = "(" d0:_ "try" d1:_ block:Expr d2:_ handler:Expr d3:_ ")"
 	{
 		const tryCatch = Expr.tryCatch(block, handler)
 		tryCatch.extras = {delimiters: [d0, d1, d2, d3]}
