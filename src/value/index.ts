@@ -50,8 +50,8 @@ export {NumType, StrType, BoolType, True, False}
 export const all = All.instance
 export const never = Never.instance
 export const unit = Unit.instance
-export const num = Num.of
-export const str = Str.of
+export const num = (value: number) => new Num(value)
+export const str = (value: string) => new Str(value)
 export const bool = (value: boolean) => (value ? True : False)
 export const primType = PrimType.of
 export const enumType = EnumType.of

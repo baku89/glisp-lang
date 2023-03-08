@@ -47,7 +47,7 @@ type Type = All | PrimType | EnumType | FnType | UnionType | TypeVar
 type Atomic = Never | Unit | Prim<any> | Num | Str | Enum | Fn | Vec | Dict
 
 abstract class BaseValue {
-	protected constructor() {
+	constructor() {
 		return this
 	}
 
@@ -153,6 +153,10 @@ export class Unit extends BaseValue {
 export class All extends BaseValue {
 	readonly type = 'All' as const
 
+	private constructor() {
+		super()
+	}
+
 	readonly superType = this
 
 	#defaultValue?: Atomic
@@ -190,6 +194,10 @@ export class All extends BaseValue {
 export class Never extends BaseValue {
 	readonly type = 'Never' as const
 
+	private constructor() {
+		super()
+	}
+
 	readonly superType = All.instance
 
 	readonly defaultValue = this
@@ -214,10 +222,7 @@ export class Never extends BaseValue {
 export class Prim<T = any> extends BaseValue {
 	readonly type = 'Prim' as const
 
-	protected constructor(
-		public readonly superType: PrimType,
-		public readonly value: T
-	) {
+	constructor(public readonly superType: PrimType, public readonly value: T) {
 		super()
 	}
 
@@ -245,23 +250,23 @@ export class Prim<T = any> extends BaseValue {
 export class Num extends Prim<number> {
 	protected toExprExceptMeta = () => num(this.value)
 
-	static of(value: number) {
-		return new Num(NumType, value)
+	constructor(value: number) {
+		super(NumType, value)
 	}
 }
 
 export class Str extends Prim<string> {
 	protected toExprExceptMeta = () => str(this.value)
 
-	static of(value: string) {
-		return new Str(StrType, value)
+	constructor(value: string) {
+		super(StrType, value)
 	}
 }
 
 export class PrimType<T = any> extends BaseValue {
 	readonly type = 'PrimType' as const
 
-	private constructor(private readonly name: string) {
+	constructor(private readonly name: string) {
 		super()
 	}
 
@@ -325,16 +330,16 @@ export class PrimType<T = any> extends BaseValue {
 	}
 }
 
-export const NumType = PrimType.ofLiteral('Num', Num.of(0))
+export const NumType = PrimType.ofLiteral('Num', new Num(0))
 ;(Num.prototype.superType as Num['superType']) = NumType
 
-export const StrType = PrimType.ofLiteral('Str', Str.of(''))
+export const StrType = PrimType.ofLiteral('Str', new Str(''))
 ;(Str.prototype.superType as Str['superType']) = StrType
 
 export class Enum extends BaseValue {
 	readonly type = 'Enum' as const
 
-	private constructor(public readonly name: string) {
+	constructor(public readonly name: string) {
 		super()
 	}
 
@@ -365,10 +370,7 @@ export class Enum extends BaseValue {
 export class EnumType extends BaseValue {
 	readonly type = 'EnumType' as const
 
-	private constructor(
-		public readonly name: string,
-		public readonly types: Enum[]
-	) {
+	constructor(public readonly name: string, public readonly types: Enum[]) {
 		super()
 	}
 
@@ -376,7 +378,7 @@ export class EnumType extends BaseValue {
 
 	#defaultValue?: Enum
 	get defaultValue() {
-		return (this.#defaultValue ??= this.types[0])
+		return this.#defaultValue ?? this.types[0]
 	}
 
 	readonly initialDefaultValue = this.types[0]
@@ -426,7 +428,7 @@ export class TypeVar extends BaseValue {
 	readonly type = 'TypeVar' as const
 	readonly superType = All.instance
 
-	private constructor(
+	constructor(
 		public readonly name: string,
 		public readonly original?: TypeVar
 	) {
@@ -460,7 +462,7 @@ export class TypeVar extends BaseValue {
 export class Fn extends BaseValue implements IFnLike {
 	readonly type = 'Fn' as const
 
-	private constructor(
+	constructor(
 		public readonly superType: FnType,
 		public readonly fn: IFn,
 		public readonly body?: Expr
@@ -513,7 +515,7 @@ export class FnType extends BaseValue implements IFnType {
 	readonly type = 'FnType' as const
 	readonly superType = All.instance
 
-	private constructor(
+	constructor(
 		public readonly params: Record<string, Value>,
 		public readonly optionalPos: number,
 		public readonly rest: {name: string; value: Value} | undefined,
@@ -630,7 +632,7 @@ export class Vec<TItems extends Value[] = Value[]>
 	readonly type = 'Vec' as const
 	readonly superType = All.instance
 
-	private constructor(
+	constructor(
 		public readonly items: TItems,
 		public readonly optionalPos: number,
 		public readonly rest?: Value
@@ -748,7 +750,7 @@ export class Dict<
 > extends BaseValue {
 	readonly type = 'Dict' as const
 
-	private constructor(
+	constructor(
 		public readonly items: TItems,
 		public readonly optionalKeys: Set<string>,
 		public readonly rest?: Value
@@ -848,7 +850,7 @@ export class UnionType extends BaseValue {
 	readonly type = 'UnionType' as const
 	superType = All.instance
 
-	private constructor(public types: Value[]) {
+	constructor(public types: Value[]) {
 		super()
 		if (types.length < 2) throw new Error('Too few types to create union type')
 	}
