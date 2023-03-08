@@ -30,7 +30,7 @@ export {
 	ValueContainer,
 	NumLiteral,
 	StrLiteral,
-	App as Call,
+	App,
 	Scope,
 	TryCatch,
 	FnDef,
