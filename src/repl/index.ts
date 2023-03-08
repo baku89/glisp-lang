@@ -42,7 +42,7 @@ const replScope = PreludeScope.extend({
 		fn({name: StrType, value: all}, IO, (name: Arg<Str>, value: Arg<Value>) =>
 			withLog(
 				IO.of(() => {
-					replScope.vars[name().value] = valueContainer(value())
+					replScope.items[name().value] = valueContainer(value())
 				})
 			)
 		)

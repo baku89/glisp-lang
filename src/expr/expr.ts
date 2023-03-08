@@ -129,8 +129,8 @@ export class Identifier extends BaseExpr {
 		}
 
 		if (ref.type === 'Scope') {
-			if (this.name in ref.vars) {
-				return Writer.of({expr: ref.vars[this.name]})
+			if (this.name in ref.items) {
+				return Writer.of({expr: ref.items[this.name]})
 			}
 		}
 
@@ -996,11 +996,11 @@ export class App extends BaseExpr {
 export class Scope extends BaseExpr {
 	readonly type = 'Scope' as const
 
-	constructor(public readonly vars: Record<string, Expr>, public out?: Expr) {
+	constructor(public readonly items: Record<string, Expr>, public out?: Expr) {
 		super()
 
 		// Set parent
-		forOwn(vars, v => (v.parent = this))
+		forOwn(items, v => (v.parent = this))
 		if (out) out.parent = this
 	}
 
@@ -1010,7 +1010,7 @@ export class Scope extends BaseExpr {
 	protected forceEval = (env: Env) => this.out?.eval(env) ?? Writer.of(unit)
 
 	print = (options?: PrintOptions): string => {
-		const varEntries = entries(this.vars)
+		const varEntries = entries(this.items)
 
 		if (!this.extras) {
 			const tokensCount = 1 + varEntries.length * 2 + (this.out ? 1 : 0)
@@ -1019,12 +1019,12 @@ export class Scope extends BaseExpr {
 			this.extras = {delimiters}
 		}
 
-		const vars = varEntries.map(([k, v]) => [k + ':', v.print(options)]).flat()
+		const items = varEntries.map(([k, v]) => [k + ':', v.print(options)]).flat()
 		const out = this.out ? [this.out.print(options)] : []
 
 		const {delimiters} = this.extras
 
-		return '(' + insertDelimiters(['let', ...vars, ...out], delimiters) + ')'
+		return '(' + insertDelimiters(['let', ...items, ...out], delimiters) + ')'
 	}
 
 	extras?: {delimiters: string[]}
@@ -1032,28 +1032,29 @@ export class Scope extends BaseExpr {
 	isSameTo = (expr: Expr) =>
 		this.type === expr.type &&
 		nullishEqual(this.out, expr.out, isSame) &&
-		isEqualDict(this.vars, expr.vars, isSame)
+		isEqualDict(this.items, expr.items, isSame)
 
-	clone = (): Scope => new Scope(mapValues(this.vars, clone), this.out?.clone())
+	clone = (): Scope =>
+		new Scope(mapValues(this.items, clone), this.out?.clone())
 
-	extend(vars: Record<string, Expr>, out?: Expr): Scope {
-		const scope = new Scope(vars, out)
+	extend(items: Record<string, Expr>, out?: Expr): Scope {
+		const scope = new Scope(items, out)
 		scope.parent = this
 		return scope
 	}
 
 	def(name: string, expr: Expr) {
-		if (name in this.vars)
+		if (name in this.items)
 			throw new Error(`Variable '${name}' is already defined`)
 
 		expr.parent = this
-		this.vars[name] = expr
+		this.items[name] = expr
 
 		return this
 	}
 
-	defs(vars: Record<string, Expr>) {
-		for (const [name, exp] of entries(vars)) {
+	defs(items: Record<string, Expr>) {
+		for (const [name, exp] of entries(items)) {
 			this.def(name, exp)
 		}
 	}

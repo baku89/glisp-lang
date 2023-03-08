@@ -17,5 +17,5 @@ export function parseModule(str: string): Record<string, Expr> {
 	const expr: Expr | undefined = parser.parse('(let ' + str + ')', PegImports)
 	if (!expr || expr.type !== 'Scope') return {}
 
-	return expr.vars
+	return expr.items
 }

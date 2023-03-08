@@ -268,20 +268,20 @@ DictKey =
 Scope "scope" =
 	"(" d0:_ "let" d1:__ pairs:(@Identifier ":" @_ @Expr @_)* out:Expr? dl:_ ")"
 	{
-		const vars = {}
+		const items = {}
 		const delimiters = [d0, d1]
 
 		for (const [{name}, da, value, db] of pairs) {
-			if (name in vars) throw new Error(`Duplicated symbol name: '${name}'`)
+			if (name in items) throw new Error(`Duplicated symbol name: '${name}'`)
 
-			vars[name] = value
+			items[name] = value
 
 			delimiters.push(da, db)
 		}
 
 		delimiters.push(dl)
 
-		const scope = Expr.scope(vars, out ?? null)
+		const scope = Expr.scope(items, out ?? null)
 		scope.extras = {delimiters}
 		return scope
 	}
