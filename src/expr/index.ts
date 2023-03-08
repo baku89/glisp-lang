@@ -65,7 +65,7 @@ export const fnDef = (
 	typeVars: TypeVarsDef | string[] | null | undefined,
 	param: ParamsDef | Record<string, Expr>,
 	returnType: Expr | null,
-	body?: Expr
+	body: Expr | null
 ) => new FnDef(typeVars, param, returnType, body)
 
 export const fnType = (

@@ -11,6 +11,7 @@ import {union} from '../util/SetOperation'
 import {Writer} from '../util/Writer'
 import {zip} from '../util/zip'
 import {
+	All,
 	all,
 	Dict,
 	dict,
@@ -286,15 +287,9 @@ export class FnDef extends BaseExpr {
 		typeVars: TypeVarsDef | string[] | null | undefined,
 		params: ParamsDef | Record<string, Expr>,
 		returnType: Expr | null,
-		body?: Expr
+		body: Expr | null
 	) {
 		super()
-
-		if (!returnType && !body) {
-			throw new Error(
-				'Invalid function definition. Neither return type nor body is defined.'
-			)
-		}
 
 		if (typeVars) {
 			if (Array.isArray(typeVars)) {
@@ -321,58 +316,79 @@ export class FnDef extends BaseExpr {
 	}
 
 	protected forceEval = (env: Env): WithLog => {
-		// TODO: Returns FnType
-		if (!this.body) throw new Error('Body is not defined')
+		if (this.body) {
+			// Returns function
+			const {body} = this
+			const {names, restName} = this.params.getNames()
 
-		const {names, restName} = this.params.getNames()
+			const fnObj: IFn = (...args: Arg[]) => {
+				const argDict = fromPairs(zip(names, args))
+				if (restName) {
+					const restArgs = args.slice(names.length)
+					argDict[restName] = () => vec(restArgs.map(a => a()))
+				}
+				const innerEnv = env.extend(argDict)
 
-		const fn: IFn = (...args: Arg[]) => {
-			const arg = fromPairs(zip(names, args))
-			if (restName) {
-				const restArgs = args.slice(names.length)
-				arg[restName] = () => vec(restArgs.map(a => a()))
+				return body.eval(innerEnv)
 			}
-			const innerEnv = env.extend(arg)
 
-			// TODO: Returns FnType
-			if (!this.body) throw new Error('Body is not defined')
+			// fnType should be FnType as the expression is function definition
+			const [fnType, fnTypeLog] = this.forceInfer(env).asTuple
 
-			return this.body.eval(innerEnv)
+			const fn = fnFrom(fnType as FnType, fnObj, this.body)
+
+			return withLog(fn, ...fnTypeLog)
+		} else {
+			// Returns a function type if there's no function body
+			const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
+
+			// Evaluates return type. Uses All type when no return type is defined.
+			let returnType: Value = all,
+				returnTypeLog: Iterable<Log> = []
+
+			if (this.returnType) {
+				;[returnType, returnTypeLog] = this.returnType.eval(env).asTuple
+			}
+
+			const fnType = new FnType(
+				params,
+				this.params.optionalPos,
+				rest,
+				returnType
+			)
+
+			return withLog(fnType, ...paramsLog, ...returnTypeLog)
 		}
-
-		const [ty, lty] = this.forceInfer(env).asTuple
-
-		const fnVal = fnFrom(ty, fn, this.body)
-
-		return withLog(fnVal, ...lty)
 	}
 
-	protected forceInfer = (env: Env): WithLog<FnType> => {
-		// TODO: Returns FnType
-		if (!this.body) throw new Error('Body is not defined')
+	protected forceInfer = (env: Env): WithLog<FnType | All> => {
+		if (this.body) {
+			// Infer parameter types by simply evaluating 'em
+			const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
 
-		// Infer parameter types by simply evaluating 'em
-		const [{params, rest}, lp] = this.params.eval(env).asTuple
+			// Then, infer the function body
+			const arg = mapValues(params, p => () => p)
+			if (rest) {
+				const {name, value} = rest
+				arg[name] = () => vec([], undefined, value)
+			}
 
-		// Then, infer the function body
-		const arg = mapValues(params, p => () => p)
-		if (rest) {
-			const {name, value} = rest
-			arg[name as any] = () => vec([], undefined, value)
+			const innerEnv = env.extend(arg)
+
+			const [out, lo] = this.body.infer(innerEnv).asTuple
+
+			const _fnType = fnType({
+				params,
+				optionalPos: this.params.optionalPos,
+				rest,
+				out,
+			})
+
+			return withLog(_fnType, ...paramsLog, ...lo)
+		} else {
+			// If there's no function body, the expression represents function type
+			return withLog(all)
 		}
-
-		const innerEnv = env.extend(arg)
-
-		const [out, lo] = this.body.infer(innerEnv).asTuple
-
-		const _fnType = fnType({
-			params,
-			optionalPos: this.params.optionalPos,
-			rest,
-			out,
-		})
-
-		return withLog(_fnType, ...lp, ...lo)
 	}
 
 	print = (options?: PrintOptions): string => {
@@ -413,7 +429,7 @@ export class FnDef extends BaseExpr {
 			this.typeVars?.clone(),
 			this.params.clone(),
 			this.returnType?.clone() ?? null,
-			this.body?.clone()
+			this.body?.clone() ?? null
 		)
 	}
 }
