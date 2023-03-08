@@ -1,6 +1,6 @@
 import {differenceWith, remove} from 'lodash'
 
-import {All, isEqual, Never, UnionType, Value} from './val'
+import {All, isEqual, Never, UnionType, Value} from './value'
 
 function asUnion<T extends Value>(ty: T): (T | Value)[] {
 	return ty.type === 'UnionType' ? ty.types : [ty]

@@ -1,6 +1,6 @@
 import {values} from 'lodash'
 
-import type * as Val from './val'
+import type * as Val from './value'
 
 type ValueType = Val.Value['type']
 

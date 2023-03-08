@@ -1,5 +1,5 @@
 import {evaluate, parse} from '../util/TestUtil'
-import {isEqual, isSubtype, Value} from './val'
+import {isEqual, isSubtype, Value} from './value'
 
 describe('value equality', () => {
 	test('()')

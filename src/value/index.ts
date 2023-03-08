@@ -18,7 +18,7 @@ import {
 	Unit,
 	Value,
 	Vec,
-} from './val'
+} from './value'
 
 export {IFn, Value}
 
@@ -62,6 +62,6 @@ export const typeVar = TypeVar.of
 export const vec = Vec.of
 export const dict = Dict.of
 
-export {isEqual, isSubtype} from './val'
+export {isEqual, isSubtype} from './value'
 
 export {unionType, differenceType, intersectionType} from './TypeOperation'
