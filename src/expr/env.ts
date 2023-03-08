@@ -1,13 +1,13 @@
 import {WithLog} from '../log'
-import type {Arg, BaseNode} from './expr'
+import type {Arg, BaseExpr} from './expr'
 
 type ArgDict = Record<string, Arg>
 
 export class Env {
 	#outer!: Env | undefined
 	#arg: ArgDict
-	#evalCache: WeakMap<BaseNode, WithLog> = new WeakMap()
-	#inferCache: WeakMap<BaseNode, WithLog> = new WeakMap()
+	#evalCache: WeakMap<BaseExpr, WithLog> = new WeakMap()
+	#inferCache: WeakMap<BaseExpr, WithLog> = new WeakMap()
 	readonly isGlobal!: boolean
 
 	private constructor(original: Env | undefined, arg: ArgDict) {
@@ -32,7 +32,7 @@ export class Env {
 		return new Env(this, arg)
 	}
 
-	memoizeEval(expr: BaseNode, evaluate: (env: Env) => WithLog): WithLog {
+	memoizeEval(expr: BaseExpr, evaluate: (env: Env) => WithLog): WithLog {
 		let cache = this.#evalCache.get(expr)
 		if (!cache) {
 			this.#evalCache.set(expr, (cache = evaluate(this)))
@@ -40,7 +40,7 @@ export class Env {
 		return cache
 	}
 
-	memoizeInfer(expr: BaseNode, infer: (env: Env) => WithLog): WithLog {
+	memoizeInfer(expr: BaseExpr, infer: (env: Env) => WithLog): WithLog {
 		let cache = this.#inferCache.get(expr)
 		if (!cache) {
 			this.#inferCache.set(expr, (cache = infer(this)))

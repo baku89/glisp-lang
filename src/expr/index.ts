@@ -7,7 +7,7 @@ import {
 	FnTypeDef,
 	Identifier,
 	NumLiteral,
-	Params,
+	ParamsDef,
 	Scope,
 	StrLiteral,
 	TryCatch,
@@ -21,11 +21,11 @@ export {LeafNode, InnerNode, Arg} from './expr'
 
 export {NodeMeta} from './expr'
 
-export {isSame, print, clone} from './expr'
+export {isSame, print, PrintOptions, clone} from './expr'
 
 // Exp
 export {
-	Expr as Node,
+	Expr,
 	Identifier,
 	ValueContainer,
 	NumLiteral,
@@ -36,7 +36,7 @@ export {
 	FnDef,
 	FnTypeDef,
 	TypeVarsDef,
-	Params,
+	ParamsDef,
 	VecLiteral,
 	DictLiteral,
 	ValueMeta,
@@ -44,7 +44,7 @@ export {
 
 export const id = (name: string) => new Identifier(name)
 
-export const value = <V extends Value = Value>(value: V) =>
+export const valueContainer = <V extends Value = Value>(value: V) =>
 	new ValueContainer(value)
 
 export const num = (value: number) => new NumLiteral(value)
@@ -63,21 +63,21 @@ export const valueMeta = (meta: Expr, value: Expr) => new ValueMeta(meta, value)
 
 export const fnDef = (
 	typeVars: TypeVarsDef | string[] | null | undefined,
-	param: Params | Record<string, Expr>,
+	param: ParamsDef | Record<string, Expr>,
 	body: Expr
 ) => new FnDef(typeVars, param, body)
 
 export const fnType = (
 	typeVars: TypeVarsDef | string[] | null | undefined,
-	param: Params | Record<string, Expr>,
+	param: ParamsDef | Record<string, Expr>,
 	out: Expr
 ) => new FnTypeDef(typeVars, param, out)
 
-export const params = (
+export const paramsDef = (
 	items: Record<string, Expr>,
 	optionalPos: number,
-	rest?: {name: string; node: Expr}
-) => new Params(items, optionalPos, rest)
+	rest?: {name: string; expr: Expr}
+) => new ParamsDef(items, optionalPos, rest)
 
 export const vec = (items: Expr[] = [], optionalPos?: number, rest?: Expr) =>
 	new VecLiteral(items, optionalPos, rest)

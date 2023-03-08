@@ -53,9 +53,9 @@ export type InnerNode =
 	| ValueMeta
 
 /**
- * ASTs that can be a parent of other nodes
+ * expressions that can contain other experssions
  */
-export type ParentNode = InnerNode | ValueMeta | NodeMeta | Params
+export type ParentNode = InnerNode | ValueMeta | NodeMeta | ParamsDef
 
 export type Arg<T extends Value = Value> = () => T
 
@@ -66,7 +66,7 @@ export interface PrintOptions {
 /**
  * Base class for all kind of ASTs
  */
-export abstract class BaseNode {
+export abstract class BaseExpr {
 	abstract readonly type: string
 
 	parent: ParentNode | null = null
@@ -76,7 +76,7 @@ export abstract class BaseNode {
 	protected abstract forceEval(env: Env): WithLog
 	protected abstract forceInfer(env: Env): WithLog
 
-	abstract isSameTo(node: Expr): boolean
+	abstract isSameTo(expr: Expr): boolean
 
 	abstract clone(): Expr
 
@@ -99,7 +99,7 @@ export abstract class BaseNode {
 	getLog = () => this.eval(Env.global).log
 }
 
-export class Identifier extends BaseNode {
+export class Identifier extends BaseExpr {
 	readonly type = 'Identifier' as const
 
 	constructor(public readonly name: string) {
@@ -107,9 +107,9 @@ export class Identifier extends BaseNode {
 	}
 
 	#resolve(
-		ref: Expr | ValueMeta | NodeMeta | Params | null,
+		ref: Expr | ValueMeta | NodeMeta | ParamsDef | null,
 		env: Env
-	): Writer<{node: Expr; mode?: 'param' | 'arg' | 'TypeVar'}, Log> {
+	): Writer<{expr: Expr; mode?: 'param' | 'arg' | 'TypeVar'}, Log> {
 		if (!ref) {
 			// If the expr has no parent and still couldn't resolve the symbol,
 			// assume there's no bound expression for it.
@@ -119,12 +119,12 @@ export class Identifier extends BaseNode {
 				reason: 'Variable not bound: ' + this.name,
 			}
 
-			return Writer.of({node: new App()}, log)
+			return Writer.of({expr: new App()}, log)
 		}
 
 		if (ref.type === 'Scope') {
 			if (this.name in ref.vars) {
-				return Writer.of({node: ref.vars[this.name]})
+				return Writer.of({expr: ref.vars[this.name]})
 			}
 		}
 
@@ -133,14 +133,14 @@ export class Identifier extends BaseNode {
 				// Situation A. While normal evaluation
 				const res = ref.params.get(this.name, env)
 				if (res) {
-					const [node, l] = res.asTuple
-					return Writer.of({node, mode: 'param'}, ...l)
+					const [expr, l] = res.asTuple
+					return Writer.of({expr, mode: 'param'}, ...l)
 				}
 			} else {
 				// Situation B. In a context of function appliction
 				const arg = env.get(this.name)
 				if (arg) {
-					return Writer.of({node: new ValueContainer(arg()), mode: 'arg'})
+					return Writer.of({expr: new ValueContainer(arg()), mode: 'arg'})
 				}
 			}
 			// If no corresponding arg has found for the fn, pop the env.
@@ -152,7 +152,7 @@ export class Identifier extends BaseNode {
 			const tv = ref.typeVars?.get(this.name)
 			if (tv) {
 				return Writer.of({
-					node: new ValueContainer(tv),
+					expr: new ValueContainer(tv),
 					mode: 'TypeVar',
 				})
 			}
@@ -168,8 +168,8 @@ export class Identifier extends BaseNode {
 	}
 
 	protected forceEval = (env: Env): WithLog => {
-		return this.#resolve(this.parent, env).bind(({node, mode}) => {
-			const result = node.eval(env)
+		return this.#resolve(this.parent, env).bind(({expr, mode}) => {
+			const result = expr.eval(env)
 
 			return mode === 'param' ? result.fmap(v => v.defaultValue) : result
 		})
@@ -181,16 +181,16 @@ export class Identifier extends BaseNode {
 		if (resolved.result.mode) {
 			// In cases such as inferring `x` in `(=> [x:(+ 1 2)] x)`,
 			// The type of parameter `(+ 1 2)` needs to be *evaluated*
-			return resolved.result.node.eval(env)
+			return resolved.result.expr.eval(env)
 		} else {
 			// othersise, infer it as usual
-			return resolved.bind(({node}) => node.infer(env))
+			return resolved.bind(({expr}) => expr.infer(env))
 		}
 	}
 
 	print = () => this.name
 
-	isSameTo = (node: Expr) => this.type === node.type && this.name === node.name
+	isSameTo = (expr: Expr) => this.type === expr.type && this.name === expr.name
 
 	clone = () => new Identifier(this.name)
 }
@@ -199,7 +199,7 @@ export class Identifier extends BaseNode {
  * AST to store values that cannot be parsed from strings
  * e.g. DOM，Image
  */
-export class ValueContainer<V extends Value = Value> extends BaseNode {
+export class ValueContainer<V extends Value = Value> extends BaseExpr {
 	readonly type = 'ValueContainer' as const
 
 	constructor(public readonly value: V) {
@@ -216,13 +216,13 @@ export class ValueContainer<V extends Value = Value> extends BaseNode {
 		return `<value container of ${this.value.type}>`
 	}
 
-	isSameTo = (node: Expr) =>
-		this.type === node.type && this.value === node.value
+	isSameTo = (expr: Expr) =>
+		this.type === expr.type && this.value === expr.value
 
 	clone = () => new ValueContainer(this.value)
 }
 
-export class NumLiteral extends BaseNode {
+export class NumLiteral extends BaseExpr {
 	readonly type = 'NumLiteral' as const
 
 	constructor(public readonly value: number) {
@@ -241,15 +241,15 @@ export class NumLiteral extends BaseNode {
 		return this.extras.raw
 	}
 
-	isSameTo = (node: Expr) =>
-		this.type === node.type && this.value === node.value
+	isSameTo = (expr: Expr) =>
+		this.type === expr.type && this.value === expr.value
 
 	clone = () => new NumLiteral(this.value)
 
 	extras?: {raw: string}
 }
 
-export class StrLiteral extends BaseNode {
+export class StrLiteral extends BaseExpr {
 	readonly type = 'StrLiteral' as const
 
 	constructor(public readonly value: string) {
@@ -262,21 +262,21 @@ export class StrLiteral extends BaseNode {
 
 	print = () => '"' + this.value + '"'
 
-	isSameTo = (node: Expr) =>
-		this.type === node.type && this.value === node.value
+	isSameTo = (expr: Expr) =>
+		this.type === expr.type && this.value === expr.value
 
 	clone = () => new StrLiteral(this.value)
 }
 
-export class FnDef extends BaseNode {
+export class FnDef extends BaseExpr {
 	readonly type = 'FnDef' as const
 
 	public readonly typeVars?: TypeVarsDef
-	public readonly params: Params
+	public readonly params: ParamsDef
 
 	constructor(
 		typeVars: TypeVarsDef | string[] | null | undefined,
-		params: Params | Record<string, Expr>,
+		params: ParamsDef | Record<string, Expr>,
 		public readonly body: Expr
 	) {
 		super()
@@ -289,7 +289,7 @@ export class FnDef extends BaseNode {
 			}
 		}
 
-		this.params = params instanceof Params ? params : new Params(params)
+		this.params = params instanceof ParamsDef ? params : new ParamsDef(params)
 
 		// Set parent
 		this.params.parent = this
@@ -360,25 +360,25 @@ export class FnDef extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Expr) =>
-		this.type === node.type &&
-		nullishEqual(this.typeVars, node.typeVars, TypeVarsDef.isSame) &&
-		Params.isSame(this.params, node.params) &&
-		isSame(this.body, node.body)
+	isSameTo = (expr: Expr) =>
+		this.type === expr.type &&
+		nullishEqual(this.typeVars, expr.typeVars, TypeVarsDef.isSame) &&
+		ParamsDef.isSame(this.params, expr.params) &&
+		isSame(this.body, expr.body)
 
 	clone = (): FnDef =>
 		new FnDef(this.typeVars?.clone(), this.params.clone(), this.body.clone())
 }
 
-export class FnTypeDef extends BaseNode {
+export class FnTypeDef extends BaseExpr {
 	readonly type = 'FnTypeDef' as const
 
 	public readonly typeVars?: TypeVarsDef
-	public readonly params: Params
+	public readonly params: ParamsDef
 
 	constructor(
 		typeVars: TypeVarsDef | string[] | undefined | null,
-		params: Params | Record<string, Expr>,
+		params: ParamsDef | Record<string, Expr>,
 		public out: Expr
 	) {
 		super()
@@ -391,7 +391,7 @@ export class FnTypeDef extends BaseNode {
 			}
 		}
 
-		this.params = params instanceof Params ? params : new Params(params)
+		this.params = params instanceof ParamsDef ? params : new ParamsDef(params)
 
 		// Set parent
 		this.params.parent = this
@@ -434,18 +434,18 @@ export class FnTypeDef extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Expr): boolean =>
-		this.type === node.type &&
-		nullishEqual(this.typeVars, node.typeVars, TypeVarsDef.isSame) &&
-		Params.isSame(this.params, node.params) &&
-		isSame(this.out, node.out)
+	isSameTo = (expr: Expr): boolean =>
+		this.type === expr.type &&
+		nullishEqual(this.typeVars, expr.typeVars, TypeVarsDef.isSame) &&
+		ParamsDef.isSame(this.params, expr.params) &&
+		isSame(this.out, expr.out)
 
 	clone = (): FnTypeDef =>
 		new FnTypeDef(this.typeVars?.clone(), this.params.clone(), this.out.clone())
 }
 
-export class Params {
-	readonly type = 'Params' as const
+export class ParamsDef {
+	readonly type = 'ParamsDef' as const
 	parent!: FnDef | FnTypeDef
 
 	public optionalPos: number
@@ -453,13 +453,13 @@ export class Params {
 	constructor(
 		public items: Record<string, Expr>,
 		optionalPos?: number,
-		public rest?: {name: string; node: Expr}
+		public rest?: {name: string; expr: Expr}
 	) {
 		this.optionalPos = optionalPos ?? values(items).length
 
 		// Set parent
 		forOwn(items, p => (p.parent = this))
-		if (rest) rest.node.parent = this
+		if (rest) rest.expr.parent = this
 	}
 
 	eval = (env: Env) => {
@@ -468,7 +468,7 @@ export class Params {
 
 		let rest: FnType['rest'], lr: Set<Log>
 		if (this.rest) {
-			const [value, _lr] = this.rest.node.eval(env).asTuple
+			const [value, _lr] = this.rest.expr.eval(env).asTuple
 			rest = {name: this.rest.name, value}
 			lr = _lr
 		} else {
@@ -484,7 +484,7 @@ export class Params {
 
 		const paramStrs = params.map(printNamedNode)
 		const restStrs = rest
-			? ['...' + (rest.name ? rest.name + ':' : '') + rest.node.print(options)]
+			? ['...' + (rest.name ? rest.name + ':' : '') + rest.expr.print(options)]
 			: []
 
 		if (!this.extras) {
@@ -506,11 +506,11 @@ export class Params {
 	extras?: {delimiters: string[]}
 
 	clone = () => {
-		return new Params(
+		return new ParamsDef(
 			mapValues(this.items, clone),
 			this.optionalPos,
 			this.rest
-				? {name: this.rest.name, node: this.rest.node.clone()}
+				? {name: this.rest.name, expr: this.rest.expr.clone()}
 				: undefined
 		)
 	}
@@ -527,20 +527,20 @@ export class Params {
 			return Writer.of<Expr, Log>(this.items[name])
 		}
 		if (this.rest && this.rest.name === name) {
-			const [rest, lr] = this.rest.node.eval(env).asTuple
-			const node = new ValueContainer(vec([], undefined, rest))
-			return Writer.of(node, ...lr)
+			const [rest, lr] = this.rest.expr.eval(env).asTuple
+			const expr = new ValueContainer(vec([], undefined, rest))
+			return Writer.of(expr, ...lr)
 		}
 	}
 
-	static isSame(a: Params, b: Params) {
+	static isSame(a: ParamsDef, b: ParamsDef) {
 		return (
 			isEqualDict(a.items, b.items, isSame) &&
 			a.optionalPos === b.optionalPos &&
 			nullishEqual(
 				a.rest,
 				b.rest,
-				(a, b) => a.name === b.name && isSame(a.node, b.node)
+				(a, b) => a.name === b.name && isSame(a.expr, b.expr)
 			)
 		)
 	}
@@ -573,7 +573,7 @@ export class TypeVarsDef {
 	}
 }
 
-export class VecLiteral extends BaseNode {
+export class VecLiteral extends BaseExpr {
 	readonly type = 'VecLiteral' as const
 
 	public readonly items: Expr[]
@@ -634,17 +634,17 @@ export class VecLiteral extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Expr): boolean =>
-		this.type === node.type &&
-		isEqualArray(this.items, node.items, isSame) &&
-		this.optionalPos === node.optionalPos &&
+	isSameTo = (expr: Expr): boolean =>
+		this.type === expr.type &&
+		isEqualArray(this.items, expr.items, isSame) &&
+		this.optionalPos === expr.optionalPos &&
 		nullishEqual(this.rest, this.rest, isSame)
 
 	clone = (): VecLiteral =>
 		new VecLiteral(this.items.map(clone), this.optionalPos, this.rest?.clone())
 }
 
-export class DictLiteral extends BaseNode {
+export class DictLiteral extends BaseExpr {
 	readonly type = 'DictLiteral' as const
 
 	public readonly items: Record<string, Expr>
@@ -714,11 +714,11 @@ export class DictLiteral extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Expr): boolean =>
-		this.type === node.type &&
-		isEqualDict(this.items, node.items, isSame) &&
-		isEqualSet(this.optionalKeys, node.optionalKeys) &&
-		nullishEqual(this.rest, node.rest, isSame)
+	isSameTo = (expr: Expr): boolean =>
+		this.type === expr.type &&
+		isEqualDict(this.items, expr.items, isSame) &&
+		isEqualSet(this.optionalKeys, expr.optionalKeys) &&
+		nullishEqual(this.rest, expr.rest, isSame)
 
 	clone = (): DictLiteral =>
 		new DictLiteral(
@@ -728,7 +728,7 @@ export class DictLiteral extends BaseNode {
 		)
 }
 
-export class App extends BaseNode {
+export class App extends BaseExpr {
 	readonly type = 'App' as const
 
 	readonly fn?: Expr
@@ -939,13 +939,13 @@ export class App extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Expr) =>
-		this.type === node.type && isEqualArray(this.args, node.args, isSame)
+	isSameTo = (expr: Expr) =>
+		this.type === expr.type && isEqualArray(this.args, expr.args, isSame)
 
 	clone = (): App => new App(this.fn, ...this.args.map(clone))
 }
 
-export class Scope extends BaseNode {
+export class Scope extends BaseExpr {
 	readonly type = 'Scope' as const
 
 	constructor(public readonly vars: Record<string, Expr>, public out?: Expr) {
@@ -981,10 +981,10 @@ export class Scope extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Expr) =>
-		this.type === node.type &&
-		nullishEqual(this.out, node.out, isSame) &&
-		isEqualDict(this.vars, node.vars, isSame)
+	isSameTo = (expr: Expr) =>
+		this.type === expr.type &&
+		nullishEqual(this.out, expr.out, isSame) &&
+		isEqualDict(this.vars, expr.vars, isSame)
 
 	clone = (): Scope => new Scope(mapValues(this.vars, clone), this.out?.clone())
 
@@ -994,12 +994,12 @@ export class Scope extends BaseNode {
 		return scope
 	}
 
-	def(name: string, node: Expr) {
+	def(name: string, expr: Expr) {
 		if (name in this.vars)
 			throw new Error(`Variable '${name}' is already defined`)
 
-		node.parent = this
-		this.vars[name] = node
+		expr.parent = this
+		this.vars[name] = expr
 
 		return this
 	}
@@ -1011,7 +1011,7 @@ export class Scope extends BaseNode {
 	}
 }
 
-export class TryCatch extends BaseNode {
+export class TryCatch extends BaseExpr {
 	readonly type = 'TryCatch'
 
 	constructor(public block: Expr, public handler: Expr) {
@@ -1061,33 +1061,33 @@ export class TryCatch extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Expr): boolean =>
-		this.type === node.type &&
-		isSame(this.block, node.block) &&
-		nullishEqual(this.handler, node.handler, isSame)
+	isSameTo = (expr: Expr): boolean =>
+		this.type === expr.type &&
+		isSame(this.block, expr.block) &&
+		nullishEqual(this.handler, expr.handler, isSame)
 
 	clone = (): TryCatch => new TryCatch(this.block.clone(), this.handler.clone())
 }
 
-export class ValueMeta extends BaseNode {
+export class ValueMeta extends BaseExpr {
 	readonly type = 'ValueMeta' as const
 
 	extras?: {delimiters: [string, string]}
 
-	constructor(public readonly fields: Expr, public readonly node: Expr) {
+	constructor(public readonly fields: Expr, public readonly expr: Expr) {
 		super()
 
 		// Set parent
 		fields.parent = this
-		node.parent = this
+		expr.parent = this
 	}
 
 	protected forceEval = (env: Env): WithLog<Value> => {
 		const [_fields, fieldLog] = this.fields.eval(env).asTuple
-		const [_node, nodeLog] = this.node.eval(env).asTuple
+		const [_expr, exprLog] = this.expr.eval(env).asTuple
 
 		let fields = _fields,
-			node = _node
+			expr = _expr
 
 		const metaLog = new Set<Log>()
 
@@ -1101,7 +1101,7 @@ export class ValueMeta extends BaseNode {
 			})
 
 			// Just returns a value with logs
-			return withLog(node, ...nodeLog, ...metaLog)
+			return withLog(expr, ...exprLog, ...metaLog)
 		}
 
 		// When the default key exists
@@ -1110,36 +1110,36 @@ export class ValueMeta extends BaseNode {
 			fields = fields.clone()
 			delete fields.items.default
 
-			node = node.withMeta(fields)
+			expr = expr.withMeta(fields)
 
 			// Check if the default value is valid
-			if (node.isTypeFor(defaultValue)) {
-				node = node.withDefault(defaultValue)
+			if (expr.isTypeFor(defaultValue)) {
+				expr = expr.withDefault(defaultValue)
 			} else {
 				metaLog.add({
 					level: 'warn',
 					ref: this,
 					reason:
 						`Cannot use ${defaultValue.print()} ` +
-						`as a default value of ${node.print()}`,
+						`as a default value of ${expr.print()}`,
 				})
 			}
 		}
 
-		return withLog(node, ...fieldLog, ...nodeLog, ...metaLog)
+		return withLog(expr, ...fieldLog, ...exprLog, ...metaLog)
 	}
 
 	protected forceInfer = (env: Env): WithLog<Value> => {
-		return this.node.infer(env)
+		return this.expr.infer(env)
 	}
 
-	clone = (): ValueMeta => new ValueMeta(this.fields.clone(), this.node.clone())
+	clone = (): ValueMeta => new ValueMeta(this.fields.clone(), this.expr.clone())
 
-	isSameTo = (node: Expr): boolean => {
+	isSameTo = (expr: Expr): boolean => {
 		return (
-			this.type === node.type &&
-			this.fields.isSameTo(node.fields) &&
-			this.node.isSameTo(node.node)
+			this.type === expr.type &&
+			this.fields.isSameTo(expr.fields) &&
+			this.expr.isSameTo(expr.expr)
 		)
 	}
 
@@ -1150,9 +1150,9 @@ export class ValueMeta extends BaseNode {
 
 		const [d0, d1] = this.extras.delimiters
 		const fields = this.fields.print(options)
-		const node = this.node.print(options)
+		const expr = this.expr.print(options)
 
-		return `^${d0}${fields}${d1}${node}`
+		return `^${d0}${fields}${d1}${expr}`
 	}
 }
 
@@ -1187,10 +1187,10 @@ export function isSame(a: Expr, b: Expr): boolean {
 	return a.isSameTo(b)
 }
 
-export function print(node: Expr, options?: PrintOptions) {
-	return node.print(options)
+export function print(expr: Expr, options?: PrintOptions) {
+	return expr.print(options)
 }
 
-export function clone(node: Expr) {
-	return node.clone()
+export function clone(expr: Expr) {
+	return expr.clone()
 }

@@ -65,11 +65,11 @@
 	function parseRestParameter(rest) {
 		if (!rest) return
 
-		const [[name, node], optional] = rest
+		const [[name, expr], optional] = rest
 
 		if (optional) throw new Error('A rest parameter cannot be marked optional')
 
-		return {name, node}
+		return {name, expr}
 	}
 
 	function checkDelimitersNotEmpty(delimiters) {
@@ -196,7 +196,7 @@ Params =
 		if (rest) paramNames.push(rest.name)
 		checkDuplicatedKey(paramNames, 'parameter')
 
-		const params =  Expr.params(paramDict, optionalPos, rest) 
+		const params =  Expr.paramsDef(paramDict, optionalPos, rest) 
 		params.extras = {delimiters: [d0, ...d1s, ...d2s]}
 		return params
 	}

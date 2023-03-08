@@ -3,7 +3,7 @@ import chalk from 'chalk'
 import * as os from 'os'
 import * as repl from 'repl'
 
-import * as Expr from '../expr'
+import {app, Arg, Expr, valueContainer} from '../expr'
 import {GlispError} from '../GlispError'
 import {Log, WithLog, withLog} from '../log'
 import {parse} from '../parser'
@@ -14,7 +14,7 @@ const IO = primType('IO', () => {
 	return
 })
 
-const defaultNode = Expr.app()
+const defaultExpr = app()
 
 function printLog({level, reason, ref}: Log) {
 	let header: string
@@ -31,51 +31,47 @@ function printLog({level, reason, ref}: Log) {
 	}
 
 	const content = header + ' ' + reason
-	const loc = ref !== defaultNode ? chalk.gray('\n    at ' + ref.print()) : ''
+	const loc = ref !== defaultExpr ? chalk.gray('\n    at ' + ref.print()) : ''
 
 	return content + loc
 }
 
 const replScope = PreludeScope.extend({
-	IO: Expr.value(IO),
-	def: Expr.value(
-		fn(
-			{name: StrType, value: all},
-			IO,
-			(name: Expr.Arg<Str>, value: Expr.Arg<Value>) => {
-				return withLog(
-					IO.of(() => {
-						replScope.vars[name().value] = Expr.value(value())
-					})
-				)
-			}
+	IO: valueContainer(IO),
+	def: valueContainer(
+		fn({name: StrType, value: all}, IO, (name: Arg<Str>, value: Arg<Value>) =>
+			withLog(
+				IO.of(() => {
+					replScope.vars[name().value] = valueContainer(value())
+				})
+			)
 		)
 	),
-	exit: Expr.value(IO.of(process.exit)),
+	exit: valueContainer(IO.of(process.exit)),
 })
 
 function startRepl() {
 	repl.start({
 		prompt: chalk.bold.gray('> '),
 		eval(input, _context, _file, cb) {
-			let node: Expr.Node = defaultNode
+			let expr: Expr = defaultExpr
 
 			// Parse
 			try {
-				node = parse(input, replScope)
+				expr = parse(input, replScope)
 			} catch (err) {
 				if (!(err instanceof Error)) throw err
 				const r = withLog(unit, {
 					level: 'error',
 					reason: err.message,
-					ref: node,
+					ref: expr,
 				})
 				cb(null, r)
 			}
 
 			// Eval
 			try {
-				const evaluated = node.eval()
+				const evaluated = expr.eval()
 
 				if (IO.isTypeFor(evaluated.result)) {
 					evaluated.result.value()
@@ -86,7 +82,7 @@ function startRepl() {
 				const r = withLog(unit, {
 					level: 'error',
 					reason: err instanceof Error ? err.message : 'Run-time error',
-					ref: err instanceof GlispError ? err.ref : node,
+					ref: err instanceof GlispError ? err.ref : expr,
 				})
 				cb(null, r)
 			}

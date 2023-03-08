@@ -71,16 +71,16 @@ const defn: Defn = (type, f, {lazy = false, writeLog = false} = {}) => {
 
 	const fn = fnFrom(fnType, _f)
 
-	return Expr.value(fn)
+	return Expr.valueContainer(fn)
 }
 
 export const PreludeScope = Expr.scope({
-	Num: Expr.value(NumType),
-	Str: Expr.value(StrType),
-	Bool: Expr.value(BoolType),
-	_: Expr.value(All.instance),
-	All: Expr.value(All.instance),
-	Never: Expr.value(Never.instance),
+	Num: Expr.valueContainer(NumType),
+	Str: Expr.valueContainer(StrType),
+	Bool: Expr.valueContainer(BoolType),
+	_: Expr.valueContainer(All.instance),
+	All: Expr.valueContainer(All.instance),
+	Never: Expr.valueContainer(Never.instance),
 })
 
 PreludeScope.defs({
@@ -90,8 +90,8 @@ PreludeScope.defs({
 })
 
 PreludeScope.defs({
-	true: Expr.value(True),
-	false: Expr.value(False),
+	true: Expr.valueContainer(True),
+	false: Expr.valueContainer(False),
 	log: defn(
 		'(-> (T) [value:T level:(union "error" "warn" "info") reason:Str] T)',
 		(value: Value, level: Str, reason: Str) =>

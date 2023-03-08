@@ -1,14 +1,14 @@
-import * as Expr from '../expr'
+import type {Expr, InnerNode} from '../expr'
 import {Log} from '../log'
 import * as Parser from '../parser'
 import {PreludeScope} from '../std/prelude'
-import {Value} from '../value'
+import type {Value} from '../value'
 
 export function parse(
-	input: string | Expr.Node,
-	parent: Expr.InnerNode = PreludeScope
-): Expr.Node {
-	let expr: Expr.Node
+	input: string | Expr,
+	parent: InnerNode = PreludeScope
+): Expr {
+	let expr: Expr
 	if (typeof input === 'string') {
 		expr = Parser.parse(input, parent)
 	} else {
@@ -18,12 +18,12 @@ export function parse(
 	return expr
 }
 
-export function evaluate(input: string | Expr.Node): Value {
+export function evaluate(input: string | Expr): Value {
 	return parse(input).eval().result
 }
 
 export function testEval(
-	input: Expr.Node | string,
+	input: Expr | string,
 	expected: Value | string,
 	hasLog = false
 ) {
@@ -31,10 +31,10 @@ export function testEval(
 	const eStr = typeof expected === 'string' ? expected : expected.print()
 
 	test(`${iStr} evaluates to ${eStr}`, () => {
-		const node = parse(input)
+		const expr = parse(input)
 		const expectedVal = parse(input).eval().result
 
-		const {result, log} = node.eval()
+		const {result, log} = expr.eval()
 		if (!result.isEqualTo(expectedVal)) {
 			throw new Error('Got=' + result.print())
 		}

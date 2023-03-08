@@ -1,7 +1,7 @@
-import type {Node} from './expr'
+import type {Expr} from './expr'
 
 export class GlispError extends Error {
-	constructor(public readonly ref: Node, message?: string | undefined) {
+	constructor(public readonly ref: Expr, message?: string | undefined) {
 		super(message)
 	}
 }

@@ -1,21 +1,21 @@
-import * as Expr from '../expr'
+import {app, Expr, InnerNode} from '../expr'
+import * as ExprModule from '../expr'
 import parser from './parser.peg.js'
 
-export function parse(
-	str: string,
-	parent: Expr.InnerNode | null = null
-): Expr.Node {
-	const node: Expr.Node | undefined = parser.parse(str, {Expr})
-	if (!node) return Expr.app()
+const PegImports = {Expr: ExprModule}
 
-	node.parent = parent
+export function parse(str: string, parent: InnerNode | null = null): Expr {
+	const expr: Expr | undefined = parser.parse(str, PegImports)
+	if (!expr) return app()
 
-	return node
+	expr.parent = parent
+
+	return expr
 }
 
-export function parseModule(str: string): Record<string, Expr.Node> {
-	const node: Expr.Node | undefined = parser.parse('(let ' + str + ')', {Expr})
-	if (!node || node.type !== 'Scope') return {}
+export function parseModule(str: string): Record<string, Expr> {
+	const expr: Expr | undefined = parser.parse('(let ' + str + ')', PegImports)
+	if (!expr || expr.type !== 'Scope') return {}
 
-	return node.vars
+	return expr.vars
 }

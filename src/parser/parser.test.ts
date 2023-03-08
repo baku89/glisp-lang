@@ -1,13 +1,13 @@
 import {
 	app,
 	dict,
+	Expr,
 	fnDef,
 	fnType,
 	id,
 	isSame,
-	Node,
 	num,
-	params,
+	paramsDef,
 	scope,
 	str,
 	valueMeta,
@@ -151,11 +151,11 @@ describe('parsing function definition', () => {
 	// functions with rest parameter
 	testParsing(
 		'(=> [...x:x] y)',
-		fnDef(null, params({}, 0, {name: 'x', node: x}), y)
+		fnDef(null, paramsDef({}, 0, {name: 'x', expr: x}), y)
 	)
 	testParsing(
 		'(=> [x:x ...y:y] z)',
-		fnDef(null, params({x}, 1, {name: 'y', node: y}), z)
+		fnDef(null, paramsDef({x}, 1, {name: 'y', expr: y}), z)
 	)
 })
 
@@ -177,10 +177,10 @@ describe('parsing function type', () => {
 	testErrorParsing('(-> () [] Num)')
 	testErrorParsing('(-> (1) [] Num)')
 
-	testParsing('(-> [x?:x] y)', fnType(null, params({x}, 0), y))
-	testParsing('(-> [x?:x] y)', fnType(null, params({x}, 0), y))
-	testParsing('(-> [x?:x] y)', fnType(null, params({x}, 0), y))
-	testParsing('(-> [x:x y?:y] z)', fnType(null, params({x, y}, 1), z))
+	testParsing('(-> [x?:x] y)', fnType(null, paramsDef({x}, 0), y))
+	testParsing('(-> [x?:x] y)', fnType(null, paramsDef({x}, 0), y))
+	testParsing('(-> [x?:x] y)', fnType(null, paramsDef({x}, 0), y))
+	testParsing('(-> [x:x y?:y] z)', fnType(null, paramsDef({x, y}, 1), z))
 })
 
 describe('parsing value metadata', () => {
@@ -211,7 +211,7 @@ describe('parsing value metadata', () => {
 	testErrorParsing('^{true}Bool')
 })
 
-describe('parsing node metadata', () => {
+describe('parsing expression metadata', () => {
 	// testParsing('layer#{}', id('layer').setNodeMeta(new NodeMeta(dict())))
 	// testParsing(
 	// 	'layer#{collapsed: true}',
@@ -227,7 +227,7 @@ describe('parsing node metadata', () => {
 	// testErrorParsing('Num#{}^0')
 })
 
-function testParsing(input: string, expected: Node) {
+function testParsing(input: string, expected: Expr) {
 	test(`parsing '${input}' to be ${expected.print()}`, () => {
 		const result = parse(input)
 		if (!isSame(result, expected)) {
