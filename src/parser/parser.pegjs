@@ -86,36 +86,36 @@
 	const Expr = options.Expr
 }
 
-Program = _ exp:Node _
+Program = _ exp:Expr _
 	{
 		return exp
 	}
 
-Node =
-	node:NodeContent
-	nodeMeta:NodeMeta?
+Expr =
+	expr:ExprContent
+	exprMeta:ExprMeta?
 	{
-		if (nodeMeta) {
-			node.setNodeMeta(nodeMeta)
+		if (exprMeta) {
+			expr.setExprMeta(exprMeta)
 		}
 		
-		return node
+		return expr
 	}
 
-NodeContent =
-	Num / Str / Identifier /
-	FnDef / FnType / Scope / TryCatch / App /
-	Vec / Dict / ValueMeta
+ExprContent =
+	NumLiteral / StrLiteral / Identifier /
+	FnDef / FnTypeDef / Scope / TryCatch / App /
+	VecLiteral / DictLiteral / ValueMeta
 
-NodeMeta = d:_ "#" fields:Dict
+ExprMeta = d:_ "#" fields:DictLiteral
 	{
-		return new Expr.NodeMeta(fields, {delimiter: [d]})
+		return new Expr.ExprMeta(fields, {delimiter: [d]})
 	}
 
 ValueMeta =
-	"^" d0:_ fields:NodeContent d1:_ node:Node
+	"^" d0:_ fields:ExprContent d1:_ expr:Expr
 	{
-		const meta = Expr.valueMeta(fields, node)
+		const meta = Expr.valueMeta(fields, expr)
 		meta.extras = {
 			delimiters: [d0, d1]
 		}
@@ -132,7 +132,7 @@ Identifier "identifier" =
 		return Expr.id(text())
 	}
 
-Num "number" = [+-]? (Digit* ".")? Digit+
+NumLiteral "number" = [+-]? (Digit* ".")? Digit+
 	{
 		const raw = text()
 		const v = parseFloat(raw)
@@ -142,12 +142,12 @@ Num "number" = [+-]? (Digit* ".")? Digit+
 		return num
 	}
 
-Str "string" = '"' value:$(!'"' .)* '"'
+StrLiteral "string" = '"' value:$(!'"' .)* '"'
 	{
 		return Expr.str(value)
 	}
 
-App "function application" = "(" d0:_ itemsDs:(Node _)* ")"
+App "function application" = "(" d0:_ itemsDs:(Expr _)* ")"
 	{
 		const [items, ds] = zip(itemsDs)
 
@@ -160,7 +160,7 @@ App "function application" = "(" d0:_ itemsDs:(Node _)* ")"
 	}
 
 FnDef "function definition" =
-	"(" d0:_ "=>" d1:__ typeVarsDs:(TypeVars __)? param:Params d3:__ body:Node d4:_ ")"
+	"(" d0:_ "=>" d1:__ typeVarsDs:(TypeVars __)? param:Params d3:__ body:Expr d4:_ ")"
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
@@ -169,8 +169,8 @@ FnDef "function definition" =
 		return fn
 	}
 
-FnType "function type definition" =
-	"(" d0:_ "->" d1:__ typeVarsDs:(TypeVars __)? param:Params d3:__ out:Node d4:_ ")"
+FnTypeDef "function type definition" =
+	"(" d0:_ "->" d1:__ typeVarsDs:(TypeVars __)? param:Params d3:__ out:Expr d4:_ ")"
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
@@ -180,7 +180,7 @@ FnType "function type definition" =
 	}
 	
 Params =
-	"[" d0:_ entries:(NamedNode __)* rest:("..." @NamedNode @_)? "]"
+	"[" d0:_ entries:(NamedExpr __)* rest:("..." @NamedExpr @_)? "]"
 	{
 		let optionalFlags, d1s, d2s
 
@@ -210,13 +210,13 @@ TypeVars = "(" d0:_ namesDs:($([a-zA-Z] [a-zA-Z0-9]*) _)* ")"
 		return typeVars
 	}
 
-NamedNode = id:Identifier optional:"?"? ":" _ node:Node
+NamedExpr = id:Identifier optional:"?"? ":" _ expr:Expr
 	{
-		return [[id.name, node], optional]
+		return [[id.name, expr], optional]
 	}
 
-Vec "vector" =
-	"[" d0:_ entries:(Node "?"? _)* restDs:("..." @Node @_)? "]"
+VecLiteral "vector" =
+	"[" d0:_ entries:(Expr "?"? _)* restDs:("..." @Expr @_)? "]"
 	{
 		const [items, optionalFlags, ds] = zip(entries)
 		const [rest, dsr] = restDs ?? [undefined, []]
@@ -230,8 +230,8 @@ Vec "vector" =
 		return vec
 	}
 
-Dict "dictionary" = "{"
-	d0:_ entries:DictEntry* restDs:("..." @Node @_)? "}"
+DictLiteral "dictionary" = "{"
+	d0:_ entries:DictEntry* restDs:("..." @Expr @_)? "}"
 	{
 		const items = {}
 		const optionalKeys = new Set()
@@ -255,7 +255,7 @@ Dict "dictionary" = "{"
 		return dict
 	}
 
-DictEntry = key:DictKey optional:"?"? ":" d0:_ value:Node d1:__
+DictEntry = key:DictKey optional:"?"? ":" d0:_ value:Expr d1:__
 	{
 		return [key, value, optional, [d0, d1]]
 	}
@@ -263,10 +263,10 @@ DictEntry = key:DictKey optional:"?"? ":" d0:_ value:Node d1:__
 // TODO: Why not allowing reserved words for key?
 DictKey =
 	id:Identifier {return id.name } /
-	str: Str      {return str.value }
+	str: StrLiteral {return str.value }
 
 Scope "scope" =
-	"(" d0:_ "let" d1:__ pairs:(@Identifier ":" @_ @Node @__)* out:Node? dl:_ ")"
+	"(" d0:_ "let" d1:__ pairs:(@Identifier ":" @_ @Expr @__)* out:Expr? dl:_ ")"
 	{
 		const vars = {}
 		const delimiters = [d0, d1]
@@ -286,7 +286,7 @@ Scope "scope" =
 		return scope
 	}
 
-TryCatch = "(" d0:_ "try" d1:__ block:Node d2:__ handler:Node d3:_ ")"
+TryCatch = "(" d0:_ "try" d1:__ block:Expr d2:__ handler:Expr d3:_ ")"
 	{
 		const tryCatch = Expr.tryCatch(block, handler)
 		tryCatch.extras = {delimiters: [d0, d1, d2, d3]}
