@@ -1,6 +1,6 @@
 import {range} from 'lodash'
 
-import * as Ast from '../ast'
+import * as Expr from '../expr'
 import {Log, withLog} from '../log'
 import {parse, parseModule} from '../parser'
 import {Writer} from '../util/Writer'
@@ -32,24 +32,24 @@ import {
 interface Defn {
 	(
 		type: string,
-		f: (...args: Ast.Arg<any>[]) => Value,
+		f: (...args: Expr.Arg<any>[]) => Value,
 		options?: {lazy?: true; writeLog?: false}
-	): Ast.ValueContainer
+	): Expr.ValueContainer
 	(
 		type: string,
 		f: (...args: any[]) => Value,
 		options?: {lazy?: false; writeLog?: false}
-	): Ast.ValueContainer
+	): Expr.ValueContainer
 	(
 		type: string,
 		f: IFn,
 		options?: {lazy?: true; writeLog?: true}
-	): Ast.ValueContainer
+	): Expr.ValueContainer
 	(
 		type: string,
 		f: (...args: any[]) => ReturnType<IFn>,
 		options?: {lazy?: false; writeLog?: true}
-	): Ast.ValueContainer
+	): Expr.ValueContainer
 }
 
 const defn: Defn = (type, f, {lazy = false, writeLog = false} = {}) => {
@@ -71,16 +71,16 @@ const defn: Defn = (type, f, {lazy = false, writeLog = false} = {}) => {
 
 	const fn = fnFrom(fnType, _f)
 
-	return Ast.value(fn)
+	return Expr.value(fn)
 }
 
-export const PreludeScope = Ast.scope({
-	Num: Ast.value(NumType),
-	Str: Ast.value(StrType),
-	Bool: Ast.value(BoolType),
-	_: Ast.value(All.instance),
-	All: Ast.value(All.instance),
-	Never: Ast.value(Never.instance),
+export const PreludeScope = Expr.scope({
+	Num: Expr.value(NumType),
+	Str: Expr.value(StrType),
+	Bool: Expr.value(BoolType),
+	_: Expr.value(All.instance),
+	All: Expr.value(All.instance),
+	Never: Expr.value(Never.instance),
 })
 
 PreludeScope.defs({
@@ -90,8 +90,8 @@ PreludeScope.defs({
 })
 
 PreludeScope.defs({
-	true: Ast.value(True),
-	false: Ast.value(False),
+	true: Expr.value(True),
+	false: Expr.value(False),
 	log: defn(
 		'(-> (T) [value:T level:(union "error" "warn" "info") reason:Str] T)',
 		(value: Value, level: Str, reason: Str) =>
@@ -141,13 +141,13 @@ PreludeScope.defs({
 	),
 	if: defn(
 		'(-> (T) [test:Bool then:T else:T] T)',
-		(test: Ast.Arg, then: Ast.Arg, _else: Ast.Arg) =>
+		(test: Expr.Arg, then: Expr.Arg, _else: Expr.Arg) =>
 			isEqual(test(), True) ? then() : _else(),
 		{lazy: true}
 	),
 	'&&': defn(
 		'(-> [...xs:^{default: true} Bool] Bool)',
-		(...xs: Ast.Arg<Enum>[]) => {
+		(...xs: Expr.Arg<Enum>[]) => {
 			for (const x of xs) {
 				if (x().isEqualTo(False)) return bool(false)
 			}
@@ -157,7 +157,7 @@ PreludeScope.defs({
 	),
 	'||': defn(
 		'(-> [...xs:Bool] Bool)',
-		(...xs: Ast.Arg<Enum>[]) => {
+		(...xs: Expr.Arg<Enum>[]) => {
 			for (const x of xs) {
 				if (x().isEqualTo(True)) return bool(true)
 			}

@@ -1,5 +1,5 @@
 import {WithLog} from '../log'
-import type {Arg, BaseNode} from './ast'
+import type {Arg, BaseNode} from './expr'
 
 type ArgDict = Record<string, Arg>
 
@@ -32,18 +32,18 @@ export class Env {
 		return new Env(this, arg)
 	}
 
-	memoizeEval(ast: BaseNode, evaluate: (env: Env) => WithLog): WithLog {
-		let cache = this.#evalCache.get(ast)
+	memoizeEval(expr: BaseNode, evaluate: (env: Env) => WithLog): WithLog {
+		let cache = this.#evalCache.get(expr)
 		if (!cache) {
-			this.#evalCache.set(ast, (cache = evaluate(this)))
+			this.#evalCache.set(expr, (cache = evaluate(this)))
 		}
 		return cache
 	}
 
-	memoizeInfer(ast: BaseNode, infer: (env: Env) => WithLog): WithLog {
-		let cache = this.#inferCache.get(ast)
+	memoizeInfer(expr: BaseNode, infer: (env: Env) => WithLog): WithLog {
+		let cache = this.#inferCache.get(expr)
 		if (!cache) {
-			this.#inferCache.set(ast, (cache = infer(this)))
+			this.#inferCache.set(expr, (cache = infer(this)))
 		}
 		return cache
 	}

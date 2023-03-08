@@ -3,7 +3,7 @@ import chalk from 'chalk'
 import * as os from 'os'
 import * as repl from 'repl'
 
-import * as Ast from '../ast'
+import * as Expr from '../expr'
 import {GlispError} from '../GlispError'
 import {Log, WithLog, withLog} from '../log'
 import {parse} from '../parser'
@@ -14,7 +14,7 @@ const IO = primType('IO', () => {
 	return
 })
 
-const defaultNode = Ast.app()
+const defaultNode = Expr.app()
 
 function printLog({level, reason, ref}: Log) {
 	let header: string
@@ -37,28 +37,28 @@ function printLog({level, reason, ref}: Log) {
 }
 
 const replScope = PreludeScope.extend({
-	IO: Ast.value(IO),
-	def: Ast.value(
+	IO: Expr.value(IO),
+	def: Expr.value(
 		fn(
 			{name: StrType, value: all},
 			IO,
-			(name: Ast.Arg<Str>, value: Ast.Arg<Value>) => {
+			(name: Expr.Arg<Str>, value: Expr.Arg<Value>) => {
 				return withLog(
 					IO.of(() => {
-						replScope.vars[name().value] = Ast.value(value())
+						replScope.vars[name().value] = Expr.value(value())
 					})
 				)
 			}
 		)
 	),
-	exit: Ast.value(IO.of(process.exit)),
+	exit: Expr.value(IO.of(process.exit)),
 })
 
 function startRepl() {
 	repl.start({
 		prompt: chalk.bold.gray('> '),
 		eval(input, _context, _file, cb) {
-			let node: Ast.Node = defaultNode
+			let node: Expr.Node = defaultNode
 
 			// Parse
 			try {

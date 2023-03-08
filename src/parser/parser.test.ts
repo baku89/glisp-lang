@@ -12,7 +12,7 @@ import {
 	str,
 	valueMeta,
 	vec,
-} from '../ast'
+} from '../expr'
 import {parse} from '.'
 
 const all = id('_')

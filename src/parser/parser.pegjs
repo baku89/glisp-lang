@@ -83,7 +83,7 @@
 }}
 
 {
-	const Ast = options.Ast
+	const Expr = options.Expr
 }
 
 Program = _ exp:Node _
@@ -109,13 +109,13 @@ NodeContent =
 
 NodeMeta = d:_ "#" fields:Dict
 	{
-		return new Ast.NodeMeta(fields, {delimiter: [d]})
+		return new Expr.NodeMeta(fields, {delimiter: [d]})
 	}
 
 ValueMeta =
 	"^" d0:_ fields:NodeContent d1:_ node:Node
 	{
-		const meta = Ast.valueMeta(fields, node)
+		const meta = Expr.valueMeta(fields, node)
 		meta.extras = {
 			delimiters: [d0, d1]
 		}
@@ -129,7 +129,7 @@ Identifier "identifier" =
 	!(Digit / End) .
 	(!End .)*
 	{
-		return Ast.id(text())
+		return Expr.id(text())
 	}
 
 Num "number" = [+-]? (Digit* ".")? Digit+
@@ -137,14 +137,14 @@ Num "number" = [+-]? (Digit* ".")? Digit+
 		const raw = text()
 		const v = parseFloat(raw)
 		
-		const num = Ast.num(v)
+		const num = Expr.num(v)
 		num.extras = {raw}
 		return num
 	}
 
 Str "string" = '"' value:$(!'"' .)* '"'
 	{
-		return Ast.str(value)
+		return Expr.str(value)
 	}
 
 App "function application" = "(" d0:_ itemsDs:(Node _)* ")"
@@ -153,7 +153,7 @@ App "function application" = "(" d0:_ itemsDs:(Node _)* ")"
 
 		const delimiters = [d0, ...ds]
 
-		const app = Ast.app(...items)
+		const app = Expr.app(...items)
 		app.extras = {delimiters}
 
 		return app
@@ -164,7 +164,7 @@ FnDef "function definition" =
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
-		const fn = Ast.fnDef(typeVars, param, body)
+		const fn = Expr.fnDef(typeVars, param, body)
 		fn.extras = {delimiters: [d0, d1, ...(d2 ? [d2] : []), d3, d4]}
 		return fn
 	}
@@ -174,7 +174,7 @@ FnType "function type definition" =
 	{
 		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
 
-		const fnType = Ast.fnType(typeVars, param, out)
+		const fnType = Expr.fnType(typeVars, param, out)
 		fnType.extras = {delimiters: [d0, d1, ...(d2 ? [d2] : []), d3, d4]}
 		return fnType
 	}
@@ -196,7 +196,7 @@ Params =
 		if (rest) paramNames.push(rest.name)
 		checkDuplicatedKey(paramNames, 'parameter')
 
-		const params =  Ast.params(paramDict, optionalPos, rest) 
+		const params =  Expr.params(paramDict, optionalPos, rest) 
 		params.extras = {delimiters: [d0, ...d1s, ...d2s]}
 		return params
 	}
@@ -205,7 +205,7 @@ TypeVars = "(" d0:_ namesDs:($([a-zA-Z] [a-zA-Z0-9]*) _)* ")"
 	{
 		const [names, ds] = zip(namesDs)
 
-		const typeVars = new Ast.TypeVarsDef(names)
+		const typeVars = new Expr.TypeVarsDef(names)
 		typeVars.extras = {delimiters: [d0, ...ds]}
 		return typeVars
 	}
@@ -225,7 +225,7 @@ Vec "vector" =
 
 		const delimiters = [d0, ...ds, ...dsr]
 
-		const vec = Ast.vec(items, optionalPos, rest)
+		const vec = Expr.vec(items, optionalPos, rest)
 		vec.extras = {delimiters}
 		return vec
 	}
@@ -250,7 +250,7 @@ Dict "dictionary" = "{"
 
 		delimiters.push(...dsr)
 
-		const dict = Ast.dict(items, optionalKeys, rest)
+		const dict = Expr.dict(items, optionalKeys, rest)
 		dict.extras = {delimiters}
 		return dict
 	}
@@ -281,14 +281,14 @@ Scope "scope" =
 
 		delimiters.push(dl)
 
-		const scope = Ast.scope(vars, out ?? null)
+		const scope = Expr.scope(vars, out ?? null)
 		scope.extras = {delimiters}
 		return scope
 	}
 
 TryCatch = "(" d0:_ "try" d1:__ block:Node d2:__ handler:Node d3:_ ")"
 	{
-		const tryCatch = Ast.tryCatch(block, handler)
+		const tryCatch = Expr.tryCatch(block, handler)
 		tryCatch.extras = {delimiters: [d0, d1, d2, d3]}
 		return tryCatch
 	}

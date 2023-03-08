@@ -32,7 +32,7 @@ import {Env} from './env'
 import {createListDelimiters, insertDelimiters} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
 
-export type Node = LeafNode | InnerNode
+export type Expr = LeafNode | InnerNode
 
 /**
  * ASTs that cannot have child elements
@@ -76,9 +76,9 @@ export abstract class BaseNode {
 	protected abstract forceEval(env: Env): WithLog
 	protected abstract forceInfer(env: Env): WithLog
 
-	abstract isSameTo(node: Node): boolean
+	abstract isSameTo(node: Expr): boolean
 
-	abstract clone(): Node
+	abstract clone(): Expr
 
 	#nodeMeta?: NodeMeta
 
@@ -107,11 +107,11 @@ export class Identifier extends BaseNode {
 	}
 
 	#resolve(
-		ref: Node | ValueMeta | NodeMeta | Params | null,
+		ref: Expr | ValueMeta | NodeMeta | Params | null,
 		env: Env
-	): Writer<{node: Node; mode?: 'param' | 'arg' | 'TypeVar'}, Log> {
+	): Writer<{node: Expr; mode?: 'param' | 'arg' | 'TypeVar'}, Log> {
 		if (!ref) {
-			// If the ast has no parent and still couldn't resolve the symbol,
+			// If the expr has no parent and still couldn't resolve the symbol,
 			// assume there's no bound expression for it.
 			const log: Log = {
 				level: 'error',
@@ -190,7 +190,7 @@ export class Identifier extends BaseNode {
 
 	print = () => this.name
 
-	isSameTo = (node: Node) => this.type === node.type && this.name === node.name
+	isSameTo = (node: Expr) => this.type === node.type && this.name === node.name
 
 	clone = () => new Identifier(this.name)
 }
@@ -211,12 +211,12 @@ export class ValueContainer<V extends Value = Value> extends BaseNode {
 	protected forceInfer = () => withLog(this.value.isType ? all : this.value)
 
 	print = (options?: PrintOptions) => {
-		const ast = this.value.toAst()
-		if (ast.type !== this.type) return ast.print(options)
+		const expr = this.value.toExpr()
+		if (expr.type !== this.type) return expr.print(options)
 		return `<value container of ${this.value.type}>`
 	}
 
-	isSameTo = (node: Node) =>
+	isSameTo = (node: Expr) =>
 		this.type === node.type && this.value === node.value
 
 	clone = () => new ValueContainer(this.value)
@@ -241,7 +241,7 @@ export class NumLiteral extends BaseNode {
 		return this.extras.raw
 	}
 
-	isSameTo = (node: Node) =>
+	isSameTo = (node: Expr) =>
 		this.type === node.type && this.value === node.value
 
 	clone = () => new NumLiteral(this.value)
@@ -262,7 +262,7 @@ export class StrLiteral extends BaseNode {
 
 	print = () => '"' + this.value + '"'
 
-	isSameTo = (node: Node) =>
+	isSameTo = (node: Expr) =>
 		this.type === node.type && this.value === node.value
 
 	clone = () => new StrLiteral(this.value)
@@ -276,8 +276,8 @@ export class FnDef extends BaseNode {
 
 	constructor(
 		typeVars: TypeVarsDef | string[] | null | undefined,
-		params: Params | Record<string, Node>,
-		public readonly body: Node
+		params: Params | Record<string, Expr>,
+		public readonly body: Expr
 	) {
 		super()
 
@@ -360,7 +360,7 @@ export class FnDef extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Node) =>
+	isSameTo = (node: Expr) =>
 		this.type === node.type &&
 		nullishEqual(this.typeVars, node.typeVars, TypeVarsDef.isSame) &&
 		Params.isSame(this.params, node.params) &&
@@ -378,8 +378,8 @@ export class FnTypeDef extends BaseNode {
 
 	constructor(
 		typeVars: TypeVarsDef | string[] | undefined | null,
-		params: Params | Record<string, Node>,
-		public out: Node
+		params: Params | Record<string, Expr>,
+		public out: Expr
 	) {
 		super()
 
@@ -434,7 +434,7 @@ export class FnTypeDef extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Node): boolean =>
+	isSameTo = (node: Expr): boolean =>
 		this.type === node.type &&
 		nullishEqual(this.typeVars, node.typeVars, TypeVarsDef.isSame) &&
 		Params.isSame(this.params, node.params) &&
@@ -451,9 +451,9 @@ export class Params {
 	public optionalPos: number
 
 	constructor(
-		public items: Record<string, Node>,
+		public items: Record<string, Expr>,
 		optionalPos?: number,
-		public rest?: {name: string; node: Node}
+		public rest?: {name: string; node: Expr}
 	) {
 		this.optionalPos = optionalPos ?? values(items).length
 
@@ -497,7 +497,7 @@ export class Params {
 
 		return '[' + insertDelimiters([...paramStrs, ...restStrs], delimiters) + ']'
 
-		function printNamedNode([name, ty]: [string, Node], index: number) {
+		function printNamedNode([name, ty]: [string, Expr], index: number) {
 			const optionalMark = optionalPos <= index ? '?' : ''
 			return name + optionalMark + ':' + ty.print(options)
 		}
@@ -524,7 +524,7 @@ export class Params {
 
 	get = (name: string, env: Env) => {
 		if (name in this.items) {
-			return Writer.of<Node, Log>(this.items[name])
+			return Writer.of<Expr, Log>(this.items[name])
 		}
 		if (this.rest && this.rest.name === name) {
 			const [rest, lr] = this.rest.node.eval(env).asTuple
@@ -576,11 +576,11 @@ export class TypeVarsDef {
 export class VecLiteral extends BaseNode {
 	readonly type = 'VecLiteral' as const
 
-	public readonly items: Node[]
+	public readonly items: Expr[]
 	public readonly optionalPos: number
-	public readonly rest?: Node
+	public readonly rest?: Expr
 
-	constructor(items: Node[] = [], optionalPos?: number, rest?: Node) {
+	constructor(items: Expr[] = [], optionalPos?: number, rest?: Expr) {
 		super()
 
 		this.items = items
@@ -634,7 +634,7 @@ export class VecLiteral extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Node): boolean =>
+	isSameTo = (node: Expr): boolean =>
 		this.type === node.type &&
 		isEqualArray(this.items, node.items, isSame) &&
 		this.optionalPos === node.optionalPos &&
@@ -647,14 +647,14 @@ export class VecLiteral extends BaseNode {
 export class DictLiteral extends BaseNode {
 	readonly type = 'DictLiteral' as const
 
-	public readonly items: Record<string, Node>
+	public readonly items: Record<string, Expr>
 	public readonly optionalKeys: Set<string>
-	public readonly rest?: Node
+	public readonly rest?: Expr
 
 	constructor(
-		items: Record<string, Node> = {},
+		items: Record<string, Expr> = {},
 		optionalKeys: Iterable<string> = [],
-		rest?: Node
+		rest?: Expr
 	) {
 		super()
 
@@ -714,7 +714,7 @@ export class DictLiteral extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Node): boolean =>
+	isSameTo = (node: Expr): boolean =>
 		this.type === node.type &&
 		isEqualDict(this.items, node.items, isSame) &&
 		isEqualSet(this.optionalKeys, node.optionalKeys) &&
@@ -731,10 +731,10 @@ export class DictLiteral extends BaseNode {
 export class App extends BaseNode {
 	readonly type = 'App' as const
 
-	readonly fn?: Node
-	readonly args: Node[]
+	readonly fn?: Expr
+	readonly args: Expr[]
 
-	constructor(fn?: Node, ...args: Node[]) {
+	constructor(fn?: Expr, ...args: Expr[]) {
 		super()
 		this.fn = fn
 		this.args = args
@@ -805,7 +805,7 @@ export class App extends BaseNode {
 			})
 		}
 
-		// Check types of args and cast them to default if necessary
+		// Check types of args and cexpr them to default if necessary
 		const args = unifiedParams.map((pType, i) => {
 			const aType = unifiedArgs[i] ?? Unit
 			const name = names[i]
@@ -939,7 +939,7 @@ export class App extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Node) =>
+	isSameTo = (node: Expr) =>
 		this.type === node.type && isEqualArray(this.args, node.args, isSame)
 
 	clone = (): App => new App(this.fn, ...this.args.map(clone))
@@ -948,7 +948,7 @@ export class App extends BaseNode {
 export class Scope extends BaseNode {
 	readonly type = 'Scope' as const
 
-	constructor(public readonly vars: Record<string, Node>, public out?: Node) {
+	constructor(public readonly vars: Record<string, Expr>, public out?: Expr) {
 		super()
 
 		// Set parent
@@ -981,20 +981,20 @@ export class Scope extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Node) =>
+	isSameTo = (node: Expr) =>
 		this.type === node.type &&
 		nullishEqual(this.out, node.out, isSame) &&
 		isEqualDict(this.vars, node.vars, isSame)
 
 	clone = (): Scope => new Scope(mapValues(this.vars, clone), this.out?.clone())
 
-	extend(vars: Record<string, Node>, out?: Node): Scope {
+	extend(vars: Record<string, Expr>, out?: Expr): Scope {
 		const scope = new Scope(vars, out)
 		scope.parent = this
 		return scope
 	}
 
-	def(name: string, node: Node) {
+	def(name: string, node: Expr) {
 		if (name in this.vars)
 			throw new Error(`Variable '${name}' is already defined`)
 
@@ -1004,7 +1004,7 @@ export class Scope extends BaseNode {
 		return this
 	}
 
-	defs(vars: Record<string, Node>) {
+	defs(vars: Record<string, Expr>) {
 		for (const [name, exp] of entries(vars)) {
 			this.def(name, exp)
 		}
@@ -1014,7 +1014,7 @@ export class Scope extends BaseNode {
 export class TryCatch extends BaseNode {
 	readonly type = 'TryCatch'
 
-	constructor(public block: Node, public handler: Node) {
+	constructor(public block: Expr, public handler: Expr) {
 		super()
 
 		// Set parent
@@ -1061,7 +1061,7 @@ export class TryCatch extends BaseNode {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (node: Node): boolean =>
+	isSameTo = (node: Expr): boolean =>
 		this.type === node.type &&
 		isSame(this.block, node.block) &&
 		nullishEqual(this.handler, node.handler, isSame)
@@ -1074,7 +1074,7 @@ export class ValueMeta extends BaseNode {
 
 	extras?: {delimiters: [string, string]}
 
-	constructor(public readonly fields: Node, public readonly node: Node) {
+	constructor(public readonly fields: Expr, public readonly node: Expr) {
 		super()
 
 		// Set parent
@@ -1135,7 +1135,7 @@ export class ValueMeta extends BaseNode {
 
 	clone = (): ValueMeta => new ValueMeta(this.fields.clone(), this.node.clone())
 
-	isSameTo = (node: Node): boolean => {
+	isSameTo = (node: Expr): boolean => {
 		return (
 			this.type === node.type &&
 			this.fields.isSameTo(node.fields) &&
@@ -1159,7 +1159,7 @@ export class ValueMeta extends BaseNode {
 export class NodeMeta {
 	readonly type = 'NodeMeta' as const
 
-	public attachedTo!: Node
+	public attachedTo!: Expr
 
 	constructor(
 		public fields: DictLiteral,
@@ -1183,14 +1183,14 @@ export class NodeMeta {
 	}
 }
 
-export function isSame(a: Node, b: Node): boolean {
+export function isSame(a: Expr, b: Expr): boolean {
 	return a.isSameTo(b)
 }
 
-export function print(node: Node, options?: PrintOptions) {
+export function print(node: Expr, options?: PrintOptions) {
 	return node.print(options)
 }
 
-export function clone(node: Node) {
+export function clone(node: Expr) {
 	return node.clone()
 }

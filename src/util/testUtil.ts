@@ -1,29 +1,29 @@
-import * as Ast from '../ast'
+import * as Expr from '../expr'
 import {Log} from '../log'
 import * as Parser from '../parser'
 import {PreludeScope} from '../std/prelude'
 import {Value} from '../value'
 
 export function parse(
-	input: string | Ast.Node,
-	parent: Ast.InnerNode = PreludeScope
-): Ast.Node {
-	let ast: Ast.Node
+	input: string | Expr.Node,
+	parent: Expr.InnerNode = PreludeScope
+): Expr.Node {
+	let expr: Expr.Node
 	if (typeof input === 'string') {
-		ast = Parser.parse(input, parent)
+		expr = Parser.parse(input, parent)
 	} else {
-		ast = input
-		ast.parent = parent
+		expr = input
+		expr.parent = parent
 	}
-	return ast
+	return expr
 }
 
-export function evaluate(input: string | Ast.Node): Value {
+export function evaluate(input: string | Expr.Node): Value {
 	return parse(input).eval().result
 }
 
 export function testEval(
-	input: Ast.Node | string,
+	input: Expr.Node | string,
 	expected: Value | string,
 	hasLog = false
 ) {

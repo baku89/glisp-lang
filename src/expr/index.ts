@@ -2,10 +2,10 @@ import {Value} from '../value'
 import {
 	App,
 	DictLiteral,
+	Expr,
 	FnDef,
 	FnTypeDef,
 	Identifier,
-	Node,
 	NumLiteral,
 	Params,
 	Scope,
@@ -15,17 +15,17 @@ import {
 	ValueContainer,
 	ValueMeta,
 	VecLiteral,
-} from './ast'
+} from './expr'
 
-export {LeafNode, InnerNode, Arg} from './ast'
+export {LeafNode, InnerNode, Arg} from './expr'
 
-export {NodeMeta} from './ast'
+export {NodeMeta} from './expr'
 
-export {isSame, print, clone} from './ast'
+export {isSame, print, clone} from './expr'
 
 // Exp
 export {
-	Node,
+	Expr as Node,
 	Identifier,
 	ValueContainer,
 	NumLiteral,
@@ -51,39 +51,39 @@ export const num = (value: number) => new NumLiteral(value)
 
 export const str = (value: string) => new StrLiteral(value)
 
-export const app = (fn?: Node, ...args: Node[]) => new App(fn, ...args)
+export const app = (fn?: Expr, ...args: Expr[]) => new App(fn, ...args)
 
-export const scope = (items: Record<string, Node>, ret?: Node) =>
+export const scope = (items: Record<string, Expr>, ret?: Expr) =>
 	new Scope(items, ret)
 
-export const tryCatch = (block: Node, handler: Node) =>
+export const tryCatch = (block: Expr, handler: Expr) =>
 	new TryCatch(block, handler)
 
-export const valueMeta = (meta: Node, value: Node) => new ValueMeta(meta, value)
+export const valueMeta = (meta: Expr, value: Expr) => new ValueMeta(meta, value)
 
 export const fnDef = (
 	typeVars: TypeVarsDef | string[] | null | undefined,
-	param: Params | Record<string, Node>,
-	body: Node
+	param: Params | Record<string, Expr>,
+	body: Expr
 ) => new FnDef(typeVars, param, body)
 
 export const fnType = (
 	typeVars: TypeVarsDef | string[] | null | undefined,
-	param: Params | Record<string, Node>,
-	out: Node
+	param: Params | Record<string, Expr>,
+	out: Expr
 ) => new FnTypeDef(typeVars, param, out)
 
 export const params = (
-	items: Record<string, Node>,
+	items: Record<string, Expr>,
 	optionalPos: number,
-	rest?: {name: string; node: Node}
+	rest?: {name: string; node: Expr}
 ) => new Params(items, optionalPos, rest)
 
-export const vec = (items: Node[] = [], optionalPos?: number, rest?: Node) =>
+export const vec = (items: Expr[] = [], optionalPos?: number, rest?: Expr) =>
 	new VecLiteral(items, optionalPos, rest)
 
 export const dict = (
-	items: Record<string, Node> = {},
+	items: Record<string, Expr> = {},
 	optionalKeys: Iterable<string> = [],
-	rest?: Node
+	rest?: Expr
 ) => new DictLiteral(items, optionalKeys, rest)
