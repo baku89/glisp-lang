@@ -8,9 +8,9 @@ import {GlispError} from '../GlispError'
 import {Log, WithLog, withLog} from '../log'
 import {parse} from '../parser'
 import {PreludeScope} from '../std/prelude'
-import * as Val from '../val'
+import {all, fn, primType, Str, StrType, unit, Value} from '../value'
 
-const IO = Val.primType('IO', () => {
+const IO = primType('IO', () => {
 	return
 })
 
@@ -39,10 +39,10 @@ function printLog({level, reason, ref}: Log) {
 const replScope = PreludeScope.extend({
 	IO: Ast.value(IO),
 	def: Ast.value(
-		Val.fn(
-			{name: Val.StrType, value: Val.all},
+		fn(
+			{name: StrType, value: all},
 			IO,
-			(name: Ast.Arg<Val.Str>, value: Ast.Arg<Val.Value>) => {
+			(name: Ast.Arg<Str>, value: Ast.Arg<Value>) => {
 				return withLog(
 					IO.of(() => {
 						replScope.vars[name().value] = Ast.value(value())
@@ -65,7 +65,7 @@ function startRepl() {
 				node = parse(input, replScope)
 			} catch (err) {
 				if (!(err instanceof Error)) throw err
-				const r = withLog(Val.unit, {
+				const r = withLog(unit, {
 					level: 'error',
 					reason: err.message,
 					ref: node,
@@ -83,7 +83,7 @@ function startRepl() {
 
 				cb(null, evaluated)
 			} catch (err) {
-				const r = withLog(Val.unit, {
+				const r = withLog(unit, {
 					level: 'error',
 					reason: err instanceof Error ? err.message : 'Run-time error',
 					ref: err instanceof GlispError ? err.ref : node,

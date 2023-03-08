@@ -10,7 +10,24 @@ import {nullishEqual} from '../util/nullishEqual'
 import {union} from '../util/SetOperation'
 import {Writer} from '../util/Writer'
 import {zip} from '../util/zip'
-import * as Val from '../val'
+import {
+	all,
+	Dict,
+	dict,
+	fnFrom,
+	FnType,
+	fnType,
+	IFn,
+	num,
+	str,
+	TypeVar,
+	typeVar,
+	unionType,
+	Unit,
+	unit,
+	Value,
+	vec,
+} from '../value'
 import {Env} from './env'
 import {createListDelimiters, insertDelimiters} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
@@ -40,7 +57,7 @@ export type InnerNode =
  */
 export type ParentNode = InnerNode | ValueMeta | NodeMeta | Params
 
-export type Arg<T extends Val.Value = Val.Value> = () => T
+export type Arg<T extends Value = Value> = () => T
 
 export interface PrintOptions {
 	omitMeta?: boolean
@@ -182,7 +199,7 @@ export class Identifier extends BaseNode {
  * AST to store values that cannot be parsed from strings
  * e.g. DOM，Image
  */
-export class ValueContainer<V extends Val.Value = Val.Value> extends BaseNode {
+export class ValueContainer<V extends Value = Value> extends BaseNode {
 	readonly type = 'ValueContainer' as const
 
 	constructor(public readonly value: V) {
@@ -191,7 +208,7 @@ export class ValueContainer<V extends Val.Value = Val.Value> extends BaseNode {
 
 	protected forceEval = () => withLog(this.value)
 
-	protected forceInfer = () => withLog(this.value.isType ? Val.all : this.value)
+	protected forceInfer = () => withLog(this.value.isType ? all : this.value)
 
 	print = (options?: PrintOptions) => {
 		const ast = this.value.toAst()
@@ -212,9 +229,9 @@ export class NumLiteral extends BaseNode {
 		super()
 	}
 
-	protected forceEval = () => withLog(Val.num(this.value))
+	protected forceEval = () => withLog(num(this.value))
 
-	protected forceInfer = () => withLog(Val.num(this.value))
+	protected forceInfer = () => withLog(num(this.value))
 
 	print = () => {
 		if (!this.extras) {
@@ -239,9 +256,9 @@ export class StrLiteral extends BaseNode {
 		super()
 	}
 
-	protected forceEval = () => withLog(Val.str(this.value))
+	protected forceEval = () => withLog(str(this.value))
 
-	protected forceInfer = () => withLog(Val.str(this.value))
+	protected forceInfer = () => withLog(str(this.value))
 
 	print = () => '"' + this.value + '"'
 
@@ -282,11 +299,11 @@ export class FnDef extends BaseNode {
 	protected forceEval = (env: Env): WithLog => {
 		const {names, restName} = this.params.getNames()
 
-		const fn: Val.IFn = (...args: Arg[]) => {
+		const fn: IFn = (...args: Arg[]) => {
 			const arg = fromPairs(zip(names, args))
 			if (restName) {
 				const restArgs = args.slice(names.length)
-				arg[restName] = () => Val.vec(restArgs.map(a => a()))
+				arg[restName] = () => vec(restArgs.map(a => a()))
 			}
 			const innerEnv = env.extend(arg)
 			return this.body.eval(innerEnv)
@@ -294,12 +311,12 @@ export class FnDef extends BaseNode {
 
 		const [ty, lty] = this.forceInfer(env).asTuple
 
-		const fnVal = Val.fnFrom(ty, fn, this.body)
+		const fnVal = fnFrom(ty, fn, this.body)
 
 		return withLog(fnVal, ...lty)
 	}
 
-	protected forceInfer = (env: Env): WithLog<Val.FnType> => {
+	protected forceInfer = (env: Env): WithLog<FnType> => {
 		// Infer parameter types by simply evaluating 'em
 		const [{params, rest}, lp] = this.params.eval(env).asTuple
 
@@ -307,21 +324,21 @@ export class FnDef extends BaseNode {
 		const arg = mapValues(params, p => () => p)
 		if (rest) {
 			const {name, value} = rest
-			arg[name as any] = () => Val.vec([], undefined, value)
+			arg[name as any] = () => vec([], undefined, value)
 		}
 
 		const innerEnv = env.extend(arg)
 
 		const [out, lo] = this.body.infer(innerEnv).asTuple
 
-		const fnType = Val.fnType({
+		const _fnType = fnType({
 			params,
 			optionalPos: this.params.optionalPos,
 			rest,
 			out,
 		})
 
-		return withLog(fnType, ...lp, ...lo)
+		return withLog(_fnType, ...lp, ...lo)
 	}
 
 	print = (options?: PrintOptions): string => {
@@ -386,17 +403,17 @@ export class FnTypeDef extends BaseNode {
 
 		const [out, lo] = this.out.eval(env).asTuple
 
-		const fnType = Val.fnType({
+		const _fnType = fnType({
 			params,
 			optionalPos: this.params.optionalPos,
 			rest,
 			out,
 		})
 
-		return withLog(fnType, ...lp, ...lo)
+		return withLog(_fnType, ...lp, ...lo)
 	}
 
-	protected forceInfer = () => withLog(Val.all)
+	protected forceInfer = () => withLog(all)
 
 	print = (options?: PrintOptions): string => {
 		if (!this.extras) {
@@ -449,7 +466,7 @@ export class Params {
 		// Infer parameter types by simply evaluating 'em
 		const [params, lp] = Writer.mapValues(this.items, p => p.eval(env)).asTuple
 
-		let rest: Val.FnType['rest'], lr: Set<Log>
+		let rest: FnType['rest'], lr: Set<Log>
 		if (this.rest) {
 			const [value, _lr] = this.rest.node.eval(env).asTuple
 			rest = {name: this.rest.name, value}
@@ -511,7 +528,7 @@ export class Params {
 		}
 		if (this.rest && this.rest.name === name) {
 			const [rest, lr] = this.rest.node.eval(env).asTuple
-			const node = new ValueContainer(Val.vec([], undefined, rest))
+			const node = new ValueContainer(vec([], undefined, rest))
 			return Writer.of(node, ...lr)
 		}
 	}
@@ -530,13 +547,13 @@ export class Params {
 }
 
 export class TypeVarsDef {
-	readonly typeVars: Record<string, Val.TypeVar>
+	readonly typeVars: Record<string, TypeVar>
 
 	constructor(readonly names: string[]) {
-		this.typeVars = fromPairs(names.map(name => [name, Val.typeVar(name)]))
+		this.typeVars = fromPairs(names.map(name => [name, typeVar(name)]))
 	}
 
-	get = (name: string): Val.TypeVar | undefined => this.typeVars[name]
+	get = (name: string): TypeVar | undefined => this.typeVars[name]
 
 	print = () => {
 		if (!this.extras) {
@@ -586,15 +603,15 @@ export class VecLiteral extends BaseNode {
 	protected forceEval = (env: Env): WithLog => {
 		const [items, li] = Writer.map(this.items, i => i.eval(env)).asTuple
 		const [rest, lr] = this.rest?.eval(env).asTuple ?? [undefined, []]
-		return withLog(Val.vec(items, this.optionalPos, rest), ...li, ...lr)
+		return withLog(vec(items, this.optionalPos, rest), ...li, ...lr)
 	}
 
 	protected forceInfer = (env: Env): WithLog => {
 		if (this.rest || this.items.length < this.optionalPos) {
-			return withLog(Val.all)
+			return withLog(all)
 		}
 		const [items, log] = Writer.map(this.items, it => it.infer(env)).asTuple
-		return withLog(Val.vec(items), ...log)
+		return withLog(vec(items), ...log)
 	}
 
 	print = (options?: PrintOptions): string => {
@@ -657,18 +674,18 @@ export class DictLiteral extends BaseNode {
 	protected forceEval = (env: Env): WithLog => {
 		const [items, li] = Writer.mapValues(this.items, it => it.eval(env)).asTuple
 		const [rest, lr] = this.rest ? this.rest.eval(env).asTuple : [undefined, []]
-		return withLog(Val.dict(items, this.optionalKeys, rest), ...li, ...lr)
+		return withLog(dict(items, this.optionalKeys, rest), ...li, ...lr)
 	}
 
-	eval!: (env?: Env) => WithLog<Val.Dict>
+	eval!: (env?: Env) => WithLog<Dict>
 
 	protected forceInfer = (env: Env): WithLog => {
-		if (this.optionalKeys.size > 0 || this.rest) return withLog(Val.all)
+		if (this.optionalKeys.size > 0 || this.rest) return withLog(all)
 
 		const [items, logs] = Writer.mapValues(this.items, it =>
 			it.infer(env)
 		).asTuple
-		return withLog(Val.dict(items), ...logs)
+		return withLog(dict(items), ...logs)
 	}
 
 	print = (options?: PrintOptions): string => {
@@ -727,7 +744,7 @@ export class App extends BaseNode {
 		args.forEach(a => (a.parent = this))
 	}
 
-	#unify(env: Env): [Unifier, Val.Value[], Set<Log>] {
+	#unify(env: Env): [Unifier, Value[], Set<Log>] {
 		if (!this.fn) throw new Error('Cannot unify unit literal')
 
 		const [fnInferred, fnLog] = this.fn.infer(env).asTuple
@@ -744,8 +761,8 @@ export class App extends BaseNode {
 			return withLog(shadowTypeVars(inferred), ...log)
 		}).asTuple
 
-		const paramsType = Val.vec(params, fnType.optionalPos, fnType.rest?.value)
-		const argsType = Val.vec(shadowedArgs)
+		const paramsType = vec(params, fnType.optionalPos, fnType.rest?.value)
+		const argsType = vec(shadowedArgs)
 
 		const unifier = new Unifier([paramsType, '>=', argsType])
 
@@ -753,7 +770,7 @@ export class App extends BaseNode {
 	}
 
 	protected forceEval = (env: Env): WithLog => {
-		if (!this.fn) return withLog(Val.unit)
+		if (!this.fn) return withLog(unit)
 
 		// Evaluate the function itself at first
 		const [fn, fnLog] = this.fn.eval(env).asTuple
@@ -790,10 +807,10 @@ export class App extends BaseNode {
 
 		// Check types of args and cast them to default if necessary
 		const args = unifiedParams.map((pType, i) => {
-			const aType = unifiedArgs[i] ?? Val.unit
+			const aType = unifiedArgs[i] ?? Unit
 			const name = names[i]
 
-			if (Val.isSubtype(aType, pType)) {
+			if (aType.isSubtypeOf(pType)) {
 				// Type matched
 				return () => {
 					const [a, la] = this.args[i].eval(env).asTuple
@@ -827,7 +844,7 @@ export class App extends BaseNode {
 			for (let i = unifiedParams.length; i < this.args.length; i++) {
 				const aType = unifiedArgs[i]
 
-				if (Val.isSubtype(aType, pType)) {
+				if (aType.isSubtypeOf(pType)) {
 					// Type matched
 					args.push(() => {
 						const [a, la] = this.args[i].eval(env).asTuple
@@ -855,7 +872,7 @@ export class App extends BaseNode {
 		}
 
 		// Call the function
-		let result: Val.Value, appLog: Set<Log | Omit<Log, 'ref'>>
+		let result: Value, appLog: Set<Log | Omit<Log, 'ref'>>
 		try {
 			;[result, appLog] = fn.fn(...args).asTuple
 		} catch (e) {
@@ -887,7 +904,7 @@ export class App extends BaseNode {
 		 * (e.g. 'struct' function), so it should be evaluated to infer a type of
 		 * the expression
 		 */
-		if (ty.fnType.out.isEqualTo(Val.all)) {
+		if (ty.fnType.out.isEqualTo(all)) {
 			return this.eval(env)
 		}
 
@@ -940,9 +957,9 @@ export class Scope extends BaseNode {
 	}
 
 	protected forceInfer = (env: Env): WithLog =>
-		this.out?.infer(env) ?? withLog(Val.unit)
+		this.out?.infer(env) ?? withLog(unit)
 
-	protected forceEval = (env: Env) => this.out?.eval(env) ?? Writer.of(Val.unit)
+	protected forceEval = (env: Env) => this.out?.eval(env) ?? Writer.of(unit)
 
 	print = (options?: PrintOptions): string => {
 		const varEntries = entries(this.vars)
@@ -1027,7 +1044,7 @@ export class TryCatch extends BaseNode {
 		const [block, lb] = this.block.infer(env).asTuple
 		const [handler, lh] = this.handler.infer(env).asTuple
 
-		return withLog(Val.unionType(block, handler), ...lb, ...lh)
+		return withLog(unionType(block, handler), ...lb, ...lh)
 	}
 
 	print = (options?: PrintOptions): string => {
@@ -1065,7 +1082,7 @@ export class ValueMeta extends BaseNode {
 		node.parent = this
 	}
 
-	protected forceEval = (env: Env): WithLog<Val.Value> => {
+	protected forceEval = (env: Env): WithLog<Value> => {
 		const [_fields, fieldLog] = this.fields.eval(env).asTuple
 		const [_node, nodeLog] = this.node.eval(env).asTuple
 
@@ -1112,7 +1129,7 @@ export class ValueMeta extends BaseNode {
 		return withLog(node, ...fieldLog, ...nodeLog, ...metaLog)
 	}
 
-	protected forceInfer = (env: Env): WithLog<Val.Value> => {
+	protected forceInfer = (env: Env): WithLog<Value> => {
 		return this.node.infer(env)
 	}
 

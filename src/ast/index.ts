@@ -1,4 +1,4 @@
-import {Value} from '../val'
+import {Value} from '../value'
 import {
 	App,
 	DictLiteral,

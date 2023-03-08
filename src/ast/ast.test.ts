@@ -12,7 +12,7 @@ import {
 	True,
 	unit,
 	vec,
-} from '../val'
+} from '../value'
 
 describe('evaluating literals', () => {
 	testEval('_', all)

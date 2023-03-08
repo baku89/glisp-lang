@@ -16,8 +16,8 @@ import {
 	unionType,
 	Value,
 	vec,
-} from '../val'
-import {createFoldFn} from '../val/walk'
+} from '../value'
+import {createFoldFn} from '../value/walk'
 
 export type Const = [Value, Relation, Value]
 

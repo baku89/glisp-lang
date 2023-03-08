@@ -1,6 +1,6 @@
 import * as Ast from './ast'
 import {parse} from './parser'
 import {PreludeScope} from './std/prelude'
-import * as Val from './val'
+import * as Value from './value'
 
-export {Ast, Val, PreludeScope, parse}
+export {Ast, Value, PreludeScope, parse}

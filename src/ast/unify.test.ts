@@ -1,36 +1,49 @@
 import _, {fromPairs} from 'lodash'
 
-import * as Val from '../val'
+import {
+	bool,
+	BoolType,
+	fnType,
+	isEqual,
+	num,
+	NumType,
+	TypeVar,
+	typeVar,
+	UnionType,
+	unionType,
+	unit,
+	Value,
+} from '../value'
 import {Const, getTypeVars, Unifier} from './unify'
 
-const T = Val.typeVar('T'),
-	U = Val.typeVar('U'),
-	T1 = Val.typeVar('T1'),
-	T2 = Val.typeVar('T2'),
-	T3 = Val.typeVar('T3'),
-	T4 = Val.typeVar('T4'),
-	T5 = Val.typeVar('T5')
+const T = typeVar('T'),
+	U = typeVar('U'),
+	T1 = typeVar('T1'),
+	T2 = typeVar('T2'),
+	T3 = typeVar('T3'),
+	T4 = typeVar('T4'),
+	T5 = typeVar('T5')
 
-function ft(param: Val.Value | Val.Value[], out: Val.Value) {
+function ft(param: Value | Value[], out: Value) {
 	const _params = Array.isArray(param)
 		? fromPairs(param.map((p, i) => [i, p]))
 		: {0: param}
-	return Val.fnType({params: _params, out})
+	return fnType({params: _params, out})
 }
 
 describe('getTypeVars', () => {
-	run(Val.num(1), [])
-	run(Val.bool(true), [])
+	run(num(1), [])
+	run(bool(true), [])
 	run(T, [T])
-	run(Val.unionType(T, U), [T, U])
-	run(ft([Val.BoolType, T, T], U), [T, U])
+	run(unionType(T, U), [T, U])
+	run(ft([BoolType, T, T], U), [T, U])
 
-	function run(ty: Val.Value, expected: Val.TypeVar[]) {
+	function run(ty: Value, expected: TypeVar[]) {
 		const eStr = '{' + expected.map(e => e.print()).join(', ') + '}'
 
 		test(`FV(${ty.print()}) equals to ${eStr}`, () => {
 			const tvs = [...getTypeVars(ty)]
-			const diff = _.differenceWith(tvs, expected, Val.isEqual)
+			const diff = _.differenceWith(tvs, expected, isEqual)
 
 			if (diff.length > 0) {
 				throw new Error('Got={' + tvs.map(t => t.print()).join(', ') + '}')
@@ -40,37 +53,37 @@ describe('getTypeVars', () => {
 })
 
 describe('unifyTypeVars', () => {
-	test([[T, '>=', Val.NumType]], T, Val.NumType)
+	test([[T, '>=', NumType]], T, NumType)
 	test(
 		[
-			[T, '>=', Val.unit],
-			[T, '>=', Val.NumType],
+			[T, '>=', unit],
+			[T, '>=', NumType],
 		],
 		T,
-		Val.UnionType.fromTypesUnsafe([Val.unit, Val.NumType])
+		UnionType.fromTypesUnsafe([unit, NumType])
 	)
-	test([[Val.NumType, '>=', T]], T, Val.NumType)
+	test([[NumType, '>=', T]], T, NumType)
 	test(
 		[
-			[T, '>=', Val.unit],
-			[T, '>=', Val.NumType],
+			[T, '>=', unit],
+			[T, '>=', NumType],
 		],
 		T,
-		Val.UnionType.fromTypesUnsafe([Val.unit, Val.NumType])
+		UnionType.fromTypesUnsafe([unit, NumType])
 	)
 	test([[ft(ft(T1, T2), T3), '==', ft(T4, T5)]], T4, ft(T1, T2))
 	test([[ft(T1, T2), '==', ft(T3, ft(T4, T5))]], T2, ft(T4, T5))
-	test([[ft(T, U), '>=', ft(Val.NumType, Val.NumType)]], T, Val.NumType)
+	test([[ft(T, U), '>=', ft(NumType, NumType)]], T, NumType)
 	test(
 		[
-			[ft(T1, T2), '>=', ft(Val.NumType, Val.NumType)],
-			[ft(T2, T3), '>=', ft(Val.NumType, Val.BoolType)],
+			[ft(T1, T2), '>=', ft(NumType, NumType)],
+			[ft(T2, T3), '>=', ft(NumType, BoolType)],
 		],
 		ft(T1, T3),
-		ft(Val.NumType, Val.BoolType)
+		ft(NumType, BoolType)
 	)
 
-	function test(consts: Const[], original: Val.Value, expected: Val.Value) {
+	function test(consts: Const[], original: Value, expected: Value) {
 		const cStr = printConsts(consts)
 		const oStr = original.print()
 		const eStr = expected.print()

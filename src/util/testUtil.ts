@@ -2,7 +2,7 @@ import * as Ast from '../ast'
 import {Log} from '../log'
 import * as Parser from '../parser'
 import {PreludeScope} from '../std/prelude'
-import * as Val from '../val'
+import {Value} from '../value'
 
 export function parse(
 	input: string | Ast.Node,
@@ -18,13 +18,13 @@ export function parse(
 	return ast
 }
 
-export function evaluate(input: string | Ast.Node): Val.Value {
+export function evaluate(input: string | Ast.Node): Value {
 	return parse(input).eval().result
 }
 
 export function testEval(
 	input: Ast.Node | string,
-	expected: Val.Value | string,
+	expected: Value | string,
 	hasLog = false
 ) {
 	const iStr = typeof input === 'string' ? input : input.print()

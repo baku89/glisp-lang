@@ -4,27 +4,50 @@ import * as Ast from '../ast'
 import {Log, withLog} from '../log'
 import {parse, parseModule} from '../parser'
 import {Writer} from '../util/Writer'
-import * as Val from '../val'
+import {
+	All,
+	bool,
+	BoolType,
+	Enum,
+	enumType,
+	False,
+	Fn,
+	fnFrom,
+	IFn,
+	isEqual,
+	Never,
+	Num,
+	num,
+	NumType,
+	Str,
+	str,
+	StrType,
+	True,
+	unionType,
+	Value,
+	Vec,
+	vec,
+} from '../value'
 
 interface Defn {
 	(
 		type: string,
-		f: (...args: Ast.Arg<any>[]) => Val.Value,
+		f: (...args: Ast.Arg<any>[]) => Value,
 		options?: {lazy?: true; writeLog?: false}
 	): Ast.ValueContainer
 	(
 		type: string,
-		f: (...args: any[]) => Val.Value,
+		f: (...args: any[]) => Value,
 		options?: {lazy?: false; writeLog?: false}
 	): Ast.ValueContainer
 	(
 		type: string,
-		f: Val.IFn,
+		f: IFn,
 		options?: {lazy?: true; writeLog?: true}
 	): Ast.ValueContainer
 	(
 		type: string,
-		f: (...args: any[]) => ReturnType<Val.IFn>,
+		f: (...args: any[]) => ReturnType<IFn>,
 		options?: {lazy?: false; writeLog?: true}
 	): Ast.ValueContainer
 }
@@ -34,153 +57,147 @@ const defn: Defn = (type, f, {lazy = false, writeLog = false} = {}) => {
 
 	if (fnType.type !== 'FnType') throw new Error('Not a fnType:' + type)
 
-	let _f: Val.IFn
+	let _f: IFn
 
 	if (writeLog) {
 		_f = lazy
-			? (f as Val.IFn)
-			: (...args) => f(...args.map(a => a())) as ReturnType<Val.IFn>
+			? (f as IFn)
+			: (...args) => f(...args.map(a => a())) as ReturnType<IFn>
 	} else {
 		_f = lazy
-			? (...args) => withLog(f(...args) as Val.Value)
-			: (...args) => withLog(f(...args.map(a => a())) as Val.Value)
+			? (...args) => withLog(f(...args) as Value)
+			: (...args) => withLog(f(...args.map(a => a())) as Value)
 	}
 
-	const fn = Val.fnFrom(fnType, _f)
+	const fn = fnFrom(fnType, _f)
 
 	return Ast.value(fn)
 }
 
 export const PreludeScope = Ast.scope({
-	Num: Ast.value(Val.NumType),
-	Str: Ast.value(Val.StrType),
-	Bool: Ast.value(Val.BoolType),
-	_: Ast.value(Val.All.instance),
-	All: Ast.value(Val.All.instance),
-	Never: Ast.value(Val.Never.instance),
+	Num: Ast.value(NumType),
+	Str: Ast.value(StrType),
+	Bool: Ast.value(BoolType),
+	_: Ast.value(All.instance),
+	All: Ast.value(All.instance),
+	Never: Ast.value(Never.instance),
 })
 
 PreludeScope.defs({
-	union: defn('(-> [...types:_] _)', (...types: Val.Value[]) =>
-		Val.unionType(...types)
+	union: defn('(-> [...types:_] _)', (...types: Value[]) =>
+		unionType(...types)
 	),
 })
 
 PreludeScope.defs({
-	true: Ast.value(Val.True),
-	false: Ast.value(Val.False),
+	true: Ast.value(True),
+	false: Ast.value(False),
 	log: defn(
 		'(-> (T) [value:T level:(union "error" "warn" "info") reason:Str] T)',
-		(value: Val.Value, level: Val.Str, reason: Val.Str) =>
+		(value: Value, level: Str, reason: Str) =>
 			Writer.of(value, {
 				level: level.value as Log['level'],
 				reason: reason.value,
 			}),
 		{writeLog: true}
 	),
-	'+': defn('(-> [...xs:Num] Num)', (...xs: Val.Num[]) =>
-		Val.num(xs.reduce((sum, x) => sum + x.value, 0))
+	'+': defn('(-> [...xs:Num] Num)', (...xs: Num[]) =>
+		num(xs.reduce((sum, x) => sum + x.value, 0))
 	),
-	'-': defn('(-> [...xs:^{default: 1} Num] Num)', (...xs: Val.Num[]) => {
+	'-': defn('(-> [...xs:^{default: 1} Num] Num)', (...xs: Num[]) => {
 		switch (xs.length) {
 			case 0:
-				return Val.num(0)
+				return num(0)
 			case 1:
-				return Val.num(-xs[0].value)
+				return num(-xs[0].value)
 			default:
-				return Val.num(
-					xs.slice(1).reduce((prev, x) => prev - x.value, xs[0].value)
-				)
+				return num(xs.slice(1).reduce((prev, x) => prev - x.value, xs[0].value))
 		}
 	}),
-	'*': defn('(-> [...xs:^{default: 1} Num] Num)', (...xs: Val.Num[]) =>
-		Val.num(xs.reduce((prod, x) => prod * x.value, 1))
+	'*': defn('(-> [...xs:^{default: 1} Num] Num)', (...xs: Num[]) =>
+		num(xs.reduce((prod, x) => prod * x.value, 1))
 	),
-	'/': defn('(-> [...xs:^{default: 1} Num] Num)', (...xs: Val.Num[]) => {
+	'/': defn('(-> [...xs:^{default: 1} Num] Num)', (...xs: Num[]) => {
 		switch (xs.length) {
 			case 0:
-				return Val.num(1)
+				return num(1)
 			case 1:
-				return Val.num(1 / xs[0].value)
+				return num(1 / xs[0].value)
 			default:
-				return Val.num(
-					xs.slice(1).reduce((prev, x) => prev / x.value, xs[0].value)
-				)
+				return num(xs.slice(1).reduce((prev, x) => prev / x.value, xs[0].value))
 		}
 	}),
-	'**': defn('(-> [x:Num a:^{default: 1} Num] Num)', (x: Val.Num, a: Val.Num) =>
-		Val.num(Math.pow(x.value, a.value))
+	'**': defn('(-> [x:Num a:^{default: 1} Num] Num)', (x: Num, a: Num) =>
+		num(Math.pow(x.value, a.value))
 	),
-	'%': defn('(-> [x:Num y:Num] Num)', (x: Val.Num, y: Val.Num) =>
-		Val.num(x.value % y.value)
+	'%': defn('(-> [x:Num y:Num] Num)', (x: Num, y: Num) =>
+		num(x.value % y.value)
 	),
-	'<': defn('(-> [x:Num y:Num] Bool)', (x: Val.Num, y: Val.Num) =>
-		Val.bool(x.value < y.value)
+	'<': defn('(-> [x:Num y:Num] Bool)', (x: Num, y: Num) =>
+		bool(x.value < y.value)
 	),
-	'==': defn('(-> [...xs:_] Bool)', (x: Val.Value, y: Val.Value) =>
-		Val.bool(Val.isEqual(x, y))
+	'==': defn('(-> [...xs:_] Bool)', (x: Value, y: Value) =>
+		bool(isEqual(x, y))
 	),
 	if: defn(
 		'(-> (T) [test:Bool then:T else:T] T)',
 		(test: Ast.Arg, then: Ast.Arg, _else: Ast.Arg) =>
-			Val.isEqual(test(), Val.True) ? then() : _else(),
+			isEqual(test(), True) ? then() : _else(),
 		{lazy: true}
 	),
 	'&&': defn(
 		'(-> [...xs:^{default: true} Bool] Bool)',
-		(...xs: Ast.Arg<Val.Enum>[]) => {
+		(...xs: Ast.Arg<Enum>[]) => {
 			for (const x of xs) {
-				if (x().isEqualTo(Val.False)) return Val.bool(false)
+				if (x().isEqualTo(False)) return bool(false)
 			}
-			return Val.bool(true)
+			return bool(true)
 		},
 		{lazy: true}
 	),
 	'||': defn(
 		'(-> [...xs:Bool] Bool)',
-		(...xs: Ast.Arg<Val.Enum>[]) => {
+		(...xs: Ast.Arg<Enum>[]) => {
 			for (const x of xs) {
-				if (x().isEqualTo(Val.True)) return Val.bool(true)
+				if (x().isEqualTo(True)) return bool(true)
 			}
-			return Val.bool(false)
+			return bool(false)
 		},
 		{lazy: true}
 	),
-	'!': defn('(-> [x:Bool] Bool)', (x: Val.Enum) =>
-		Val.bool(x.isEqualTo(Val.False))
-	),
-	len: defn('(-> [x:(union Str [..._])] Num)', (x: Val.Str | Val.Vec) => {
-		if (x.type === 'Vec') return Val.num(x.items.length)
-		else return Val.num(x.value.length)
+	'!': defn('(-> [x:Bool] Bool)', (x: Enum) => bool(x.isEqualTo(False))),
+	len: defn('(-> [x:(union Str [..._])] Num)', (x: Str | Vec) => {
+		if (x.type === 'Vec') return num(x.items.length)
+		else return num(x.value.length)
 	}),
 	range: defn(
 		'(-> [start:Num end:Num step?:^{default: 1}Num] [...Num])',
-		(start: Val.Num, end: Val.Num, step: Val.Num) =>
-			Val.vec(range(start.value, end.value, step.value).map(Val.num))
+		(start: Num, end: Num, step: Num) =>
+			vec(range(start.value, end.value, step.value).map(num))
 	),
 	gcd: defn(
 		'(-> [x:Num y:Num] Num)',
 		(() => {
-			const gcd = (x: Val.Num, y: Val.Num): Val.Num =>
-				x.value % y.value ? gcd(y, Val.num(x.value % y.value)) : y
+			const gcd = (x: Num, y: Num): Num =>
+				x.value % y.value ? gcd(y, num(x.value % y.value)) : y
 			return gcd
 		})()
 	),
-	rest: defn('(-> (T) [coll:[...T]] [...T])', (coll: Val.Vec) =>
-		Val.vec(coll.items.slice(1))
+	rest: defn('(-> (T) [coll:[...T]] [...T])', (coll: Vec) =>
+		vec(coll.items.slice(1))
 	),
 	map: defn(
 		'(-> (T U) [f: (-> [t:T] U) coll:[...T]] [...U])',
-		(f: Val.Fn, coll: Val.Vec) => {
+		(f: Fn, coll: Vec) => {
 			const [items] = Writer.map(coll.items, i => f.fn(() => i)).asTuple
-			return Val.vec(items)
+			return vec(items)
 		}
 	),
 	reduce: defn(
 		'(-> (T U) [f: (-> [u:U t:T] U) coll: [...T] initial: U] U)',
-		(f: Val.Fn, coll: Val.Vec, initial: Val.Value) => {
+		(f: Fn, coll: Vec, initial: Value) => {
 			return coll.items.reduce(
-				(prev: Val.Value, curt: Val.Value) =>
+				(prev: Value, curt: Value) =>
 					f.fn(
 						() => prev,
 						() => curt
@@ -189,25 +206,19 @@ PreludeScope.defs({
 			)
 		}
 	),
-	enum: defn(
-		'(-> [name:Str ...label:Str] _)',
-		(name: Val.Str, ...labels: Val.Str[]) =>
-			Val.enumType(
-				name.value,
-				labels.map(l => l.value)
-			)
+	enum: defn('(-> [name:Str ...label:Str] _)', (name: Str, ...labels: Str[]) =>
+		enumType(
+			name.value,
+			labels.map(l => l.value)
+		)
 	),
-	fnType: defn('(-> [f:_] _)', (f: Val.Value) =>
-		'fnType' in f ? f.fnType : f
+	fnType: defn('(-> [f:_] _)', (f: Value) => ('fnType' in f ? f.fnType : f)),
+	isSubtype: defn('(-> [x:_ y:_] Bool)', (x: Value, y: Value) =>
+		bool(x.isSubtypeOf(y))
 	),
-	isSubtype: defn('(-> [x:_ y:_] Bool)', (x: Val.Value, y: Val.Value) =>
-		Val.bool(x.isSubtypeOf(y))
-	),
-	show: defn('(-> [value:_] Str)', (value: Val.Value) =>
-		Val.str(value.print())
-	),
-	'++': defn('(-> [a:Str b:Str] Str)', (a: Val.Str, b: Val.Str) =>
-		Val.str(a.value + b.value)
+	show: defn('(-> [value:_] Str)', (value: Value) => str(value.print())),
+	'++': defn('(-> [a:Str b:Str] Str)', (a: Str, b: Str) =>
+		str(a.value + b.value)
 	),
 })
 
