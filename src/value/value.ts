@@ -15,9 +15,8 @@ import {
 	dict,
 	DictLiteral,
 	Expr,
+	FnDef,
 	fnDef,
-	fnType,
-	FnTypeDef,
 	id,
 	num,
 	paramsDef,
@@ -549,17 +548,18 @@ export class FnType extends BaseValue implements IFnType {
 		return this.#initialDefaultValue
 	}
 
-	protected toExprExceptMeta = (): FnTypeDef => {
+	protected toExprExceptMeta = (): FnDef => {
 		const rest = this.rest
 			? {name: this.rest.name, expr: this.rest.value.toExpr()}
 			: undefined
 
 		const _params = mapValues(this.params, p => p.toExpr())
 
-		return fnType(
+		return fnDef(
 			null,
 			paramsDef(_params, this.optionalPos, rest),
-			this.out.toExpr()
+			this.out.toExpr(),
+			null
 		)
 	}
 

@@ -3,7 +3,6 @@ import {
 	dict,
 	Expr,
 	fnDef,
-	fnType,
 	id,
 	isSame,
 	num,
@@ -54,7 +53,7 @@ describe('parsing symbols', () => {
 	// run('`( )`', '( )')
 	run('symbol?', null)
 	run('10deg', null)
-	run('->', null)
+	run('->', '->')
 
 	function run(input: string, expected: string | null) {
 		if (expected) {
@@ -176,30 +175,31 @@ describe('parsing function definition', () => {
 })
 
 describe('parsing function type', () => {
-	testParsing('(-> [a:[...x]] x)', fnType(null, {a: vec([], 0, x)}, x))
-	testParsing('(-> [x:_] _)', fnType(null, {x: all}, all))
-	testParsing('(-> [x:[]] ())', fnType(null, {x: vec()}, app()))
-	testParsing('(-> [] z)', fnType(null, {}, z))
-	testParsing('(->[]z)', fnType(null, {}, z))
-	testParsing('(->()[]z)', fnType([], {}, z))
-	testParsing('(\n->[]z\n)', fnType(null, {}, z))
-	testParsing('(-> [] [])', fnType(null, {}, vec()))
-	testParsing('(-> [x:x] z)', fnType(null, {x}, z))
-	testParsing('(-> [x:x y:y] z)', fnType(null, {x, y}, z))
-	testParsing('(-> [x:x y:y z:z] w)', fnType(null, {x, y, z}, w))
-	testParsing('(-> [a:[x y]] z)', fnType(null, {a: vec([x, y])}, z))
-	testParsing('(-> [x:x] z)', fnType(null, {x}, z))
-	testParsing('(-> [x:x y:y] z)', fnType(null, {x, y}, z))
+	testParsing('(=> []: x)', fnDef(null, {}, x, null))
+	testParsing('(=> [x:_]: _)', fnDef(null, {x: all}, all, null))
+	testParsing('(=> [a:[...x]]: x)', fnDef(null, {a: vec([], 0, x)}, x, null))
+	testParsing('(=> [x:[]]: ())', fnDef(null, {x: vec()}, app(), null))
+	testParsing('(=> []: z)', fnDef(null, {}, z, null))
+	testParsing('(=>[]:z)', fnDef(null, {}, z, null))
+	testParsing('(=>()[]:z)', fnDef([], {}, z, null))
+	testParsing('(\n=>[]:z\n)', fnDef(null, {}, z, null))
+	testParsing('(=> []: [])', fnDef(null, {}, vec(), null))
+	testParsing('(=> [x:x]: z)', fnDef(null, {x}, z, null))
 
-	testParsing('(-> (T) [x:T] T)', fnType(['T'], {x: id('T')}, id('T')))
-	testParsing('(-> (T U) [x:T] T)', fnType(['T', 'U'], {x: id('T')}, id('T')))
-	testErrorParsing('(-> () [] Num)')
-	testErrorParsing('(-> (1) [] Num)')
-
-	testParsing('(-> [x?:x] y)', fnType(null, paramsDef({x}, 0), y))
-	testParsing('(-> [x?:x] y)', fnType(null, paramsDef({x}, 0), y))
-	testParsing('(-> [x?:x] y)', fnType(null, paramsDef({x}, 0), y))
-	testParsing('(-> [x:x y?:y] z)', fnType(null, paramsDef({x, y}, 1), z))
+	testParsing('(=> [x:x y:y]: z)', fnDef(null, {x, y}, z, null))
+	testParsing('(=> [x:x y:y z:z]: w)', fnDef(null, {x, y, z}, w, null))
+	testParsing('(=> [a:[x y]]: z)', fnDef(null, {a: vec([x, y])}, z, null))
+	testParsing('(=> [x:x]: z)', fnDef(null, {x}, z, null))
+	testParsing('(=> [x:x y:y]: z)', fnDef(null, {x, y}, z, null))
+	testParsing('(=> (T) [x:T]: T)', fnDef(['T'], {x: id('T')}, id('T'), null))
+	testParsing(
+		'(=> (T U) [x:T]: T)',
+		fnDef(['T', 'U'], {x: id('T')}, id('T'), null)
+	)
+	testParsing('(=> [x?:x]: y)', fnDef(null, paramsDef({x}, 0), y, null))
+	testParsing('(=> [x?:x]: y)', fnDef(null, paramsDef({x}, 0), y, null))
+	testParsing('(=> [x?:x]: y)', fnDef(null, paramsDef({x}, 0), y, null))
+	testParsing('(=> [x:x y?:y]: z)', fnDef(null, paramsDef({x, y}, 1), z, null))
 })
 
 describe('parsing value metadata', () => {

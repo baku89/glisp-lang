@@ -4,7 +4,6 @@ import {
 	DictLiteral,
 	Expr,
 	FnDef,
-	FnTypeDef,
 	Identifier,
 	NumLiteral,
 	ParamsDef,
@@ -34,7 +33,6 @@ export {
 	Scope,
 	TryCatch,
 	FnDef,
-	FnTypeDef,
 	TypeVarsDef,
 	ParamsDef,
 	VecLiteral,
@@ -67,12 +65,6 @@ export const fnDef = (
 	returnType: Expr | null,
 	body: Expr | null
 ) => new FnDef(typeVars, param, returnType, body)
-
-export const fnType = (
-	typeVars: TypeVarsDef | string[] | null | undefined,
-	param: ParamsDef | Record<string, Expr>,
-	out: Expr
-) => new FnTypeDef(typeVars, param, out)
 
 export const paramsDef = (
 	items: Record<string, Expr>,

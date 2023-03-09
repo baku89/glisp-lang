@@ -14,7 +14,7 @@ describe('value equality', () => {
 	test('{a: 10}')
 	test('{a?: 10}')
 	test('{...Num}')
-	test('(-> [n:Num] Num)')
+	test('(=> [n:Num]: Num)')
 	test('(union 1 2 3)')
 
 	function test(input: string) {
@@ -97,13 +97,13 @@ describe('subtyping', () => {
 	test('{a?:0 ...0}', '{...0}', '=')
 
 	// FnType
-	test('(-> [] _)', '(-> [] _)', '=')
-	test('(-> [x:_ y:_] _)', '(-> [x:_ y:_ z:_ w:_] _)', '<')
-	test('(-> [x:(-> [x:_] _)] _)', '(-> [x:(-> [] _)] _)', '<')
-	test('(-> [] (-> [] _))', '(-> [] (-> [x:_] _))', '<')
+	test('(=> []: _)', '(=> []: _)', '=')
+	test('(=> [x:_ y:_]: _)', '(=> [x:_ y:_ z:_ w:_]: _)', '<')
+	test('(=> [x:(=> [x:_]: _)]: _)', '(=> [x:(=> [] _)]: _)', '<')
+	test('(=> []: (=> []: _))', '(=> []: (=> [x:_]: _))', '<')
 
-	test('(-> [] 0)', '(-> [x:_] Num)', '<')
-	test('(-> [x:Num] _)', '(-> [x:0] _)', '<')
+	test('(=> []: 0)', '(=> [x:_]: Num)', '<')
+	test('(=> [x:Num]: _)', '(=> [x:0]: _)', '<')
 
 	function test(xInput: string, yInput: string, expected: '<' | '=' | '!=') {
 		it(`${xInput} ${expected} ${yInput}`, () => {
@@ -145,7 +145,7 @@ describe('checking type or atom', () => {
 	test('{a?:Num}', true)
 	test('{...0}', true)
 	test('{...Num}', true)
-	test('(-> [] _)', true)
+	test('(=> []: _)', true)
 	test('+', false)
 
 	function test(input: string, isType: boolean) {
@@ -179,8 +179,8 @@ describe('instance relationship', () => {
 	test('{a:1}', '{a?:Num}')
 	test('{a:1 b:"foo"}', '{...Num}', false)
 
-	test('+', '(-> [x:Num y:Num] Num)')
-	test('(-> [x:Num y:Num] Num)', '(-> [x:Num y:Num] Num)', false)
+	test('+', '(=> [x:Num y:Num]: Num)')
+	test('(=> [x:Num y:Num]: Num)', '(=> [x:Num y:Num]: Num)', false)
 
 	function test(i: string, t: string, expected = true) {
 		it(`${i} is ${expected ? '' : 'not '}a instance of ${t}`, () => {
@@ -215,10 +215,10 @@ describe('default values of types', () => {
 	test('{a:Num ...Str}', '{a:0}')
 	test('{a?:Num ...Str}', '{}')
 
-	test('(-> [] Num)', '0', true)
-	test('(-> [x:Num] Bool)', 'false', true)
-	test('(-> (T) [t:T] T)', '()', true)
-	test('(-> [x:_] ())', '()', true)
+	test('(=> []: Num)', '0', true)
+	test('(=> [x:Num]: Bool)', 'false', true)
+	test('(=> (T) [t:T]: T)', '()', true)
+	test('(=> [x:_]: ())', '()', true)
 
 	test('^{default: PI} Num', 'PI')
 	test('^{default: true} Bool', 'true')

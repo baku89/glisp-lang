@@ -48,7 +48,6 @@ export type InnerNode =
 	| Scope
 	| TryCatch
 	| FnDef
-	| FnTypeDef
 	| VecLiteral
 	| DictLiteral
 	| ValueMeta
@@ -155,7 +154,7 @@ export class Identifier extends BaseExpr {
 		}
 
 		// Resolve typeVars
-		if (ref.type === 'FnDef' || ref.type === 'FnTypeDef') {
+		if (ref.type === 'FnDef') {
 			const tv = ref.typeVars?.get(this.name)
 			if (tv) {
 				return Writer.of({
@@ -434,83 +433,9 @@ export class FnDef extends BaseExpr {
 	}
 }
 
-export class FnTypeDef extends BaseExpr {
-	readonly type = 'FnTypeDef' as const
-
-	public readonly typeVars?: TypeVarsDef
-	public readonly params: ParamsDef
-
-	constructor(
-		typeVars: TypeVarsDef | string[] | undefined | null,
-		params: ParamsDef | Record<string, Expr>,
-		public out: Expr
-	) {
-		super()
-
-		if (typeVars) {
-			if (Array.isArray(typeVars)) {
-				this.typeVars = new TypeVarsDef(typeVars)
-			} else {
-				this.typeVars = typeVars
-			}
-		}
-
-		this.params = params instanceof ParamsDef ? params : new ParamsDef(params)
-
-		// Set parent
-		this.params.parent = this
-		this.out.parent = this
-	}
-
-	protected forceEval = (env: Env): WithLog => {
-		const [{params, rest}, lp] = this.params.eval(env).asTuple
-
-		const [out, lo] = this.out.eval(env).asTuple
-
-		const _fnType = fnType({
-			params,
-			optionalPos: this.params.optionalPos,
-			rest,
-			out,
-		})
-
-		return withLog(_fnType, ...lp, ...lo)
-	}
-
-	protected forceInfer = () => withLog(all)
-
-	print = (options?: PrintOptions): string => {
-		if (!this.extras) {
-			const tokensCount = this.typeVars ? 4 : 3
-			const delimiters = createListDelimiters(tokensCount)
-
-			this.extras = {delimiters}
-		}
-
-		const typeVars = this.typeVars ? [this.typeVars.print()] : []
-		const params = this.params.print(options)
-		const out = this.out.print(options)
-
-		const elements = ['->', ...typeVars, params, out]
-
-		return '(' + insertDelimiters(elements, this.extras.delimiters) + ')'
-	}
-
-	extras?: {delimiters: string[]}
-
-	isSameTo = (expr: Expr): boolean =>
-		this.type === expr.type &&
-		nullishEqual(this.typeVars, expr.typeVars, TypeVarsDef.isSame) &&
-		ParamsDef.isSame(this.params, expr.params) &&
-		isSame(this.out, expr.out)
-
-	clone = (): FnTypeDef =>
-		new FnTypeDef(this.typeVars?.clone(), this.params.clone(), this.out.clone())
-}
-
 export class ParamsDef {
 	readonly type = 'ParamsDef' as const
-	parent!: FnDef | FnTypeDef
+	parent!: FnDef
 
 	public optionalPos: number
 

@@ -104,7 +104,7 @@ Expr =
 
 ExprContent =
 	NumLiteral / StrLiteral / Identifier /
-	FnDef / FnTypeDef / Scope / App / TryCatch /
+	FnDef / Scope / App / TryCatch /
 	VecLiteral / DictLiteral / ValueMeta
 
 ExprMeta = d:_ "#" fields:DictLiteral
@@ -160,23 +160,28 @@ App "function application" = "(" d0:_ itemsDs:(Expr _)* ")"
 	}
 
 FnDef "function definition" =
-	"(" d0:_ "=>" d1:_ typeVarsDs:(TypeVars _)? param:Params d3:_ body:Expr d4:_ ")"
+	"(" d0:_ "=>" d1:_ typeVarsDs:(TypeVars _)?
+	                   param:Params d3:_ returnTypeDs:(":" _ Expr _ )?
+	                   bodyDs:(Expr _)? ")"
 	{
-		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
+		const [typeVars, d2] = typeVarsDs ?? [null, null]
 
-		const fn = Expr.fnDef(typeVars, param, null,body)
-		fn.extras = {delimiters: [d0, d1, ...(d2 ? [d2] : []), d3, d4]}
+		const [colon, d4, returnType, d5] = returnTypeDs ?? [null, null, null, null]
+		const [body, d6] = bodyDs ?? [null, null]
+
+		const fn = Expr.fnDef(typeVars, param, returnType, body)
+
+		// Collects delimiters
+		const delimiters = [d0, d1]
+		if (d2 !== null) delimiters.push(d2)
+		delimiters.push(d3)
+		if (d4 !== null) delimiters.push(d4)
+		if (d5 !== null) delimiters.push(d5)
+		if (d6 !== null) delimiters.push(d6)
+
+		fn.extras = {delimiters}
+
 		return fn
-	}
-
-FnTypeDef "function type definition" =
-	"(" d0:_ "->" d1:_ typeVarsDs:(TypeVars _)? param:Params d3:_ out:Expr d4:_ ")"
-	{
-		const [typeVars, d2] = typeVarsDs ?? [undefined, undefined]
-
-		const fnType = Expr.fnType(typeVars, param, out)
-		fnType.extras = {delimiters: [d0, d1, ...(d2 ? [d2] : []), d3, d4]}
-		return fnType
 	}
 	
 Params =
