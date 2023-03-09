@@ -256,7 +256,6 @@ function testParsing(input: string, expected: Expr) {
 	test(`parsing '${input}' to be ${expected.print()}`, () => {
 		const result = parse(input)
 		if (!isSame(result, expected)) {
-			console.log(result)
 			throw new Error('Not as same as expected, got=' + result.print())
 		}
 		// if (result.print() !== input) {

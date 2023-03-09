@@ -27,7 +27,7 @@ export {
 	Expr,
 	Identifier,
 	ValueContainer,
-	NumLiteral as NumLiteral,
+	NumLiteral,
 	StrLiteral,
 	App,
 	Scope,
