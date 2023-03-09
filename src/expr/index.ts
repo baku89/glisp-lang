@@ -16,7 +16,7 @@ import {
 	VecLiteral,
 } from './expr'
 
-export {LeafNode, InnerNode, Arg} from './expr'
+export {AtomExpr as LeafNode, InnerNode, Arg} from './expr'
 
 export {NodeMeta} from './expr'
 

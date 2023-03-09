@@ -33,12 +33,12 @@ import {Env} from './env'
 import {createListDelimiters, insertDelimiters} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
 
-export type Expr = LeafNode | InnerNode
+export type Expr = AtomExpr | InnerNode
 
 /**
  * ASTs that cannot have child elements
  */
-export type LeafNode = Identifier | ValueContainer | NumLiteral | StrLiteral
+export type AtomExpr = Identifier | ValueContainer | NumLiteral | StrLiteral
 
 /**
  * ASTs that can have child elements
