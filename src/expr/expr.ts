@@ -76,6 +76,8 @@ export abstract class BaseExpr {
 	protected abstract forceEval(env: Env): WithLog
 	protected abstract forceInfer(env: Env): WithLog
 
+	abstract resolveSymbol(path: NameSymbol, env: Env): Expr | null
+
 	/**
 	 * 式が全く同じ構造かどうかを比較する
 	 * メタデータ、シンボルの記法等は区別する
@@ -104,6 +106,11 @@ export abstract class BaseExpr {
 
 	getLog = () => this.eval(Env.global).log
 }
+
+// const UpSymbol = Symbol('..')
+// const CurrentSymbol = Symbol('.')
+type NameSymbol = string | number
+// type SymbolElement = UpSymbol | CurrentSymbol | NameSymbol | IndexedNameSymbol
 
 export class Identifier extends BaseExpr {
 	readonly type = 'Identifier' as const
@@ -194,6 +201,8 @@ export class Identifier extends BaseExpr {
 		}
 	}
 
+	resolveSymbol = () => null
+
 	print = () => this.name
 
 	isSameTo = (expr: Expr) => this.type === expr.type && this.name === expr.name
@@ -215,6 +224,8 @@ export class ValueContainer<V extends Value = Value> extends BaseExpr {
 	protected forceEval = () => withLog(this.value)
 
 	protected forceInfer = () => withLog(this.value.isType ? all : this.value)
+
+	resolveSymbol = () => null
 
 	print = (options?: PrintOptions) => {
 		const expr = this.value.toExpr()
@@ -238,6 +249,8 @@ export class NumLiteral extends BaseExpr {
 	protected forceEval = () => withLog(num(this.value))
 
 	protected forceInfer = () => withLog(num(this.value))
+
+	resolveSymbol = () => null
 
 	print = () => {
 		if (!this.extras) {
@@ -265,6 +278,8 @@ export class StrLiteral extends BaseExpr {
 	protected forceEval = () => withLog(str(this.value))
 
 	protected forceInfer = () => withLog(str(this.value))
+
+	resolveSymbol = () => null
 
 	print = () => '"' + this.value + '"'
 
@@ -387,6 +402,20 @@ export class FnDef extends BaseExpr {
 		} else {
 			// If there's no function body, the expression represents function type
 			return withLog(all)
+		}
+	}
+
+	resolveSymbol = (path: NameSymbol): Expr | null => {
+		if (typeof path === 'number') return null
+
+		switch (path) {
+			// TODO: Add a path to refer params
+			case 'returnType':
+				return this.returnType ?? null
+			case 'body':
+				return this.body ?? null
+			default:
+				return null
 		}
 	}
 
@@ -603,6 +632,12 @@ export class VecLiteral extends BaseExpr {
 		return withLog(vec(items), ...log)
 	}
 
+	resolveSymbol = (path: NameSymbol): Expr | null => {
+		if (typeof path === 'string') return null
+
+		return this.items[path] ?? null
+	}
+
 	print = (options?: PrintOptions): string => {
 		if (!this.extras) {
 			const elementsCount = this.items.length + (this.rest ? 1 : 0)
@@ -675,6 +710,12 @@ export class DictLiteral extends BaseExpr {
 			it.infer(env)
 		).asTuple
 		return withLog(dict(items), ...logs)
+	}
+
+	resolveSymbol(path: NameSymbol): Expr | null {
+		if (typeof path === 'number') return null
+
+		return this.items[path] ?? null
 	}
 
 	print = (options?: PrintOptions): string => {
@@ -901,6 +942,27 @@ export class App extends BaseExpr {
 		return withLog(unifier.substitute(ty.fnType.out, true), ...log)
 	}
 
+	resolveSymbol = (path: NameSymbol): Expr | null => {
+		if (!this.fn) return null
+
+		// NOTE: 実引数として渡された関数の方ではなく、仮引数の方で名前を参照するべきなので、
+		// Env.globalのほうが良いのでは?
+		const [fnType] = this.fn.infer(Env.global).asTuple
+		if (fnType.type !== 'FnType') return null
+
+		let index
+
+		if (typeof path === 'string') {
+			const paramNames = keys(fnType.params)
+			index = paramNames.indexOf(path)
+			if (index === -1) return null
+		} else {
+			index = path
+		}
+
+		return this.args[index] ?? null
+	}
+
 	print = (options?: PrintOptions): string => {
 		if (!this.extras) {
 			if (!this.fn) {
@@ -949,6 +1011,12 @@ export class Scope extends BaseExpr {
 		this.out?.infer(env) ?? withLog(unit)
 
 	protected forceEval = (env: Env) => this.out?.eval(env) ?? Writer.of(unit)
+
+	resolveSymbol = (path: NameSymbol): Expr | null => {
+		if (typeof path === 'number') return null
+
+		return this.items[path] ?? null
+	}
 
 	print = (options?: PrintOptions): string => {
 		const varEntries = entries(this.items)
@@ -1037,6 +1105,19 @@ export class TryCatch extends BaseExpr {
 		return withLog(unionType(block, handler), ...lb, ...lh)
 	}
 
+	resolveSymbol = (path: NameSymbol): Expr | null => {
+		switch (path) {
+			case 'block':
+			case 1:
+				return this.block
+			case 'handler':
+			case 2:
+				return this.handler
+			default:
+				return null
+		}
+	}
+
 	print = (options?: PrintOptions): string => {
 		if (!this.extras) {
 			this.extras = {delimiters: ['', ' ', ' ', '']}
@@ -1121,6 +1202,10 @@ export class ValueMeta extends BaseExpr {
 
 	protected forceInfer = (env: Env): WithLog<Value> => {
 		return this.expr.infer(env)
+	}
+
+	resolveSymbol = () => {
+		throw new Error('Cannot resolve any symbol in withMeta expression')
 	}
 
 	clone = (): ValueMeta => new ValueMeta(this.fields.clone(), this.expr.clone())
