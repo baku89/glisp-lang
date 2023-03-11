@@ -55,7 +55,7 @@ export type InnerNode =
 /**
  * expressions that can contain other experssions
  */
-export type ParentNode = InnerNode | ValueMeta | NodeMeta | ParamsDef
+export type ParentNode = InnerNode | ValueMeta /*| NodeMeta*/ | ParamsDef
 
 export type Arg<T extends Value = Value> = () => T
 
@@ -88,13 +88,15 @@ export abstract class BaseExpr {
 
 	abstract clone(): Expr
 
-	#nodeMeta?: NodeMeta
+	// #nodeMeta?: NodeMeta
 
+	/*
 	setNodeMeta(meta: NodeMeta) {
 		this.#nodeMeta = meta
 		this.#nodeMeta.attachedTo = this as any
 		return this
 	}
+	*/
 
 	eval(env = Env.global) {
 		return env.memoizeEval(this, this.forceEval)
@@ -172,9 +174,9 @@ export class Identifier extends BaseExpr {
 		}
 
 		// On meta
-		if (ref.type === 'NodeMeta') {
-			return this.#resolve(ref.attachedTo, env)
-		}
+		// if (ref.type === 'NodeMeta') {
+		// 	return this.#resolve(ref.attachedTo, env)
+		// }
 
 		// Resolve with parent node recursively
 		return this.#resolve(ref.parent, env)

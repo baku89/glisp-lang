@@ -18,7 +18,7 @@ import {
 
 export {AtomExpr as LeafNode, InnerNode, Arg} from './expr'
 
-export {NodeMeta} from './expr'
+// export {NodeMeta} from './expr'
 
 export {isSame, print, PrintOptions, clone} from './expr'
 
