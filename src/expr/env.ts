@@ -3,17 +3,25 @@ import type {Arg, BaseExpr} from './expr'
 
 type ArgDict = Record<string, Arg>
 
+/**
+ * 関数のコールスタックのようなもの。引数名-引数のセットを保持する.
+ * 通常の評価器における環境とことなり、そのスコープで宣言された変数と値のペアではない.
+ * EnvはSingly Liked Listのような構造をしており、#outerはより外側の関数呼び出し時に
+ * スタックされた環境への参照を保持する。#outerが無い
+ */
 export class Env {
 	#outer!: Env | undefined
 	#arg: ArgDict
 	#evalCache: WeakMap<BaseExpr, WithLog> = new WeakMap()
 	#inferCache: WeakMap<BaseExpr, WithLog> = new WeakMap()
-	readonly isGlobal!: boolean
 
 	private constructor(original: Env | undefined, arg: ArgDict) {
 		this.#outer = original
 		this.#arg = arg
-		this.isGlobal = !original
+	}
+
+	get isGlobal() {
+		return !this.#outer
 	}
 
 	extend(arg: ArgDict) {
