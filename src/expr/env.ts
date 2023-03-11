@@ -16,7 +16,7 @@ export class Env {
 		this.isGlobal = !original
 	}
 
-	push(arg: ArgDict) {
+	extend(arg: ArgDict) {
 		return new Env(this, arg)
 	}
 
@@ -26,10 +26,6 @@ export class Env {
 
 	get(name: string): Arg | undefined {
 		return this.#arg[name]
-	}
-
-	extend(arg: ArgDict) {
-		return new Env(this, arg)
 	}
 
 	memoizeEval(expr: BaseExpr, evaluate: (env: Env) => WithLog): WithLog {
