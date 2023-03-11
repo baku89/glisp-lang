@@ -76,7 +76,7 @@ export abstract class BaseExpr {
 	protected abstract forceEval(env: Env): WithLog
 	protected abstract forceInfer(env: Env): WithLog
 
-	abstract resolveSymbol(path: NameSymbol, env: Env): Expr | null
+	abstract resolveSymbol(path: string | number, env: Env): Expr | null
 
 	/**
 	 * 式が全く同じ構造かどうかを比較する
@@ -109,107 +109,156 @@ export abstract class BaseExpr {
 	getLog = () => this.eval(Env.global).log
 }
 
-// const UpSymbol = Symbol('..')
-// const CurrentSymbol = Symbol('.')
-type NameSymbol = string | number
-// type SymbolElement = UpSymbol | CurrentSymbol | NameSymbol | IndexedNameSymbol
+type UpPath = {type: 'up'}
+type CurrentPath = {type: 'current'}
+type NamePath = {type: 'name'; name: string | number}
+type Path = UpPath | CurrentPath | NamePath
 
 export class Identifier extends BaseExpr {
 	readonly type = 'Identifier' as const
 
-	constructor(public readonly name: string) {
+	public readonly paths: Path[]
+
+	constructor(paths: string | Path[]) {
 		super()
+
+		if (Array.isArray(paths)) {
+			if (paths.length === 0) {
+				throw new Error('Zero-length path cannot be set to a new Symbol')
+			}
+			this.paths = paths
+		} else {
+			this.paths = [{type: 'name', name: paths}]
+		}
 	}
 
-	#resolve(
-		ref: Expr | ValueMeta /*| NodeMeta*/ | ParamsDef | null,
-		env: Env
-	): Writer<{expr: Expr; mode?: 'param' | 'arg' | 'TypeVar'}, Log> {
-		if (!ref) {
-			// If the expr has no parent and still couldn't resolve the symbol,
-			// assume there's no bound expression for it.
-			const log: Log = {
-				level: 'error',
-				ref: this,
-				reason: 'Variable not bound: ' + this.name,
-			}
+	get name() {
+		if (this.paths[0].type !== 'name') throw new Error()
+		return this.paths[0].name
+	}
 
-			return Writer.of({expr: new App()}, log)
-		}
+	resolve(): {expr: Expr; isParam?: boolean} | null {
+		let expr: Expr | ParamsDef | null = this.parent
 
-		if (ref.type === 'Scope') {
-			if (this.name in ref.items) {
-				return Writer.of({expr: ref.items[this.name]})
-			}
-		}
+		let isFirstPath = true
+		let isParam = false
 
-		if (ref.type === 'FnDef') {
-			if (env.isGlobal) {
-				// Situation A. While normal evaluation
-				const res = ref.params.get(this.name, env)
-				if (res) {
-					const [expr, l] = res.asTuple
-					return Writer.of({expr, mode: 'param'}, ...l)
+		for (const path of this.paths) {
+			if (!expr) break
+
+			if (path.type === 'up') {
+				expr = expr.parent
+				isParam = false
+			} else if (path.type === 'current') {
+				// Do nothing
+				isParam = false
+			} else if (path.type === 'name') {
+				if (isFirstPath) {
+					// Find the nearest ancestor bound to the name of symbol.
+					while (expr) {
+						if (expr.type === 'Scope' && path.name in expr.items) {
+							expr = expr.items[path.name]
+						}
+						expr = expr.parent
+					}
+					isParam = false
+				} else {
+					if (expr.type === 'FnDef') {
+						// When the symbol refers either parameter or type variable in
+						// function definition, その結果を明示して返す
+						expr = expr.resolveSymbol(path.name)
+						isParam = true
+					} else {
+						// Find an expression by name normally
+						expr = expr.resolveSymbol(path.name)
+						isParam = true
+					}
 				}
-			} else {
-				// Situation B. In a context of function appliction
-				const arg = env.get(this.name)
-				if (arg) {
-					return Writer.of({expr: new ValueContainer(arg()), mode: 'arg'})
-				}
 			}
-			// If no corresponding arg has found for the fn, pop the env.
-			env = env.pop()
+
+			isFirstPath = false
 		}
 
-		// Resolve typeVars
-		if (ref.type === 'FnDef') {
-			const tv = ref.typeVars?.get(this.name)
-			if (tv) {
-				return Writer.of({
-					expr: new ValueContainer(tv),
-					mode: 'TypeVar',
-				})
-			}
-		}
+		if (!expr || expr.type === 'ParamsDef') return null
 
-		// On meta
-		// if (ref.type === 'NodeMeta') {
-		// 	return this.#resolve(ref.attachedTo, env)
-		// }
-
-		// Resolve with parent node recursively
-		return this.#resolve(ref.parent, env)
+		return {expr, isParam}
 	}
 
 	protected forceEval = (env: Env): WithLog => {
-		return this.#resolve(this.parent, env).bind(({expr, mode}) => {
-			const result = expr.eval(env)
+		const resolved = this.resolve()
 
-			return mode === 'param' ? result.fmap(v => v.defaultValue) : result
-		})
+		if (!resolved) {
+			return withLog(unit, {
+				level: 'error',
+				ref: this,
+				reason: 'Symbol not bound: ' + this.print(),
+			})
+		}
+
+		const {expr, isParam} = resolved
+
+		if (isParam) {
+			if (env.isGlobal) {
+				// Situation A. While normal evaluation
+				return expr.eval(env).fmap(v => v.defaultValue)
+			} else {
+				// Situation B. In a context of function appliction
+				if (this.paths[0].type !== 'name') {
+					throw new Error('Currently not supported')
+				}
+				const name = this.paths[0].name.toString()
+
+				const arg = env.get(name)
+				if (arg) {
+					return withLog(arg())
+				}
+				throw new Error('Currently not supported')
+			}
+		}
+
+		return expr.eval(env)
 	}
 
 	protected forceInfer = (env: Env): WithLog => {
-		const resolved = this.#resolve(this.parent, env)
+		const resolved = this.resolve()
 
-		if (resolved.result.mode) {
-			// In cases such as inferring `x` in `(=> [x:(+ 1 2)] x)`,
-			// The type of parameter `(+ 1 2)` needs to be *evaluated*
-			return resolved.result.expr.eval(env)
+		if (!resolved) {
+			return withLog(unit, {
+				level: 'error',
+				ref: this,
+				reason: 'Symbol not bound: ' + this.print(),
+			})
+		}
+
+		const {expr, isParam} = resolved
+
+		if (isParam) {
+			return expr.eval(env)
 		} else {
-			// othersise, infer it as usual
-			return resolved.bind(({expr}) => expr.infer(env))
+			return expr.infer(env)
 		}
 	}
 
 	resolveSymbol = () => null
 
-	print = () => this.name
+	print = () => {
+		let strs = this.paths.map(path => {
+			if (path.type === 'up') {
+				return '..'
+			} else if (path.type === 'current') {
+				return '.'
+			} else {
+				return path.name
+			}
+		})
 
-	isSameTo = (expr: Expr) => this.type === expr.type && this.name === expr.name
+		return strs.join('/')
+	}
 
-	clone = () => new Identifier(this.name)
+	isSameTo = (expr: Expr) =>
+		this.type === expr.type && this.print() === expr.print()
+
+	clone = () => new Identifier(this.paths.map(p => ({...p})))
 }
 
 /**
@@ -407,18 +456,26 @@ export class FnDef extends BaseExpr {
 		}
 	}
 
-	resolveSymbol = (path: NameSymbol): Expr | null => {
+	resolveSymbol = (path: number | string): Expr | null => {
 		if (typeof path === 'number') return null
 
-		switch (path) {
-			// TODO: Add a path to refer params
-			case 'returnType':
-				return this.returnType ?? null
-			case 'body':
-				return this.body ?? null
-			default:
-				return null
+		const typeVar = this.typeVars?.get(path)
+
+		if (typeVar) {
+			return new ValueContainer(typeVar)
 		}
+
+		return this.params.resolveSymbol(path)
+
+		// switch (path) {
+		// 	// TODO: Add a path to refer params
+		// 	case 'returnType':
+		// 		return this.returnType ?? null
+		// 	case 'body':
+		// 		return this.body ?? null
+		// 	default:
+		// 		return null
+		// }
 	}
 
 	print = (options?: PrintOptions): string => {
@@ -496,6 +553,12 @@ export class ParamsDef {
 		}
 
 		return Writer.of({params, rest}, ...lp, ...lr)
+	}
+
+	resolveSymbol = (path: number | string): Expr | null => {
+		if (typeof path !== 'string') return null
+
+		return this.items[path] ?? null
 	}
 
 	print = (options?: PrintOptions) => {
@@ -634,7 +697,7 @@ export class VecLiteral extends BaseExpr {
 		return withLog(vec(items), ...log)
 	}
 
-	resolveSymbol = (path: NameSymbol): Expr | null => {
+	resolveSymbol = (path: number | string): Expr | null => {
 		if (typeof path === 'string') return null
 
 		return this.items[path] ?? null
@@ -714,7 +777,7 @@ export class DictLiteral extends BaseExpr {
 		return withLog(dict(items), ...logs)
 	}
 
-	resolveSymbol(path: NameSymbol): Expr | null {
+	resolveSymbol(path: string | number): Expr | null {
 		if (typeof path === 'number') return null
 
 		return this.items[path] ?? null
@@ -944,7 +1007,7 @@ export class App extends BaseExpr {
 		return withLog(unifier.substitute(ty.fnType.out, true), ...log)
 	}
 
-	resolveSymbol = (path: NameSymbol): Expr | null => {
+	resolveSymbol = (path: string | number): Expr | null => {
 		if (!this.fn) return null
 
 		// NOTE: 実引数として渡された関数の方ではなく、仮引数の方で名前を参照するべきなので、
@@ -1014,7 +1077,7 @@ export class Scope extends BaseExpr {
 
 	protected forceEval = (env: Env) => this.out?.eval(env) ?? Writer.of(unit)
 
-	resolveSymbol = (path: NameSymbol): Expr | null => {
+	resolveSymbol = (path: string | number): Expr | null => {
 		if (typeof path === 'number') return null
 
 		return this.items[path] ?? null
@@ -1107,7 +1170,7 @@ export class TryCatch extends BaseExpr {
 		return withLog(unionType(block, handler), ...lb, ...lh)
 	}
 
-	resolveSymbol = (path: NameSymbol): Expr | null => {
+	resolveSymbol = (path: string | number): Expr | null => {
 		switch (path) {
 			case 'block':
 			case 1:
