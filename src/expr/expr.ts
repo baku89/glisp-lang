@@ -122,7 +122,7 @@ export class Identifier extends BaseExpr {
 	}
 
 	#resolve(
-		ref: Expr | ValueMeta | NodeMeta | ParamsDef | null,
+		ref: Expr | ValueMeta /*| NodeMeta*/ | ParamsDef | null,
 		env: Env
 	): Writer<{expr: Expr; mode?: 'param' | 'arg' | 'TypeVar'}, Log> {
 		if (!ref) {
@@ -1233,6 +1233,7 @@ export class ValueMeta extends BaseExpr {
 	}
 }
 
+/*
 export class NodeMeta {
 	readonly type = 'NodeMeta' as const
 
@@ -1259,6 +1260,7 @@ export class NodeMeta {
 		return isSame(a.fields, b.fields)
 	}
 }
+*/
 
 export function isSame(a: Expr, b: Expr): boolean {
 	return a.isSameTo(b)
