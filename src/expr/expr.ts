@@ -875,7 +875,7 @@ export class App extends BaseExpr {
 
 		// Check if it's not a function
 		if (!('fn' in fn)) {
-			return Writer.of(fn, ...fnLog, {
+			return withLog(fn, ...fnLog, {
 				level: 'warn',
 				ref: this,
 				reason: 'Not a function',
@@ -968,6 +968,9 @@ export class App extends BaseExpr {
 				}
 			}
 		}
+
+		// Also binds unified types for type variables
+		this.fn
 
 		// Call the function
 		let result: Value, appLog: Set<Log | Omit<Log, 'ref'>>
