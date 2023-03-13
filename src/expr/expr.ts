@@ -137,55 +137,43 @@ export class Identifier extends BaseExpr {
 		return this.paths[0].name
 	}
 
-	resolve(): {expr: Expr; isParam?: boolean} | null {
+	resolve(env: Env): {expr: Expr; mode?: 'param' | 'arg'} | null {
 		let expr: Expr | ParamsDef | null = this.parent
 
-		let isFirstPath = true
-		let isParam = false
-
-		for (const path of this.paths) {
-			if (!expr) break
-
-			if (path.type === 'up') {
-				expr = expr.parent
-				isParam = false
-			} else if (path.type === 'current') {
-				// Do nothing
-				isParam = false
-			} else if (path.type === 'name') {
-				if (isFirstPath) {
-					// Find the nearest ancestor bound to the name of symbol.
-					while (expr) {
-						if (expr.type === 'Scope' && path.name in expr.items) {
-							expr = expr.items[path.name]
-						}
-						expr = expr.parent
-					}
-					isParam = false
-				} else {
-					if (expr.type === 'FnDef') {
-						// When the symbol refers either parameter or type variable in
-						// function definition, その結果を明示して返す
-						expr = expr.resolveSymbol(path.name)
-						isParam = true
-					} else {
-						// Find an expression by name normally
-						expr = expr.resolveSymbol(path.name)
-						isParam = true
-					}
-				}
-			}
-
-			isFirstPath = false
+		if (this.paths.length !== 1 || this.paths[0].type !== 'name') {
+			throw new Error()
 		}
 
-		if (!expr || expr.type === 'ParamsDef') return null
+		const name = this.paths[0].name.toString()
 
-		return {expr, isParam}
+		while (expr) {
+			if (expr.type === 'Scope') {
+				const res = expr.resolveSymbol(name)
+				if (res) {
+					return {expr: res}
+				}
+			} else if (expr.type === 'FnDef') {
+				if (env.isGlobal) {
+					const res = expr.resolveSymbol(name)
+					if (res) {
+						return {expr: res, mode: 'param'}
+					}
+				} else {
+					const arg = env.get(name)
+					if (arg) {
+						return {expr: new ValueContainer(arg()), mode: 'arg'}
+					}
+				}
+				env = env.pop()
+			}
+			expr = expr.parent
+		}
+
+		return null
 	}
 
 	protected forceEval = (env: Env): WithLog => {
-		const resolved = this.resolve()
+		const resolved = this.resolve(env)
 
 		if (!resolved) {
 			return withLog(unit, {
@@ -195,32 +183,17 @@ export class Identifier extends BaseExpr {
 			})
 		}
 
-		const {expr, isParam} = resolved
+		const {expr, mode} = resolved
 
-		if (isParam) {
-			if (env.isGlobal) {
-				// Situation A. While normal evaluation
-				return expr.eval(env).fmap(v => v.defaultValue)
-			} else {
-				// Situation B. In a context of function appliction
-				if (this.paths[0].type !== 'name') {
-					throw new Error('Currently not supported')
-				}
-				const name = this.paths[0].name.toString()
+		const shouldUseDefault =
+			mode === 'param' &&
+			!(expr.type === 'ValueContainer' && expr.value.type == 'TypeVar')
 
-				const arg = env.get(name)
-				if (arg) {
-					return withLog(arg())
-				}
-				throw new Error('Currently not supported')
-			}
-		}
-
-		return expr.eval(env)
+		return expr.eval(env).fmap(v => (shouldUseDefault ? v.defaultValue : v))
 	}
 
 	protected forceInfer = (env: Env): WithLog => {
-		const resolved = this.resolve()
+		const resolved = this.resolve(env)
 
 		if (!resolved) {
 			return withLog(unit, {
@@ -230,9 +203,9 @@ export class Identifier extends BaseExpr {
 			})
 		}
 
-		const {expr, isParam} = resolved
+		const {expr, mode} = resolved
 
-		if (isParam) {
+		if (mode) {
 			return expr.eval(env)
 		} else {
 			return expr.infer(env)
@@ -900,7 +873,7 @@ export class App extends BaseExpr {
 			})
 		}
 
-		// Check types of args and cexpr them to default if necessary
+		// Check types of args and set them to default if necessary
 		const args = unifiedParams.map((pType, i) => {
 			const aType = unifiedArgs[i] ?? Unit
 			const name = names[i]
