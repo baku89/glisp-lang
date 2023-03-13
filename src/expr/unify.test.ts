@@ -39,9 +39,9 @@ describe('getTypeVars', () => {
 	run(ft([BoolType, T, T], U), [T, U])
 
 	function run(ty: Value, expected: TypeVar[]) {
-		const eStr = '{' + expected.map(e => e.print()).join(', ') + '}'
+		const eString = '{' + expected.map(e => e.print()).join(', ') + '}'
 
-		test(`FV(${ty.print()}) equals to ${eStr}`, () => {
+		test(`FV(${ty.print()}) equals to ${eString}`, () => {
 			const tvs = [...getTypeVars(ty)]
 			const diff = _.differenceWith(tvs, expected, isEqual)
 
@@ -84,13 +84,13 @@ describe('unifyTypeVars', () => {
 	)
 
 	function test(consts: Const[], original: Value, expected: Value) {
-		const cStr = printConsts(consts)
-		const oStr = original.print()
-		const eStr = expected.print()
+		const cString = printConsts(consts)
+		const oString = original.print()
+		const eString = expected.print()
 		const unifier = new Unifier(...consts)
 		const resolved = unifier.substitute(original)
 
-		it(`Under constraints ${cStr}, σ(${oStr}) equals to ${eStr}`, () => {
+		it(`Under constraints ${cString}, σ(${oString}) equals to ${eString}`, () => {
 			if (!resolved.isEqualTo(expected)) {
 				throw new Error('Got=' + resolved.print())
 			}

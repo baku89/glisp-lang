@@ -27,10 +27,10 @@ export function testEval(
 	expected: Value | string,
 	hasLog = false
 ) {
-	const iStr = typeof input === 'string' ? input : input.print()
-	const eStr = typeof expected === 'string' ? expected : expected.print()
+	const iString = typeof input === 'string' ? input : input.print()
+	const eString = typeof expected === 'string' ? expected : expected.print()
 
-	test(`${iStr} evaluates to ${eStr}`, () => {
+	test(`${iString} evaluates to ${eString}`, () => {
 		const expr = parse(input)
 		const expectedVal = parse(input).eval().result
 

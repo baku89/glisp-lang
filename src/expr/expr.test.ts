@@ -7,8 +7,8 @@ import {
 	never,
 	number as num,
 	NumberType,
-	str,
-	StrType,
+	string as str,
+	StringType,
 	True,
 	unit,
 	vec,
@@ -29,10 +29,10 @@ describe('evaluating literals', () => {
 	testEval('[1 ...Number]', vec([num(1)], undefined, NumberType))
 	testEval('[0]', vec([num(0)]))
 	testEval('{a:1 b:2}', dict({a: num(1), b: num(2)}))
-	testEval('{a?:Number ...Str}', dict({a: NumberType}, ['a'], StrType))
+	testEval('{a?:Number ...String}', dict({a: NumberType}, ['a'], StringType))
 	testEval(
-		'(=> [x:Number]: Str)',
-		fnType({params: {x: NumberType}, out: StrType})
+		'(=> [x:Number]: String)',
+		fnType({params: {x: NumberType}, out: StringType})
 	)
 	testEval('(let a: 10 a)', num(10))
 	testEval('(let a: (let a: 20 a) a)', num(20))

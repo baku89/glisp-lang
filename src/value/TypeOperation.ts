@@ -80,10 +80,10 @@ export function differenceType(original: Value, ...types: Value[]) {
 
 	/**
 	 * Oの各要素について、それを部分型とするSの要素が１つでもあれば除外
-	 * (Num | Str | false) - (Num | "hello" | Bool) = Str
+	 * (Num | String | false) - (Num | "hello" | Bool) = String
 	 * false <: Bool なので除外
 	 * Num <: Num なので除外
-	 * Str を部分型とする要素がSに無いので残す
+	 * String を部分型とする要素がSに無いので残す
 	 */
 
 	// 残り

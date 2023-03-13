@@ -8,7 +8,7 @@ import {
 	numberLiteral as num,
 	paramsDef,
 	scope,
-	str,
+	stringLiteral as str,
 	tryCatch,
 	valueMeta,
 	vec,

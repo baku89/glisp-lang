@@ -8,7 +8,7 @@ import {
 	NumberLiteral,
 	ParamsDef,
 	Scope,
-	StrLiteral,
+	StringLiteral,
 	TryCatch,
 	TypeVarsDef,
 	ValueContainer,
@@ -28,7 +28,7 @@ export {
 	Identifier,
 	ValueContainer,
 	NumberLiteral as NumLiteral,
-	StrLiteral,
+	StringLiteral,
 	App,
 	Scope,
 	TryCatch,
@@ -47,7 +47,7 @@ export const valueContainer = <V extends Value = Value>(value: V) =>
 
 export const numberLiteral = (value: number) => new NumberLiteral(value)
 
-export const str = (value: string) => new StrLiteral(value)
+export const stringLiteral = (value: string) => new StringLiteral(value)
 
 export const app = (fn?: Expr, ...args: Expr[]) => new App(fn, ...args)
 

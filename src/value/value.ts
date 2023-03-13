@@ -21,7 +21,7 @@ import {
 	numberLiteral,
 	paramsDef,
 	PrintOptions,
-	str,
+	stringLiteral,
 	valueContainer,
 	valueMeta,
 	vec,
@@ -43,7 +43,16 @@ type Type = All | PrimType | EnumType | FnType | UnionType | TypeVar
 /**
  * Value that can be a default value. Non-type values
  */
-type Atomic = Never | Unit | Prim<any> | Number | Str | Enum | Fn | Vec | Dict
+type Atomic =
+	| Never
+	| Unit
+	| Prim<any>
+	| Number
+	| String
+	| Enum
+	| Fn
+	| Vec
+	| Dict
 
 abstract class BaseValue {
 	constructor() {
@@ -254,11 +263,11 @@ export class Number extends Prim<number> {
 	}
 }
 
-export class Str extends Prim<string> {
-	protected toExprExceptMeta = () => str(this.value)
+export class String extends Prim<string> {
+	protected toExprExceptMeta = () => stringLiteral(this.value)
 
 	constructor(value: string) {
-		super(StrType, value)
+		super(StringType, value)
 	}
 }
 
@@ -271,12 +280,12 @@ export class PrimType<T = any> extends BaseValue {
 
 	readonly superType = All.instance
 
-	#defaultValue!: Number | Str | Prim
+	#defaultValue!: Number | String | Prim
 	get defaultValue() {
 		return (this.#defaultValue ??= this.#initialDefaultValue)
 	}
 
-	#initialDefaultValue!: Number | Str | Prim
+	#initialDefaultValue!: Number | String | Prim
 	get initialDefaultValue() {
 		return this.#initialDefaultValue
 	}
@@ -332,8 +341,8 @@ export class PrimType<T = any> extends BaseValue {
 export const NumberType = PrimType.ofLiteral('Number', new Number(0))
 ;(Number.prototype.superType as Number['superType']) = NumberType
 
-export const StrType = PrimType.ofLiteral('Str', new Str(''))
-;(Str.prototype.superType as Str['superType']) = StrType
+export const StringType = PrimType.ofLiteral('String', new String(''))
+;(String.prototype.superType as String['superType']) = StringType
 
 export class Enum extends BaseValue {
 	readonly type = 'Enum' as const

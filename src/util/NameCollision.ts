@@ -1,9 +1,9 @@
-interface IndexingStrategy {
+interface IndexingStringategy {
 	parse: (name: string) => [string, number] | null
 	print: (index: number) => string
 }
 
-const SimpleIndexing: IndexingStrategy = {
+const SimpleIndexing: IndexingStringategy = {
 	parse(name) {
 		const match = /[0-9]+$/.exec(name)
 		if (!match) return null
@@ -19,14 +19,14 @@ const SimpleIndexing: IndexingStrategy = {
 export function createUniqueName(
 	name: string,
 	existingNames: string[],
-	indexingStrategy: IndexingStrategy = SimpleIndexing
+	indexingStringategy: IndexingStringategy = SimpleIndexing
 ): string {
-	const [original, start] = indexingStrategy.parse(name) ?? [name, 1]
+	const [original, start] = indexingStringategy.parse(name) ?? [name, 1]
 
 	let index = start
 
 	while (existingNames.includes(name)) {
-		name = original + indexingStrategy.print(index)
+		name = original + indexingStringategy.print(index)
 		index++
 	}
 

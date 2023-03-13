@@ -44,11 +44,11 @@ describe('subtyping', () => {
 	test('1', 'Number', '<')
 	// run('1', Val.NumberType.extends('1'), true)
 	test('"hello"', '"hello"', '=')
-	test('"hello"', 'Str', '<')
-	test('Str', 'Number', '!=')
+	test('"hello"', 'String', '<')
+	test('String', 'Number', '!=')
 	test('"hello"', 'Number', '!=')
 	test('1', '_', '<')
-	test('Str', 'Str', '=')
+	test('String', 'String', '=')
 	test('Number', 'Number', '=')
 
 	// Enum
@@ -198,7 +198,7 @@ describe('instance relationship', () => {
 describe('default values of types', () => {
 	test('1', '1')
 	test('Number', '0')
-	test('Str', '""')
+	test('String', '""')
 	test('Bool', 'false')
 	test('(union 3 4)', '3')
 	test('(union Number Bool)', '0')
@@ -208,16 +208,16 @@ describe('default values of types', () => {
 	test('Never', 'Never')
 
 	test('[]', '[]')
-	test('[Number Str]', '[0 ""]')
+	test('[Number String]', '[0 ""]')
 	test('[...Number]', '[]')
 	test('[Number ...Number]', '[0]')
 
 	test('{}', '{}')
-	test('{a:Number b:Str}', '{a:0 b:""}')
-	test('{a:Number b?:Str}', '{a:0}')
+	test('{a:Number b:String}', '{a:0 b:""}')
+	test('{a:Number b?:String}', '{a:0}')
 	test('{...Number}', '{}')
-	test('{a:Number ...Str}', '{a:0}')
-	test('{a?:Number ...Str}', '{}')
+	test('{a:Number ...String}', '{a:0}')
+	test('{a?:Number ...String}', '{}')
 
 	test('(=> []: Number)', '0', true)
 	test('(=> [x:Number]: Bool)', 'false', true)
@@ -231,9 +231,9 @@ describe('default values of types', () => {
 	test('^{} ()', '()')
 
 	function test(input: string, expected: string, fn = false) {
-		const eStr = fn ? `(=> [] ${expected})` : expected
+		const eString = fn ? `(=> [] ${expected})` : expected
 
-		it(`default value of '${input}' is '${eStr}'`, () => {
+		it(`default value of '${input}' is '${eString}'`, () => {
 			let dv: Value = parse(input).eval().result.defaultValue
 			const ev = parse(expected).eval().result
 

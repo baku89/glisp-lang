@@ -103,7 +103,7 @@ Expr =
 	}
 
 ExprContent =
-	NumLiteral / StrLiteral / Identifier /
+	NumLiteral / StringLiteral / Identifier /
 	FnDef / Scope / App / TryCatch /
 	VecLiteral / DictLiteral / ValueMeta
 
@@ -142,9 +142,9 @@ NumLiteral "number" = [+-]? (Digit* ".")? Digit+
 		return num
 	}
 
-StrLiteral "string" = '"' value:$(!'"' .)* '"'
+StringLiteral "string" = '"' value:$(!'"' .)* '"'
 	{
-		return Expr.str(value)
+		return Expr.stringLiteral(value)
 	}
 
 App "function application" = "(" d0:_ itemsDs:(Expr _)* ")"
@@ -268,7 +268,7 @@ DictEntry = key:DictKey optional:"?"? ":" d0:_ value:Expr d1:_
 // TODO: Why not allowing reserved words for key?
 DictKey =
 	id:Identifier {return id.name } /
-	str: StrLiteral {return str.value }
+	str: StringLiteral {return str.value }
 
 Scope "scope" =
 	"(" d0:_ "let" d1:__ pairs:(@Identifier ":" @_ @Expr @_)* out:Expr? dl:_ ")"

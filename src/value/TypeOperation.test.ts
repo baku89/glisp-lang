@@ -7,8 +7,8 @@ import {
 	never,
 	number as num,
 	NumberType,
-	str,
-	StrType,
+	string as str,
+	StringType,
 	True,
 	UnionType,
 	unit,
@@ -34,7 +34,7 @@ describe('uniting types', () => {
 	test(N1, N2).toBe(unite(N1, N2))
 	test(S1, S2).toBe(unite(S1, S2))
 	test(N1, N2, S1).toBe(unite(N1, N2, S1))
-	test(S1, StrType).toBe(StrType)
+	test(S1, StringType).toBe(StringType)
 	test(unite(N1, N2), unite(N2, N3)).toBe(unite(N1, N2, N3))
 	test(unite(N1, N2), NumberType).toBe(NumberType)
 	test(NumberType, unite(N1, N2)).toBe(NumberType)
@@ -49,9 +49,9 @@ describe('uniting types', () => {
 
 	function test(...types: Value[]) {
 		const f = (expected: Value) => {
-			const typesStr = types.map(t => t.print()).join(', ')
-			const expectedStr = expected.print()
-			it(`'${typesStr}' to be '${expectedStr}'`, () => {
+			const typesString = types.map(t => t.print()).join(', ')
+			const expectedString = expected.print()
+			it(`'${typesString}' to be '${expectedString}'`, () => {
 				for (const orderedTypes of permutation(types)) {
 					const result = unionType(...orderedTypes)
 					if (!result.isEqualTo(expected)) {
@@ -80,9 +80,9 @@ describe('intersecting types', () => {
 
 	function test(...types: Value[]) {
 		const f = (expected: Value) => {
-			const typesStr = types.map(t => t.print()).join(', ')
-			const expectedStr = expected.print()
-			it(`'${typesStr}' to be '${expectedStr}'`, () => {
+			const typesString = types.map(t => t.print()).join(', ')
+			const expectedString = expected.print()
+			it(`'${typesString}' to be '${expectedString}'`, () => {
 				for (const orderedTypes of permutation(types)) {
 					const result = intersectionType(...orderedTypes)
 					if (!result.isEqualTo(expected)) {
@@ -109,7 +109,7 @@ describe('differential types', () => {
 	test(S1, S1).toBe(never)
 	test(True, True).toBe(never)
 	test(NumberType, NumberType).toBe(never)
-	test(StrType, StrType).toBe(never)
+	test(StringType, StringType).toBe(never)
 	test(BoolType, BoolType).toBe(never)
 	test(unite(N1, N2), unite(N1, N2)).toBe(never)
 
@@ -126,9 +126,9 @@ describe('differential types', () => {
 
 	function test(original: Value, ...types: Value[]) {
 		const f = (expected: Value) => {
-			const typesStr = types.map(t => t.print()).join(', ')
-			const expectedStr = expected.print()
-			it(`'${typesStr}' to be '${expectedStr}'`, () => {
+			const typesString = types.map(t => t.print()).join(', ')
+			const expectedString = expected.print()
+			it(`'${typesString}' to be '${expectedString}'`, () => {
 				for (const orderedTypes of permutation(types)) {
 					const result = differenceType(original, ...orderedTypes)
 					if (!result.isEqualTo(expected)) {

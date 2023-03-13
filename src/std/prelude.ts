@@ -19,9 +19,9 @@ import {
 	Number,
 	number,
 	NumberType,
-	Str,
-	str,
-	StrType,
+	String,
+	string,
+	StringType,
 	True,
 	unionType,
 	Value,
@@ -76,7 +76,7 @@ const defn: Defn = (type, f, {lazy = false, writeLog = false} = {}) => {
 
 export const PreludeScope = Expr.scope({
 	Number: Expr.valueContainer(NumberType),
-	Str: Expr.valueContainer(StrType),
+	String: Expr.valueContainer(StringType),
 	Bool: Expr.valueContainer(BoolType),
 	_: Expr.valueContainer(All.instance),
 	All: Expr.valueContainer(All.instance),
@@ -93,8 +93,8 @@ PreludeScope.defs({
 	true: Expr.valueContainer(True),
 	false: Expr.valueContainer(False),
 	log: defn(
-		'(=> (T) [value:T level:(union "error" "warn" "info") reason:Str]: T)',
-		(value: Value, level: Str, reason: Str) =>
+		'(=> (T) [value:T level:(union "error" "warn" "info") reason:String]: T)',
+		(value: Value, level: String, reason: String) =>
 			Writer.of(value, {
 				level: level.value as Log['level'],
 				reason: reason.value,
@@ -171,7 +171,7 @@ PreludeScope.defs({
 		{lazy: true}
 	),
 	'!': defn('(=> [x:Bool]: Bool)', (x: Enum) => bool(x.isEqualTo(False))),
-	len: defn('(=> [x:(union Str [..._])]: Number)', (x: Str | Vec) => {
+	len: defn('(=> [x:(union String [..._])]: Number)', (x: String | Vec) => {
 		if (x.type === 'Vec') return number(x.items.length)
 		else return number(x.value.length)
 	}),
@@ -211,19 +211,21 @@ PreludeScope.defs({
 			)
 		}
 	),
-	enum: defn('(=> [name:Str ...label:Str]: _)', (name: Str, ...labels: Str[]) =>
-		enumType(
-			name.value,
-			labels.map(l => l.value)
-		)
+	enum: defn(
+		'(=> [name:String ...label:String]: _)',
+		(name: String, ...labels: String[]) =>
+			enumType(
+				name.value,
+				labels.map(l => l.value)
+			)
 	),
 	fnType: defn('(=> [f:_]: _)', (f: Value) => ('fnType' in f ? f.fnType : f)),
 	isSubtype: defn('(=> [x:_ y:_]: Bool)', (x: Value, y: Value) =>
 		bool(x.isSubtypeOf(y))
 	),
-	show: defn('(=> [value:_]: Str)', (value: Value) => str(value.print())),
-	'++': defn('(=> [a:Str b:Str]: Str)', (a: Str, b: Str) =>
-		str(a.value + b.value)
+	show: defn('(=> [value:_]: String)', (value: Value) => string(value.print())),
+	'++': defn('(=> [a:String b:String]: String)', (a: String, b: String) =>
+		string(a.value + b.value)
 	),
 })
 

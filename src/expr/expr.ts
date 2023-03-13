@@ -20,7 +20,7 @@ import {
 	fnType,
 	IFn,
 	number,
-	str,
+	string,
 	TypeVar,
 	typeVar,
 	unionType,
@@ -38,7 +38,11 @@ export type Expr = AtomExpr | InnerNode
 /**
  * ASTs that cannot have child elements
  */
-export type AtomExpr = Identifier | ValueContainer | NumberLiteral | StrLiteral
+export type AtomExpr =
+	| Identifier
+	| ValueContainer
+	| NumberLiteral
+	| StringLiteral
 
 /**
  * ASTs that can have child elements
@@ -292,16 +296,16 @@ export class NumberLiteral extends BaseExpr {
 	extras?: {raw: string}
 }
 
-export class StrLiteral extends BaseExpr {
-	readonly type = 'StrLiteral' as const
+export class StringLiteral extends BaseExpr {
+	readonly type = 'StringLiteral' as const
 
 	constructor(public readonly value: string) {
 		super()
 	}
 
-	protected forceEval = () => withLog(str(this.value))
+	protected forceEval = () => withLog(string(this.value))
 
-	protected forceInfer = () => withLog(str(this.value))
+	protected forceInfer = () => withLog(string(this.value))
 
 	resolveSymbol = () => null
 
@@ -310,7 +314,7 @@ export class StrLiteral extends BaseExpr {
 	isSameTo = (expr: Expr) =>
 		this.type === expr.type && this.value === expr.value
 
-	clone = () => new StrLiteral(this.value)
+	clone = () => new StringLiteral(this.value)
 }
 
 export class FnDef extends BaseExpr {
@@ -538,8 +542,8 @@ export class ParamsDef {
 		const params = entries(this.items)
 		const {optionalPos, rest} = this
 
-		const paramStrs = params.map(printNamedNode)
-		const restStrs = rest
+		const paramStrings = params.map(printNamedNode)
+		const restStrings = rest
 			? ['...' + (rest.name ? rest.name + ':' : '') + rest.expr.print(options)]
 			: []
 
@@ -551,7 +555,11 @@ export class ParamsDef {
 
 		const {delimiters} = this.extras
 
-		return '[' + insertDelimiters([...paramStrs, ...restStrs], delimiters) + ']'
+		return (
+			'[' +
+			insertDelimiters([...paramStrings, ...restStrings], delimiters) +
+			']'
+		)
 
 		function printNamedNode([name, ty]: [string, Expr], index: number) {
 			const optionalMark = optionalPos <= index ? '?' : ''
