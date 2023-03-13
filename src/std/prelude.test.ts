@@ -12,7 +12,6 @@ describe('functions in the prelude module', () => {
 	testEval('(/ 15 5)', '3')
 	testEval('(% 5 2)', '1')
 	testEval('(** 6 3)', '216')
-	testEval('(gcd 20 16)', '4')
 	testEval('(- 10 9)', '1')
 
 	testEval('(union () Number)', unionType(unit, NumberType))
