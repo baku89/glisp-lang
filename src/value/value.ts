@@ -31,6 +31,7 @@ import {Log, withLog} from '../log'
 import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
 import {isEqualSet} from '../util/isEqualSet'
+import {createUniqueName} from '../util/NameCollision'
 import {nullishEqual} from '../util/nullishEqual'
 import {Writer} from '../util/Writer'
 import {unionType} from './TypeOperation'
@@ -491,14 +492,18 @@ export class Fn extends BaseValue implements IFnLike {
 
 		const {fnType} = this
 
-		const typeVars = [...getTypeVars(fnType)].map(tv => tv.name)
+		const typeVars: string[] = []
+		for (const tv of getTypeVars(fnType)) {
+			typeVars.push(createUniqueName(tv.name, typeVars))
+		}
+
 		const _params = mapValues(fnType.params, p => p.toExpr())
 		const rest = fnType.rest
 			? {name: fnType.rest.name ?? '', expr: fnType.rest.value.toExpr()}
 			: undefined
 
 		return fnDef(
-			typeVars,
+			typeVars.length > 0 ? typeVars : null,
 			paramsDef(_params, fnType.optionalPos, rest),
 			fnType.out.toExpr(),
 			this.body.clone()
@@ -556,15 +561,23 @@ export class FnType extends BaseValue implements IFnType {
 	}
 
 	protected toExprExceptMeta = (): FnDef => {
+		// Collect all type varaibles
+		const typeVars: string[] = []
+
+		for (const tv of getTypeVars(this)) {
+			typeVars.push(createUniqueName(tv.name, typeVars))
+		}
+
+		// その他もろもろ
+		const params = mapValues(this.params, p => p.toExpr())
+
 		const rest = this.rest
 			? {name: this.rest.name, expr: this.rest.value.toExpr()}
 			: undefined
 
-		const _params = mapValues(this.params, p => p.toExpr())
-
 		return fnDef(
-			null,
-			paramsDef(_params, this.optionalPos, rest),
+			typeVars.length > 0 ? typeVars : null,
+			paramsDef(params, this.optionalPos, rest),
 			this.out.toExpr(),
 			null
 		)
