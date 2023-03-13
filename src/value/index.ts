@@ -41,18 +41,18 @@ export {
 	UnionType,
 }
 
-const BoolType = EnumType.of('Bool', ['false', 'true'])
-const True = BoolType.getEnum('true')
-const False = BoolType.getEnum('false')
+const BooleanType = EnumType.of('Boolean', ['false', 'true'])
+const True = BooleanType.getEnum('true')
+const False = BooleanType.getEnum('false')
 
-export {NumberType, StringType, BoolType, True, False}
+export {NumberType, StringType, BooleanType, True, False}
 
 export const all = All.instance
 export const never = Never.instance
 export const unit = Unit.instance
 export const number = (value: number) => new Number(value)
 export const string = (value: string) => new String(value)
-export const bool = (value: boolean) => (value ? True : False)
+export const boolean = (value: boolean) => (value ? True : False)
 export const primType = PrimType.of
 export const enumType = EnumType.of
 export const fn = Fn.of

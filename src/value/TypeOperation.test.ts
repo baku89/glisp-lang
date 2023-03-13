@@ -1,6 +1,6 @@
 import {
 	all,
-	BoolType,
+	BooleanType,
 	differenceType,
 	False,
 	intersectionType,
@@ -38,13 +38,13 @@ describe('uniting types', () => {
 	test(unite(N1, N2), unite(N2, N3)).toBe(unite(N1, N2, N3))
 	test(unite(N1, N2), NumberType).toBe(NumberType)
 	test(NumberType, unite(N1, N2)).toBe(NumberType)
-	test(NumberType, BoolType).toBe(unite(NumberType, BoolType))
+	test(NumberType, BooleanType).toBe(unite(NumberType, BooleanType))
 	test(NumberType, never).toBe(NumberType)
 	test(never, never).toBe(never)
 	test(never, all).toBe(all)
-	test(True, False).toBe(BoolType)
-	test(BoolType, True, False).toBe(BoolType)
-	test(True, False).toBe(BoolType)
+	test(True, False).toBe(BooleanType)
+	test(BooleanType, True, False).toBe(BooleanType)
+	test(True, False).toBe(BooleanType)
 	test(N2, unit).toBe(unite(N2, unit))
 
 	function test(...types: Value[]) {
@@ -74,7 +74,7 @@ describe('intersecting types', () => {
 	test(unite(N1, N2), unite(N1, N2)).toBe(unite(N1, N2))
 	test(N1, NumberType).toBe(N1)
 	test(unite(N1, False), N1).toBe(N1)
-	test(unite(NumberType, False), unite(N1, N2, BoolType)).toBe(
+	test(unite(NumberType, False), unite(N1, N2, BooleanType)).toBe(
 		unite(N1, N2, False)
 	)
 
@@ -110,7 +110,7 @@ describe('differential types', () => {
 	test(True, True).toBe(never)
 	test(NumberType, NumberType).toBe(never)
 	test(StringType, StringType).toBe(never)
-	test(BoolType, BoolType).toBe(never)
+	test(BooleanType, BooleanType).toBe(never)
 	test(unite(N1, N2), unite(N1, N2)).toBe(never)
 
 	// T - S = T
@@ -119,10 +119,10 @@ describe('differential types', () => {
 	test(all, N1).toBe(all)
 
 	// Enum substraction
-	test(BoolType, True).toBe(False)
-	test(BoolType, True, False).toBe(never)
-	test(unite(BoolType, N1), True).toBe(unite(N1, False))
-	test(unite(BoolType, N1), True, N1).toBe(False)
+	test(BooleanType, True).toBe(False)
+	test(BooleanType, True, False).toBe(never)
+	test(unite(BooleanType, N1), True).toBe(unite(N1, False))
+	test(unite(BooleanType, N1), True, N1).toBe(False)
 
 	function test(original: Value, ...types: Value[]) {
 		const f = (expected: Value) => {

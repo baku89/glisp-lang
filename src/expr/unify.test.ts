@@ -1,8 +1,8 @@
 import _, {fromPairs} from 'lodash'
 
 import {
-	bool,
-	BoolType,
+	boolean,
+	BooleanType,
 	fnType,
 	isEqual,
 	number as num,
@@ -33,10 +33,10 @@ function ft(param: Value | Value[], out: Value) {
 
 describe('getTypeVars', () => {
 	run(num(1), [])
-	run(bool(true), [])
+	run(boolean(true), [])
 	run(T, [T])
 	run(unionType(T, U), [T, U])
-	run(ft([BoolType, T, T], U), [T, U])
+	run(ft([BooleanType, T, T], U), [T, U])
 
 	function run(ty: Value, expected: TypeVar[]) {
 		const eString = '{' + expected.map(e => e.print()).join(', ') + '}'
@@ -77,10 +77,10 @@ describe('unifyTypeVars', () => {
 	test(
 		[
 			[ft(T1, T2), '>=', ft(NumberType, NumberType)],
-			[ft(T2, T3), '>=', ft(NumberType, BoolType)],
+			[ft(T2, T3), '>=', ft(NumberType, BooleanType)],
 		],
 		ft(T1, T3),
-		ft(NumberType, BoolType)
+		ft(NumberType, BooleanType)
 	)
 
 	function test(consts: Const[], original: Value, expected: Value) {

@@ -58,7 +58,7 @@ export function differenceType(original: Value, ...types: Value[]) {
 	const sTypes = asUnion(unionType(...types))
 
 	/**
-	 * OにEnumTypeが含まれる時、引き算をする。Bool - true = false になるように
+	 * OにEnumTypeが含まれる時、引き算をする。Boolean - true = false になるように
 	 */
 	oTypes = oTypes.flatMap((oty): Value[] => {
 		if (oty.type !== 'EnumType') return [oty]
@@ -80,8 +80,8 @@ export function differenceType(original: Value, ...types: Value[]) {
 
 	/**
 	 * Oの各要素について、それを部分型とするSの要素が１つでもあれば除外
-	 * (Num | String | false) - (Num | "hello" | Bool) = String
-	 * false <: Bool なので除外
+	 * (Num | String | false) - (Num | "hello" | Boolean) = String
+	 * false <: Boolean なので除外
 	 * Num <: Num なので除外
 	 * String を部分型とする要素がSに無いので残す
 	 */

@@ -6,8 +6,8 @@ import {parse, parseModule} from '../parser'
 import {Writer} from '../util/Writer'
 import {
 	All,
-	bool,
-	BoolType,
+	boolean,
+	BooleanType,
 	Enum,
 	enumType,
 	False,
@@ -77,7 +77,7 @@ const defn: Defn = (type, f, {lazy = false, writeLog = false} = {}) => {
 export const PreludeScope = Expr.scope({
 	Number: Expr.valueContainer(NumberType),
 	String: Expr.valueContainer(StringType),
-	Bool: Expr.valueContainer(BoolType),
+	Boolean: Expr.valueContainer(BooleanType),
 	_: Expr.valueContainer(All.instance),
 	All: Expr.valueContainer(All.instance),
 	Never: Expr.valueContainer(Never.instance),
@@ -138,39 +138,41 @@ PreludeScope.defs({
 	'%': defn('(=> [x:Number y:Number]: Number)', (x: Number, y: Number) =>
 		number(x.value % y.value)
 	),
-	'<': defn('(=> [x:Number y:Number]: Bool)', (x: Number, y: Number) =>
-		bool(x.value < y.value)
+	'<': defn('(=> [x:Number y:Number]: Boolean)', (x: Number, y: Number) =>
+		boolean(x.value < y.value)
 	),
-	'==': defn('(=> [...xs:_]: Bool)', (x: Value, y: Value) =>
-		bool(isEqual(x, y))
+	'==': defn('(=> [...xs:_]: Boolean)', (x: Value, y: Value) =>
+		boolean(isEqual(x, y))
 	),
 	if: defn(
-		'(=> (T) [test:Bool then:T else:T]: T)',
+		'(=> (T) [test:Boolean then:T else:T]: T)',
 		(test: Expr.Arg, then: Expr.Arg, _else: Expr.Arg) =>
 			isEqual(test(), True) ? then() : _else(),
 		{lazy: true}
 	),
 	'&&': defn(
-		'(=> [...xs:^{default: true} Bool]: Bool)',
+		'(=> [...xs:^{default: true} Boolean]: Boolean)',
 		(...xs: Expr.Arg<Enum>[]) => {
 			for (const x of xs) {
-				if (x().isEqualTo(False)) return bool(false)
+				if (x().isEqualTo(False)) return boolean(false)
 			}
-			return bool(true)
+			return boolean(true)
 		},
 		{lazy: true}
 	),
 	'||': defn(
-		'(=> [...xs:Bool]: Bool)',
+		'(=> [...xs:Boolean]: Boolean)',
 		(...xs: Expr.Arg<Enum>[]) => {
 			for (const x of xs) {
-				if (x().isEqualTo(True)) return bool(true)
+				if (x().isEqualTo(True)) return boolean(true)
 			}
-			return bool(false)
+			return boolean(false)
 		},
 		{lazy: true}
 	),
-	'!': defn('(=> [x:Bool]: Bool)', (x: Enum) => bool(x.isEqualTo(False))),
+	'!': defn('(=> [x:Boolean]: Boolean)', (x: Enum) =>
+		boolean(x.isEqualTo(False))
+	),
 	len: defn('(=> [x:(union String [..._])]: Number)', (x: String | Vec) => {
 		if (x.type === 'Vec') return number(x.items.length)
 		else return number(x.value.length)
@@ -220,8 +222,8 @@ PreludeScope.defs({
 			)
 	),
 	fnType: defn('(=> [f:_]: _)', (f: Value) => ('fnType' in f ? f.fnType : f)),
-	isSubtype: defn('(=> [x:_ y:_]: Bool)', (x: Value, y: Value) =>
-		bool(x.isSubtypeOf(y))
+	isSubtype: defn('(=> [x:_ y:_]: Boolean)', (x: Value, y: Value) =>
+		boolean(x.isSubtypeOf(y))
 	),
 	show: defn('(=> [value:_]: String)', (value: Value) => string(value.print())),
 	'++': defn('(=> [a:String b:String]: String)', (a: String, b: String) =>

@@ -53,8 +53,8 @@ describe('subtyping', () => {
 
 	// Enum
 	test('true', 'true', '=')
-	test('false', 'Bool', '<')
-	test('Bool', 'Bool', '=')
+	test('false', 'Boolean', '<')
+	test('Boolean', 'Boolean', '=')
 
 	// Vectors
 	test('[]', '[]', '=')
@@ -63,7 +63,7 @@ describe('subtyping', () => {
 	test('[1 2]', '[1]', '<')
 	test('[1]', '[true]', '!=')
 	test('[1]', '[Number]', '<')
-	//run('[1 Number]', '[(union 1 Bool) Number]', '<')
+	//run('[1 Number]', '[(union 1 Boolean) Number]', '<')
 	test('[1 2]', '[Number Number]', '<')
 	test('[...0]', '[...0]', '=')
 	test('[...0]', '[...1]', '!=')
@@ -130,7 +130,7 @@ describe('checking type or atom', () => {
 	test('"hello"', false)
 	test('false', false)
 	test('Number', true)
-	test('Bool', true)
+	test('Boolean', true)
 	test('[]', false)
 	test('[1 1]', false)
 	test('[Number 1]', true)
@@ -199,10 +199,10 @@ describe('default values of types', () => {
 	test('1', '1')
 	test('Number', '0')
 	test('String', '""')
-	test('Bool', 'false')
+	test('Boolean', 'false')
 	test('(union 3 4)', '3')
-	test('(union Number Bool)', '0')
-	test('(union Bool Number)', 'false')
+	test('(union Number Boolean)', '0')
+	test('(union Boolean Number)', 'false')
 	test('()', '()')
 	test('_', '()')
 	test('Never', 'Never')
@@ -220,12 +220,12 @@ describe('default values of types', () => {
 	test('{a?:Number ...String}', '{}')
 
 	test('(=> []: Number)', '0', true)
-	test('(=> [x:Number]: Bool)', 'false', true)
+	test('(=> [x:Number]: Boolean)', 'false', true)
 	test('(=> (T) [t:T]: T)', '()', true)
 	test('(=> [x:_]: ())', '()', true)
 
 	test('^{default: PI} Number', 'PI')
-	test('^{default: true} Bool', 'true')
+	test('^{default: true} Boolean', 'true')
 	test('^{default: "hello"} _', '"hello"')
 	test('^{default: ()} ()', '()')
 	test('^{} ()', '()')

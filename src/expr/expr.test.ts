@@ -85,7 +85,7 @@ describe('inferring expression type', () => {
 	test('true', 'true')
 
 	test('Number', '_')
-	test('Bool', '_')
+	test('Boolean', '_')
 
 	test('[]', '[]')
 	test('[0 1]', '[0 1]')
@@ -137,7 +137,7 @@ describe('inferring expression type', () => {
 describe('evaluating function body', () => {
 	test('(=> [x:Number] x)', '0')
 	test('(=> [x:Number] (+ x 10))', '10')
-	test('(=> [x:Bool] x)', 'false')
+	test('(=> [x:Boolean] x)', 'false')
 	test('(=> (T) [x:T] x)', '()')
 
 	function test(input: string, expected: string) {

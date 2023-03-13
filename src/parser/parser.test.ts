@@ -19,7 +19,7 @@ const all = id('_')
 const never = id('Never')
 
 const Number = id('Number')
-const Bool = id('Bool')
+const Boolean = id('Boolean')
 const x = id('x')
 const y = id('y')
 const z = id('z')
@@ -142,8 +142,8 @@ describe('parsing function definition', () => {
 	testParsing('(=> [x:Number] x)', fnDef(null, {x: Number}, null, x))
 	testParsing('(=> [ x: Number ] x)', fnDef(null, {x: Number}, null, x))
 	testParsing(
-		'(=> [x: Number y: Bool] x)',
-		fnDef(null, {x: Number, y: Bool}, null, x)
+		'(=> [x: Number y: Boolean] x)',
+		fnDef(null, {x: Number, y: Boolean}, null, x)
 	)
 	testParsing('(=> [] _)', fnDef(null, {}, null, all))
 	testParsing('(=>[]_)', fnDef(null, {}, null, all))
@@ -209,8 +209,8 @@ describe('parsing value metadata', () => {
 	testParsing('^{}()', valueMeta(dict(), app()))
 
 	testParsing(
-		'^{default: true} Bool',
-		valueMeta(dict({default: id('true')}), id('Bool'))
+		'^{default: true} Boolean',
+		valueMeta(dict({default: id('true')}), id('Boolean'))
 	)
 
 	testParsing(
@@ -226,8 +226,8 @@ describe('parsing value metadata', () => {
 		valueMeta(valueMeta(dict({a: num(1)}), dict({b: num(2)})), id('T'))
 	)
 
-	testErrorParsing('Bool^true')
-	testErrorParsing('^{true}Bool')
+	testErrorParsing('Boolean^true')
+	testErrorParsing('^{true}Boolean')
 })
 
 describe('parsing try catch', () => {
