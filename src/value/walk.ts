@@ -62,7 +62,11 @@ export function createFoldFn<U>(
 			case 'Fn':
 				return fold(value.fnType)
 			case 'FnType':
-				return foldFn(...values(value.params).map(fold), fold(value.out))
+				return foldFn(
+					...values(value.params).map(fold),
+					value.rest ? fold(value.rest.value) : initial,
+					fold(value.out)
+				)
 			case 'Vec':
 				return foldFn(
 					...value.items.map(fold),
