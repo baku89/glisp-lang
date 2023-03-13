@@ -480,7 +480,7 @@ export class FnDef extends BaseExpr {
 	isSameTo = (expr: Expr) =>
 		this.type === expr.type &&
 		nullishEqual(this.typeVars, expr.typeVars, TypeVarsDef.isSame) &&
-		ParamsDef.isSame(this.params, expr.params) &&
+		this.params.isSameTo(expr.params) &&
 		nullishEqual(this.returnType, expr.returnType, isSame) &&
 		nullishEqual(this.body, expr.body, isSame)
 
@@ -593,14 +593,14 @@ export class ParamsDef {
 		}
 	}
 
-	static isSame(a: ParamsDef, b: ParamsDef) {
+	isSameTo = (expr: ParamsDef): boolean => {
 		return (
-			isEqualDict(a.items, b.items, isSame) &&
-			a.optionalPos === b.optionalPos &&
+			isEqualDict(this.items, expr.items, isSame) &&
+			this.optionalPos === expr.optionalPos &&
 			nullishEqual(
-				a.rest,
-				b.rest,
-				(a, b) => a.name === b.name && isSame(a.expr, b.expr)
+				this.rest,
+				expr.rest,
+				(a, b) => a.name === b.name && a.expr.isSameTo(b.expr)
 			)
 		)
 	}
@@ -1176,7 +1176,7 @@ export class TryCatch extends BaseExpr {
 
 	isSameTo = (expr: Expr): boolean =>
 		this.type === expr.type &&
-		isSame(this.block, expr.block) &&
+		this.block.isSameTo(expr.block) &&
 		nullishEqual(this.handler, expr.handler, isSame)
 
 	clone = (): TryCatch => new TryCatch(this.block.clone(), this.handler.clone())
@@ -1296,8 +1296,8 @@ export class NodeMeta {
 		return this.extras.delimiter + '#' + fields
 	}
 
-	static isSame(a: NodeMeta, b: NodeMeta) {
-		return isSame(a.fields, b.fields)
+	isSame = (expr: NodeMeta) {
+		return this.fields.isSameTo(b.fields)
 	}
 }
 */

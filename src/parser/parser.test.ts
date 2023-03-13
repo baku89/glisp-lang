@@ -3,7 +3,6 @@ import {
 	dict,
 	Expr,
 	fnDef,
-	isSame,
 	numberLiteral as num,
 	paramsDef,
 	scope,
@@ -261,7 +260,7 @@ describe('parsing expression metadata', () => {
 function testParsing(input: string, expected: Expr) {
 	test(`parsing '${input}' to be ${expected.print()}`, () => {
 		const result = parse(input)
-		if (!isSame(result, expected)) {
+		if (!result.isSameTo(expected)) {
 			throw new Error('Not as same as expected, got=' + result.print())
 		}
 		// if (result.print() !== input) {
