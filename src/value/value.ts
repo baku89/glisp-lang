@@ -248,10 +248,6 @@ export class Prim<T = any> extends BaseValue {
 		value.meta = this.meta
 		return value
 	}
-
-	static from<T>(ty: PrimType, value: T) {
-		return new Prim<T>(ty, value)
-	}
 }
 
 export class Number extends Prim<number> {
@@ -296,7 +292,7 @@ export class PrimType<T = any> extends BaseValue {
 		this.type === value.type && this.name === value.name
 
 	of(value: T): Prim<T> {
-		return Prim.from(this, value)
+		return new Prim(this, value)
 	}
 
 	withDefault = (defaultValue: Atomic): Value => {
@@ -329,7 +325,7 @@ export class PrimType<T = any> extends BaseValue {
 
 	static of<T>(name: string, defaultValue: T) {
 		const primType = new PrimType<T>(name)
-		const d = Prim.from(primType, defaultValue)
+		const d = new Prim(primType, defaultValue)
 
 		primType.#defaultValue = primType.#initialDefaultValue = d
 
@@ -377,8 +373,17 @@ export class Enum extends BaseValue {
 export class EnumType extends BaseValue {
 	readonly type = 'EnumType' as const
 
-	constructor(public readonly name: string, public readonly types: Enum[]) {
+	public readonly name: string
+	public readonly types: Enum[]
+
+	constructor(name: string, labels: string[]) {
 		super()
+
+		if (labels.length === 0) throw new Error('Zero-length enum')
+
+		this.name = name
+		this.types = labels.map(l => new Enum(l))
+		this.types.forEach(t => ((t.superType as EnumType) = this))
 	}
 
 	readonly superType = All.instance
@@ -388,7 +393,9 @@ export class EnumType extends BaseValue {
 		return this.#defaultValue ?? this.types[0]
 	}
 
-	readonly initialDefaultValue = this.types[0]
+	get initialDefaultValue() {
+		return this.types[0]
+	}
 
 	// TODO: fix this
 	protected toExprExceptMeta = () => symbol(this.name)
@@ -414,20 +421,13 @@ export class EnumType extends BaseValue {
 	}
 
 	clone = () => {
-		const value = new EnumType(this.name, this.types)
+		const value = new EnumType(
+			this.name,
+			this.types.map(t => t.name)
+		)
 		value.#defaultValue = this.#defaultValue
 		value.meta = this.meta
 		return value
-	}
-
-	static of(name: string, labels: string[]) {
-		if (labels.length === 0) throw new Error('Zero-length enum')
-
-		const types = labels.map(Enum.of)
-		const enumType = new EnumType(name, types)
-		types.forEach(t => ((t.superType as Enum['superType']) = enumType))
-
-		return enumType
 	}
 }
 
@@ -435,11 +435,12 @@ export class TypeVar extends BaseValue {
 	readonly type = 'TypeVar' as const
 	readonly superType = All.instance
 
-	constructor(
-		public readonly name: string,
-		public readonly original?: TypeVar
-	) {
+	public readonly name: string
+	public readonly original?: TypeVar
+
+	constructor(name: string) {
 		super()
+		this.name = name
 	}
 
 	readonly defaultValue = Unit.instance
@@ -454,15 +455,13 @@ export class TypeVar extends BaseValue {
 	}
 
 	shadow = (): TypeVar => {
-		return new TypeVar(this.name, this)
+		const tv = new TypeVar(this.name)
+		;(tv.original as TypeVar) = this
+		return tv
 	}
 
 	unshadow = (): TypeVar => {
 		return this.original ?? this
-	}
-
-	public static of(name: string) {
-		return new TypeVar(name)
 	}
 }
 
