@@ -515,13 +515,6 @@ export class Fn extends BaseValue implements IFnLike {
 		value.meta = this.meta
 		return value
 	}
-
-	static of(params: Record<string, Value>, out: Value, fn: IFn) {
-		return new Fn(new FnType(params, out), fn)
-	}
-	static from(ty: FnType, fn: IFn, body?: Expr) {
-		return new Fn(ty, fn, body)
-	}
 }
 
 export class FnType extends BaseValue implements IFnType {
@@ -586,7 +579,8 @@ export class FnType extends BaseValue implements IFnType {
 	#initialDefaultValue?: Fn
 	get initialDefaultValue(): Fn {
 		if (!this.#initialDefaultValue) {
-			const fn = Fn.from(this, () => withLog(this.out.defaultValue))
+			const fnObj = () => withLog(this.out.defaultValue)
+			const fn = new Fn(this, fnObj)
 			this.#initialDefaultValue = fn
 		}
 		return this.#initialDefaultValue

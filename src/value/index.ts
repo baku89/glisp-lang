@@ -1,3 +1,4 @@
+import {Expr} from '../expr'
 import {
 	All,
 	Dict,
@@ -60,9 +61,8 @@ export const primType = PrimType.of
 export const enumType = (name: string, labels: string[]) =>
 	new EnumType(name, labels)
 
-export const fn = Fn.of
-
-export const fnFrom = Fn.from
+export const fn = (fnType: FnType, fnObj: IFn, body?: Expr) =>
+	new Fn(fnType, fnObj, body)
 
 interface IFnTypeConstructor {
 	(params: FnType['params'], out: Value): FnType

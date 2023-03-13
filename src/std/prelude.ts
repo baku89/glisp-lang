@@ -12,7 +12,7 @@ import {
 	enumType,
 	False,
 	Fn,
-	fnFrom,
+	fn,
 	IFn,
 	Never,
 	Number,
@@ -68,9 +68,9 @@ const defn: Defn = (type, f, {lazy = false, writeLog = false} = {}) => {
 			: (...args) => withLog(f(...args.map(a => a())) as Value)
 	}
 
-	const fn = fnFrom(fnType, _f)
+	const _fn = fn(fnType, _f)
 
-	return Expr.valueContainer(fn)
+	return Expr.valueContainer(_fn)
 }
 
 export const PreludeScope = Expr.scope({

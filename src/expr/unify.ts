@@ -6,7 +6,7 @@ import {
 	all,
 	dict,
 	differenceType,
-	fnFrom,
+	fn,
 	FnType,
 	fnType,
 	intersectionType,
@@ -272,7 +272,7 @@ export class Unifier {
 				return unionType(...types)
 			}
 			case 'Fn':
-				return fnFrom(
+				return fn(
 					this.substitute(value.superType, unshadow) as FnType,
 					value.fn
 				)

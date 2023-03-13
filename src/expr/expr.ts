@@ -15,7 +15,7 @@ import {
 	all,
 	Dict,
 	dict,
-	fnFrom,
+	fn,
 	FnType,
 	fnType,
 	IFn,
@@ -399,9 +399,9 @@ export class FnDef extends BaseExpr {
 			// fnType should be FnType as the expression is function definition
 			const [fnType, fnTypeLog] = this.forceInfer(env).asTuple
 
-			const fn = fnFrom(fnType as FnType, fnObj, this.body)
+			const _fn = fn(fnType as FnType, fnObj, this.body)
 
-			return withLog(fn, ...fnTypeLog)
+			return withLog(_fn, ...fnTypeLog)
 		} else {
 			// Returns a function type if there's no function body
 			const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
