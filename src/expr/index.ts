@@ -4,11 +4,11 @@ import {
 	DictLiteral,
 	Expr,
 	FnDef,
-	Identifier,
 	NumberLiteral,
 	ParamsDef,
 	Scope,
 	StringLiteral,
+	Symbol,
 	TryCatch,
 	TypeVarsDef,
 	ValueContainer,
@@ -25,7 +25,7 @@ export {isSame, print, PrintOptions, clone} from './expr'
 // Exp
 export {
 	Expr,
-	Identifier,
+	Symbol,
 	ValueContainer,
 	NumberLiteral as NumLiteral,
 	StringLiteral,
@@ -40,7 +40,7 @@ export {
 	ValueMeta,
 }
 
-export const id = (name: string) => new Identifier(name)
+export const symbol = (name: string) => new Symbol(name)
 
 export const valueContainer = <V extends Value = Value>(value: V) =>
 	new ValueContainer(value)

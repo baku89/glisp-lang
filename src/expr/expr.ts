@@ -38,11 +38,7 @@ export type Expr = AtomExpr | InnerNode
 /**
  * ASTs that cannot have child elements
  */
-export type AtomExpr =
-	| Identifier
-	| ValueContainer
-	| NumberLiteral
-	| StringLiteral
+export type AtomExpr = Symbol | ValueContainer | NumberLiteral | StringLiteral
 
 /**
  * ASTs that can have child elements
@@ -118,8 +114,8 @@ type CurrentPath = {type: 'current'}
 type NamePath = {type: 'name'; name: string | number}
 type Path = UpPath | CurrentPath | NamePath
 
-export class Identifier extends BaseExpr {
-	readonly type = 'Identifier' as const
+export class Symbol extends BaseExpr {
+	readonly type = 'Symbol' as const
 
 	public readonly paths: Path[]
 
@@ -235,7 +231,7 @@ export class Identifier extends BaseExpr {
 	isSameTo = (expr: Expr) =>
 		this.type === expr.type && this.print() === expr.print()
 
-	clone = () => new Identifier(this.paths.map(p => ({...p})))
+	clone = () => new Symbol(this.paths.map(p => ({...p})))
 }
 
 /**

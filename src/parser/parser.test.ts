@@ -3,34 +3,34 @@ import {
 	dict,
 	Expr,
 	fnDef,
-	id,
 	isSame,
 	numberLiteral as num,
 	paramsDef,
 	scope,
 	stringLiteral as str,
+	symbol,
 	tryCatch,
 	valueMeta,
 	vec,
 } from '../expr'
 import {parse} from '.'
 
-const all = id('_')
-const never = id('Never')
+const all = symbol('_')
+const never = symbol('Never')
 
-const Number = id('Number')
-const Boolean = id('Boolean')
-const x = id('x')
-const y = id('y')
-const z = id('z')
-const w = id('w')
+const Number = symbol('Number')
+const Boolean = symbol('Boolean')
+const x = symbol('x')
+const y = symbol('y')
+const z = symbol('z')
+const w = symbol('w')
 
 describe('parsing literals', () => {
 	testParsing('10', num(10))
 	testParsing('   10   ', num(10))
 	testParsing('   \t 5 \r\n', num(5))
-	testParsing('false', id('false'))
-	testParsing('true', id('true'))
+	testParsing('false', symbol('false'))
+	testParsing('true', symbol('true'))
 	testParsing('"hello"', str('hello'))
 	testParsing('"hello, world"', str('hello, world'))
 	testParsing(' () ', app())
@@ -57,7 +57,7 @@ describe('parsing symbols', () => {
 
 	function run(input: string, expected: string | null) {
 		if (expected) {
-			testParsing(input, id(expected))
+			testParsing(input, symbol(expected))
 		} else {
 			testErrorParsing(input)
 		}
@@ -76,14 +76,14 @@ describe('parsing line comment', () => {
 })
 
 describe('parsing app expressions', () => {
-	testParsing('(+ 1 2)', app(id('+'), num(1), num(2)))
-	testParsing('(* 1 2)', app(id('*'), num(1), num(2)))
+	testParsing('(+ 1 2)', app(symbol('+'), num(1), num(2)))
+	testParsing('(* 1 2)', app(symbol('*'), num(1), num(2)))
 	testParsing('(()2())', app(app(), num(2), app()))
 	testParsing('(x _)', app(x, all))
 	testParsing('(x ())', app(x, app()))
 	testParsing('(x)', app(x))
-	testParsing('(0 false)', app(num(1), id('false')))
-	testParsing('((true) x)', app(app(id('true')), x))
+	testParsing('(0 false)', app(num(1), symbol('false')))
+	testParsing('((true) x)', app(app(symbol('true')), x))
 })
 
 describe('parsing scope', () => {
@@ -92,9 +92,9 @@ describe('parsing scope', () => {
 	testParsing('(let x: (let x: 1))', scope({x: scope({x: num(1)})}))
 	testParsing('(let (let 1))', scope({}, scope({}, num(1))))
 	testParsing('(let)', scope({}))
-	testParsing('(let x:[]y:[]z)', scope({x: vec(), y: vec()}, id('z')))
+	testParsing('(let x:[]y:[]z)', scope({x: vec(), y: vec()}, symbol('z')))
 
-	testParsing('(let+ 20)', app(id('let+'), num(20)))
+	testParsing('(let+ 20)', app(symbol('let+'), num(20)))
 
 	testErrorParsing('(let==: 10)')
 })
@@ -107,7 +107,7 @@ describe('parsing vector', () => {
 	testParsing('[1[2] 3]', vec([num(1), vec([num(2)]), num(3)]))
 	testParsing(
 		'[(+) false (+) +]',
-		vec([app(id('+')), id('false'), app(id('+')), id('+')])
+		vec([app(symbol('+')), symbol('false'), app(symbol('+')), symbol('+')])
 	)
 	testParsing('[...1]', vec([], 0, num(1)))
 	testParsing('[1?]', vec([num(1)], 0))
@@ -122,7 +122,7 @@ describe('parsing dictionary', () => {
 	testParsing('{   a:    1 }', dict({a: num(1)}))
 	testParsing('{\t"foo bar": 1\t}', dict({'foo bar': num(1)}))
 	testParsing('{   }', dict({}))
-	testParsing('{a: A b: B}', dict({a: id('A'), b: id('B')}))
+	testParsing('{a: A b: B}', dict({a: symbol('A'), b: symbol('B')}))
 	testParsing('{a: {a: 1}}', dict({a: dict({a: num(1)})}))
 	testParsing('{a?:1}', dict({a: num(1)}, ['a']))
 	testParsing(
@@ -133,7 +133,7 @@ describe('parsing dictionary', () => {
 				b: num(2),
 			},
 			['a'],
-			id('c')
+			symbol('c')
 		)
 	)
 })
@@ -151,7 +151,7 @@ describe('parsing function definition', () => {
 	testParsing('(=> [] ())', fnDef(null, {}, null, app()))
 	testParsing(
 		'(=> [] (+ 1 2))',
-		fnDef(null, {}, null, app(id('+'), num(1), num(2)))
+		fnDef(null, {}, null, app(symbol('+'), num(1), num(2)))
 	)
 	testParsing(
 		'(=> [] (=> [] 1))',
@@ -159,8 +159,11 @@ describe('parsing function definition', () => {
 	)
 
 	// Polymorphic functions
-	testParsing('(=> (T) [x:T] x)', fnDef(['T'], {x: id('T')}, null, x))
-	testParsing('(=> (T U) [x:T] x)', fnDef(['T', 'U'], {x: id('T')}, null, x))
+	testParsing('(=> (T) [x:T] x)', fnDef(['T'], {x: symbol('T')}, null, x))
+	testParsing(
+		'(=> (T U) [x:T] x)',
+		fnDef(['T', 'U'], {x: symbol('T')}, null, x)
+	)
 	testParsing('(=> () [] Number)', fnDef([], {}, null, Number))
 
 	// functions with rest parameter
@@ -191,10 +194,13 @@ describe('parsing function type', () => {
 	testParsing('(=> [a:[x y]]: z)', fnDef(null, {a: vec([x, y])}, z, null))
 	testParsing('(=> [x:x]: z)', fnDef(null, {x}, z, null))
 	testParsing('(=> [x:x y:y]: z)', fnDef(null, {x, y}, z, null))
-	testParsing('(=> (T) [x:T]: T)', fnDef(['T'], {x: id('T')}, id('T'), null))
+	testParsing(
+		'(=> (T) [x:T]: T)',
+		fnDef(['T'], {x: symbol('T')}, symbol('T'), null)
+	)
 	testParsing(
 		'(=> (T U) [x:T]: T)',
-		fnDef(['T', 'U'], {x: id('T')}, id('T'), null)
+		fnDef(['T', 'U'], {x: symbol('T')}, symbol('T'), null)
 	)
 	testParsing('(=> [x?:x]: y)', fnDef(null, paramsDef({x}, 0), y, null))
 	testParsing('(=> [x?:x]: y)', fnDef(null, paramsDef({x}, 0), y, null))
@@ -203,27 +209,27 @@ describe('parsing function type', () => {
 })
 
 describe('parsing value metadata', () => {
-	testParsing('^metadata 0', valueMeta(id('metadata'), num(0)))
+	testParsing('^metadata 0', valueMeta(symbol('metadata'), num(0)))
 	testParsing('^{}0', valueMeta(dict(), num(0)))
 	testParsing('^\t{default: 0}\n0', valueMeta(dict({default: num(0)}), num(0)))
 	testParsing('^{}()', valueMeta(dict(), app()))
 
 	testParsing(
 		'^{default: true} Boolean',
-		valueMeta(dict({default: id('true')}), id('Boolean'))
+		valueMeta(dict({default: symbol('true')}), symbol('Boolean'))
 	)
 
 	testParsing(
 		'^{default: 0} ^{default: 1} Number',
 		valueMeta(
 			dict({default: num(0)}),
-			valueMeta(dict({default: num(1)}), id('Number'))
+			valueMeta(dict({default: num(1)}), symbol('Number'))
 		)
 	)
 
 	testParsing(
 		'^^{a: 1} {b: 2} T',
-		valueMeta(valueMeta(dict({a: num(1)}), dict({b: num(2)})), id('T'))
+		valueMeta(valueMeta(dict({a: num(1)}), dict({b: num(2)})), symbol('T'))
 	)
 
 	testErrorParsing('Boolean^true')
@@ -231,20 +237,20 @@ describe('parsing value metadata', () => {
 })
 
 describe('parsing try catch', () => {
-	testParsing('(try 0 x)', tryCatch(num(0), id('x')))
+	testParsing('(try 0 x)', tryCatch(num(0), symbol('x')))
 	testParsing('(try[]())', tryCatch(vec(), app()))
-	testParsing('(try+())', app(id('try+'), app()))
+	testParsing('(try+())', app(symbol('try+'), app()))
 })
 
 describe('parsing expression metadata', () => {
-	// testParsing('layer#{}', id('layer').setNodeMeta(new NodeMeta(dict())))
+	// testParsing('layer#{}', symbol('layer').setNodeMeta(new NodeMeta(dict())))
 	// testParsing(
 	// 	'layer#{collapsed: true}',
-	// 	id('layer').setNodeMeta(new NodeMeta(dict({collapsed: id('true')})))
+	// 	symbol('layer').setNodeMeta(new NodeMeta(dict({collapsed: symbol('true')})))
 	// )
 	// testParsing(
 	// 	'^{default: 0 label: "number"} Number#{prop: "A"}',
-	// 	id('Number')
+	// 	symbol('Number')
 	// 		.setValueMeta(new ValueMeta(num(0), dict({label: str('number')})))
 	// 		.setNodeMeta(new NodeMeta(dict({prop: str('A')})))
 	// )

@@ -17,11 +17,11 @@ import {
 	Expr,
 	FnDef,
 	fnDef,
-	id,
 	numberLiteral,
 	paramsDef,
 	PrintOptions,
 	stringLiteral,
+	symbol,
 	valueContainer,
 	valueMeta,
 	vec,
@@ -175,7 +175,7 @@ export class All extends BaseValue {
 	readonly initialDefaultValue = Unit.instance
 
 	// TODO: Resolve the name of symbol correctly
-	protected toExprExceptMeta = () => id('_')
+	protected toExprExceptMeta = () => symbol('_')
 
 	isEqualTo = (value: Value) => this.type === value.type
 
@@ -212,7 +212,7 @@ export class Never extends BaseValue {
 	readonly initialDefaultValue = this
 
 	// TODO: Resolve the name of symbol correctly
-	protected toExprExceptMeta = () => id('Never')
+	protected toExprExceptMeta = () => symbol('Never')
 
 	isEqualTo = (value: Value) => this.type === value.type
 
@@ -291,7 +291,7 @@ export class PrimType<T = any> extends BaseValue {
 	}
 
 	// TODO: fix this
-	protected toExprExceptMeta = () => id(this.name)
+	protected toExprExceptMeta = () => symbol(this.name)
 
 	isEqualTo = (value: Value) =>
 		this.type === value.type && this.name === value.name
@@ -357,7 +357,7 @@ export class Enum extends BaseValue {
 	readonly initialDefaultValue = this
 
 	// TODO: fix this
-	protected toExprExceptMeta = () => id(this.name)
+	protected toExprExceptMeta = () => symbol(this.name)
 
 	isEqualTo = (value: Value) =>
 		this.type === value.type &&
@@ -392,7 +392,7 @@ export class EnumType extends BaseValue {
 	readonly initialDefaultValue = this.types[0]
 
 	// TODO: fix this
-	protected toExprExceptMeta = () => id(this.name)
+	protected toExprExceptMeta = () => symbol(this.name)
 
 	isEqualTo = (value: Value) =>
 		this.type === value.type && this.name === value.name
@@ -446,7 +446,7 @@ export class TypeVar extends BaseValue {
 	readonly defaultValue = Unit.instance
 	readonly initialDefaultValue = Unit.instance
 
-	protected toExprExceptMeta = () => id(this.name)
+	protected toExprExceptMeta = () => symbol(this.name)
 
 	isEqualTo = (value: Value) => this === value
 
@@ -874,7 +874,7 @@ export class UnionType extends BaseValue {
 
 	protected toExprExceptMeta = (): App => {
 		const types = this.types.map(ty => ty.toExpr())
-		return app(id('union'), ...types)
+		return app(symbol('union'), ...types)
 	}
 
 	isEqualTo = (value: Value): boolean =>

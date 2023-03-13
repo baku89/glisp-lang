@@ -103,7 +103,7 @@ Expr =
 	}
 
 ExprContent =
-	NumLiteral / StringLiteral / Identifier /
+	NumLiteral / StringLiteral / Symbol /
 	FnDef / Scope / App / TryCatch /
 	VecLiteral / DictLiteral / ValueMeta
 
@@ -124,12 +124,12 @@ ValueMeta =
 	
 Reserved = "=>" / "let" / "return" / "try" / "type" / "enum" / "data" / "match"
 
-Identifier "identifier" =
+Symbol "identifier" =
 	!(Reserved End)
 	!(Digit / End) .
 	(!End .)*
 	{
-		return Expr.id(text())
+		return Expr.symbol(text())
 	}
 
 NumLiteral "number" = [+-]? (Digit* ".")? Digit+
@@ -215,7 +215,7 @@ TypeVars = "(" d0:_ namesDs:($([a-zA-Z] [a-zA-Z0-9]*) _)* ")"
 		return typeVars
 	}
 
-NamedExpr = id:Identifier optional:"?"? ":" _ expr:Expr
+NamedExpr = id:Symbol optional:"?"? ":" _ expr:Expr
 	{
 		return [[id.name, expr], optional]
 	}
@@ -267,11 +267,11 @@ DictEntry = key:DictKey optional:"?"? ":" d0:_ value:Expr d1:_
 
 // TODO: Why not allowing reserved words for key?
 DictKey =
-	id:Identifier {return id.name } /
+	id:Symbol {return id.name } /
 	str: StringLiteral {return str.value }
 
 Scope "scope" =
-	"(" d0:_ "let" d1:__ pairs:(@Identifier ":" @_ @Expr @_)* out:Expr? dl:_ ")"
+	"(" d0:_ "let" d1:__ pairs:(@Symbol ":" @_ @Expr @_)* out:Expr? dl:_ ")"
 	{
 		const items = {}
 		const delimiters = [d0, d1]
