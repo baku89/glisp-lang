@@ -517,7 +517,7 @@ export class Fn extends BaseValue implements IFnLike {
 	}
 
 	static of(params: Record<string, Value>, out: Value, fn: IFn) {
-		return new Fn(FnType.of({params, out}), fn)
+		return new Fn(new FnType(params, out), fn)
 	}
 	static from(ty: FnType, fn: IFn, body?: Expr) {
 		return new Fn(ty, fn, body)
@@ -536,13 +536,13 @@ export class FnType extends BaseValue implements IFnType {
 	constructor(params: FnType['params'], out: Value)
 	constructor(
 		params: FnType['params'],
-		optionalPos: number,
+		optionalPos: number | null,
 		rest: FnType['rest'],
 		out: Value
 	)
 	constructor(
 		params: FnType['params'],
-		outOrOptionalPos: number | Value,
+		outOrOptionalPos: number | Value | null,
 		rest?: FnType['rest'],
 		out?: Value
 	) {
@@ -567,7 +567,7 @@ export class FnType extends BaseValue implements IFnType {
 		this.optionalPos = optionalPos
 		this.rest = rest
 
-		if (typeof outOrOptionalPos !== 'number') {
+		if (outOrOptionalPos && typeof outOrOptionalPos !== 'number') {
 			this.out = outOrOptionalPos
 		} else if (out) {
 			this.out = out
@@ -662,21 +662,6 @@ export class FnType extends BaseValue implements IFnType {
 		value.meta = this.meta
 		return value
 	}
-
-	static of({
-		params = {},
-		optionalPos,
-		rest = undefined,
-		out,
-	}: {
-		params?: Record<string, Value>
-		optionalPos?: number
-		rest?: FnType['rest']
-		out: Value
-	}) {
-		const _optionalPos = optionalPos ?? values(params).length
-		return new FnType(params, _optionalPos, rest, out)
-	}
 }
 
 export class Vec<TItems extends Value[] = Value[]>
@@ -757,10 +742,7 @@ export class Vec<TItems extends Value[] = Value[]>
 	}
 
 	get fnType() {
-		return FnType.of({
-			params: {index: NumberType},
-			out: unionType(...this.items),
-		})
+		return new FnType({index: NumberType}, unionType(...this.items))
 	}
 
 	get fn(): IFn {

@@ -30,10 +30,7 @@ describe('evaluating literals', () => {
 	testEval('[0]', vec([num(0)]))
 	testEval('{a:1 b:2}', dict({a: num(1), b: num(2)}))
 	testEval('{a?:Number ...String}', dict({a: NumberType}, ['a'], StringType))
-	testEval(
-		'(=> [x:Number]: String)',
-		fnType({params: {x: NumberType}, out: StringType})
-	)
+	testEval('(=> [x:Number]: String)', fnType({x: NumberType}, StringType))
 	testEval('(let a: 10 a)', num(10))
 	testEval('(let a: (let a: 20 a) a)', num(20))
 })

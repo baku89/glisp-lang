@@ -61,12 +61,40 @@ export const enumType = (name: string, labels: string[]) =>
 	new EnumType(name, labels)
 
 export const fn = Fn.of
+
 export const fnFrom = Fn.from
-export const fnType = FnType.of
+
+interface IFnTypeConstructor {
+	(params: FnType['params'], out: Value): FnType
+	(
+		params: FnType['params'],
+		optionalPos: number | null,
+		rest: FnType['rest'],
+		out: Value
+	): FnType
+	(
+		params: FnType['params'],
+		outOrOptionalPos: number | Value | null,
+		rest?: FnType['rest'],
+		out?: Value
+	): FnType
+}
+
+export const fnType: IFnTypeConstructor = (
+	params,
+	outOrOptionalPos,
+	rest?,
+	out?
+) => new FnType(params, outOrOptionalPos as any, rest as any, out as any)
+
 export const typeVar = (name: string) => new TypeVar(name)
+
 export const vec = Vec.of
+
 export const dict = Dict.of
 
 export {isEqual, isSubtype} from './value'
 
 export {unionType, differenceType, intersectionType} from './TypeOperation'
+
+//chigyo+baku=OH CUTE~~~!!!!!

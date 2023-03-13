@@ -265,7 +265,7 @@ export class Unifier {
 					? {...value.rest, value: this.substitute(value.rest.value, unshadow)}
 					: undefined
 				const out = this.substitute(value.out, unshadow)
-				return fnType({params, rest, out})
+				return fnType(params, null, rest, out)
 			}
 			case 'UnionType': {
 				const types = value.types.map(ty => this.substitute(ty, unshadow))

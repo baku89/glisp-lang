@@ -28,7 +28,7 @@ function ft(param: Value | Value[], out: Value) {
 	const _params = Array.isArray(param)
 		? fromPairs(param.map((p, i) => [i, p]))
 		: {0: param}
-	return fnType({params: _params, out})
+	return fnType(_params, out)
 }
 
 describe('getTypeVars', () => {

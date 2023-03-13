@@ -441,12 +441,7 @@ export class FnDef extends BaseExpr {
 
 			const [out, lo] = this.body.infer(innerEnv).asTuple
 
-			const _fnType = fnType({
-				params,
-				optionalPos: this.params.optionalPos,
-				rest,
-				out,
-			})
+			const _fnType = fnType(params, this.params.optionalPos, rest, out)
 
 			return withLog(_fnType, ...paramsLog, ...lo)
 		} else {
