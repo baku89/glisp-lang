@@ -140,36 +140,62 @@ export class Symbol extends BaseExpr {
 	resolve(env: Env): {expr: Expr; mode?: 'param' | 'arg'} | null {
 		let expr: Expr | ParamsDef | null = this.parent
 
-		if (this.paths.length !== 1 || this.paths[0].type !== 'name') {
-			throw new Error()
-		}
+		let isFirstPath = true
+		let mode: 'param' | 'arg' | undefined
 
-		const name = this.paths[0].name.toString()
-
-		while (expr) {
-			if (expr.type === 'Scope') {
-				const res = expr.resolveSymbol(name)
-				if (res) {
-					return {expr: res}
-				}
-			} else if (expr.type === 'FnDef') {
-				if (env.isGlobal) {
-					const res = expr.resolveSymbol(name)
-					if (res) {
-						return {expr: res, mode: 'param'}
-					}
-				} else {
-					const arg = env.get(name)
-					if (arg) {
-						return {expr: new ValueContainer(arg()), mode: 'arg'}
-					}
-				}
-				env = env.pop()
+		for (const path of this.paths) {
+			if (!expr) {
+				return null
 			}
-			expr = expr.parent
+
+			if (path.type === 'name') {
+				const {name} = path
+				if (!isFirstPath) {
+					expr = expr?.resolveSymbol(name)
+				} else {
+					while (expr) {
+						if (expr.type === 'Scope') {
+							const e = expr.resolveSymbol(name)
+							if (e) {
+								expr = e
+								break
+							}
+						} else if (expr.type === 'FnDef') {
+							if (env.isGlobal) {
+								const e = expr.resolveSymbol(name)
+								if (e) {
+									expr = e
+									mode = 'param'
+									break
+								}
+							} else {
+								if (typeof name !== 'string') throw new Error()
+								const arg = env.get(name)
+								if (arg) {
+									expr = new ValueContainer(arg())
+									mode = 'arg'
+									break
+								}
+							}
+							env = env.pop()
+						}
+						expr = expr.parent
+					}
+				}
+			} else if (path.type === 'current') {
+				// Do nothing
+			} else if (path.type === 'up') {
+				expr = expr.parent
+			}
+
+			isFirstPath = false
 		}
 
-		return null
+		if (!expr || expr.type === 'ParamsDef') {
+			return null
+		}
+
+		return {expr, mode}
 	}
 
 	protected forceEval = (env: Env): WithLog => {
