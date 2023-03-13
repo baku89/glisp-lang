@@ -528,19 +528,51 @@ export class FnType extends BaseValue implements IFnType {
 	readonly type = 'FnType' as const
 	readonly superType = All.instance
 
+	public readonly params: Record<string, Value>
+	public readonly optionalPos: number
+	public readonly rest?: {name: string; value: Value}
+	public readonly out: Value
+
+	constructor(params: FnType['params'], out: Value)
 	constructor(
-		public readonly params: Record<string, Value>,
-		public readonly optionalPos: number,
-		public readonly rest: {name: string; value: Value} | undefined,
-		public readonly out: Value
+		params: FnType['params'],
+		optionalPos: number,
+		rest: FnType['rest'],
+		out: Value
+	)
+	constructor(
+		params: FnType['params'],
+		outOrOptionalPos: number | Value,
+		rest?: FnType['rest'],
+		out?: Value
 	) {
 		super()
+
+		const maxRequiredParamNum = values(params).length
+
+		const optionalPos =
+			typeof outOrOptionalPos === 'number'
+				? outOrOptionalPos
+				: maxRequiredParamNum
+
 		if (
 			optionalPos < 0 ||
-			values(params).length < optionalPos ||
+			maxRequiredParamNum < optionalPos ||
 			optionalPos % 1 !== 0
 		) {
 			throw new Error('Invalid optionalPos: ' + optionalPos)
+		}
+
+		this.params = params
+		this.optionalPos = optionalPos
+		this.rest = rest
+
+		if (typeof outOrOptionalPos !== 'number') {
+			this.out = outOrOptionalPos
+		} else if (out) {
+			this.out = out
+		} else {
+			throw new Error('Invalid parameters for FnType constructor')
 		}
 	}
 
