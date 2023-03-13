@@ -19,7 +19,7 @@ import {
 	FnType,
 	fnType,
 	IFn,
-	num,
+	number,
 	str,
 	TypeVar,
 	typeVar,
@@ -38,7 +38,7 @@ export type Expr = AtomExpr | InnerNode
 /**
  * ASTs that cannot have child elements
  */
-export type AtomExpr = Identifier | ValueContainer | NumLiteral | StrLiteral
+export type AtomExpr = Identifier | ValueContainer | NumberLiteral | StrLiteral
 
 /**
  * ASTs that can have child elements
@@ -263,16 +263,16 @@ export class ValueContainer<V extends Value = Value> extends BaseExpr {
 	clone = () => new ValueContainer(this.value)
 }
 
-export class NumLiteral extends BaseExpr {
-	readonly type = 'NumLiteral' as const
+export class NumberLiteral extends BaseExpr {
+	readonly type = 'NumberLiteral' as const
 
 	constructor(public readonly value: number) {
 		super()
 	}
 
-	protected forceEval = () => withLog(num(this.value))
+	protected forceEval = () => withLog(number(this.value))
 
-	protected forceInfer = () => withLog(num(this.value))
+	protected forceInfer = () => withLog(number(this.value))
 
 	resolveSymbol = () => null
 
@@ -287,7 +287,7 @@ export class NumLiteral extends BaseExpr {
 	isSameTo = (expr: Expr) =>
 		this.type === expr.type && this.value === expr.value
 
-	clone = () => new NumLiteral(this.value)
+	clone = () => new NumberLiteral(this.value)
 
 	extras?: {raw: string}
 }

@@ -16,9 +16,9 @@ import {
 	IFn,
 	isEqual,
 	Never,
-	Num,
-	num,
-	NumType,
+	Number,
+	number,
+	NumberType,
 	Str,
 	str,
 	StrType,
@@ -75,7 +75,7 @@ const defn: Defn = (type, f, {lazy = false, writeLog = false} = {}) => {
 }
 
 export const PreludeScope = Expr.scope({
-	Num: Expr.valueContainer(NumType),
+	Number: Expr.valueContainer(NumberType),
 	Str: Expr.valueContainer(StrType),
 	Bool: Expr.valueContainer(BoolType),
 	_: Expr.valueContainer(All.instance),
@@ -101,39 +101,44 @@ PreludeScope.defs({
 			}),
 		{writeLog: true}
 	),
-	'+': defn('(=> [...xs:Num]: Num)', (...xs: Num[]) =>
-		num(xs.reduce((sum, x) => sum + x.value, 0))
+	'+': defn('(=> [...xs:Number]: Number)', (...xs: Number[]) =>
+		number(xs.reduce((sum, x) => sum + x.value, 0))
 	),
-	'-': defn('(=> [...xs:^{default: 1} Num]: Num)', (...xs: Num[]) => {
+	'-': defn('(=> [...xs:^{default: 1} Number]: Number)', (...xs: Number[]) => {
 		switch (xs.length) {
 			case 0:
-				return num(0)
+				return number(0)
 			case 1:
-				return num(-xs[0].value)
+				return number(-xs[0].value)
 			default:
-				return num(xs.slice(1).reduce((prev, x) => prev - x.value, xs[0].value))
+				return number(
+					xs.slice(1).reduce((prev, x) => prev - x.value, xs[0].value)
+				)
 		}
 	}),
-	'*': defn('(=> [...xs:^{default: 1} Num]: Num)', (...xs: Num[]) =>
-		num(xs.reduce((prod, x) => prod * x.value, 1))
+	'*': defn('(=> [...xs:^{default: 1} Number]: Number)', (...xs: Number[]) =>
+		number(xs.reduce((prod, x) => prod * x.value, 1))
 	),
-	'/': defn('(=> [...xs:^{default: 1} Num]: Num)', (...xs: Num[]) => {
+	'/': defn('(=> [...xs:^{default: 1} Number]: Number)', (...xs: Number[]) => {
 		switch (xs.length) {
 			case 0:
-				return num(1)
+				return number(1)
 			case 1:
-				return num(1 / xs[0].value)
+				return number(1 / xs[0].value)
 			default:
-				return num(xs.slice(1).reduce((prev, x) => prev / x.value, xs[0].value))
+				return number(
+					xs.slice(1).reduce((prev, x) => prev / x.value, xs[0].value)
+				)
 		}
 	}),
-	'**': defn('(=> [x:Num a:^{default: 1} Num]: Num)', (x: Num, a: Num) =>
-		num(Math.pow(x.value, a.value))
+	'**': defn(
+		'(=> [x:Number a:^{default: 1} Number]: Number)',
+		(x: Number, a: Number) => number(Math.pow(x.value, a.value))
 	),
-	'%': defn('(=> [x:Num y:Num]: Num)', (x: Num, y: Num) =>
-		num(x.value % y.value)
+	'%': defn('(=> [x:Number y:Number]: Number)', (x: Number, y: Number) =>
+		number(x.value % y.value)
 	),
-	'<': defn('(=> [x:Num y:Num]: Bool)', (x: Num, y: Num) =>
+	'<': defn('(=> [x:Number y:Number]: Bool)', (x: Number, y: Number) =>
 		bool(x.value < y.value)
 	),
 	'==': defn('(=> [...xs:_]: Bool)', (x: Value, y: Value) =>
@@ -166,20 +171,20 @@ PreludeScope.defs({
 		{lazy: true}
 	),
 	'!': defn('(=> [x:Bool]: Bool)', (x: Enum) => bool(x.isEqualTo(False))),
-	len: defn('(=> [x:(union Str [..._])]: Num)', (x: Str | Vec) => {
-		if (x.type === 'Vec') return num(x.items.length)
-		else return num(x.value.length)
+	len: defn('(=> [x:(union Str [..._])]: Number)', (x: Str | Vec) => {
+		if (x.type === 'Vec') return number(x.items.length)
+		else return number(x.value.length)
 	}),
 	range: defn(
-		'(=> [start:Num end:Num step?:^{default: 1}Num]: [...Num])',
-		(start: Num, end: Num, step: Num) =>
-			vec(range(start.value, end.value, step.value).map(num))
+		'(=> [start:Number end:Number step?:^{default: 1}Number]: [...Number])',
+		(start: Number, end: Number, step: Number) =>
+			vec(range(start.value, end.value, step.value).map(number))
 	),
 	gcd: defn(
-		'(=> [x:Num y:Num]: Num)',
+		'(=> [x:Number y:Number]: Number)',
 		(() => {
-			const gcd = (x: Num, y: Num): Num =>
-				x.value % y.value ? gcd(y, num(x.value % y.value)) : y
+			const gcd = (x: Number, y: Number): Number =>
+				x.value % y.value ? gcd(y, number(x.value % y.value)) : y
 			return gcd
 		})()
 	),
@@ -224,14 +229,14 @@ PreludeScope.defs({
 
 PreludeScope.defs(
 	parseModule(`
-<=: (=> [x:Num y:Num] (|| (== x y) (< x y)))
->: (=> [x:Num y:Num] (< y x))
->=: (=> [x:Num y:Num] (<= y x))
+<=: (=> [x:Number y:Number] (|| (== x y) (< x y)))
+>: (=> [x:Number y:Number] (< y x))
+>=: (=> [x:Number y:Number] (<= y x))
 
-inc: (=> [x:Num] (+ x 1))
-dec: (=> [x:Num] (- x 1))
+inc: (=> [x:Number] (+ x 1))
+dec: (=> [x:Number] (- x 1))
 
-isEven: (=> [x:Num] (== (% x 2) 0))
+isEven: (=> [x:Number] (== (% x 2) 0))
 
 compose: (=> (T U V) [f:(=> [t:T]: U) g:(=> [u:U]: V)]
              (=> [x:T] (g (f x))))
@@ -242,13 +247,13 @@ first: (=> (T) [coll:[...T]] (coll 0))
 
 id: (=> (T) [x:T] x)
 
-sqrt: (=> [x:Num] (if (<= 0 x)
+sqrt: (=> [x:Number] (if (<= 0 x)
 											(** x 0.5)
 											(log 0 "warn" "Negative number")))
 
-square: (=> [x:Num] (** x 2))
+square: (=> [x:Number] (** x 2))
 
-hypot:  (=> [x:Num y:Num] (sqrt (+ (* x x) (* y y))))
+hypot:  (=> [x:Number y:Number] (sqrt (+ (* x x) (* y y))))
 
 PI: 3.1415926535897932384626433832795028841971693993
 	`)

@@ -18,7 +18,7 @@ import {
 	FnDef,
 	fnDef,
 	id,
-	num,
+	numberLiteral,
 	paramsDef,
 	PrintOptions,
 	str,
@@ -43,7 +43,7 @@ type Type = All | PrimType | EnumType | FnType | UnionType | TypeVar
 /**
  * Value that can be a default value. Non-type values
  */
-type Atomic = Never | Unit | Prim<any> | Num | Str | Enum | Fn | Vec | Dict
+type Atomic = Never | Unit | Prim<any> | Number | Str | Enum | Fn | Vec | Dict
 
 abstract class BaseValue {
 	constructor() {
@@ -246,11 +246,11 @@ export class Prim<T = any> extends BaseValue {
 	}
 }
 
-export class Num extends Prim<number> {
-	protected toExprExceptMeta = () => num(this.value)
+export class Number extends Prim<number> {
+	protected toExprExceptMeta = () => numberLiteral(this.value)
 
 	constructor(value: number) {
-		super(NumType, value)
+		super(NumberType, value)
 	}
 }
 
@@ -271,12 +271,12 @@ export class PrimType<T = any> extends BaseValue {
 
 	readonly superType = All.instance
 
-	#defaultValue!: Num | Str | Prim
+	#defaultValue!: Number | Str | Prim
 	get defaultValue() {
 		return (this.#defaultValue ??= this.#initialDefaultValue)
 	}
 
-	#initialDefaultValue!: Num | Str | Prim
+	#initialDefaultValue!: Number | Str | Prim
 	get initialDefaultValue() {
 		return this.#initialDefaultValue
 	}
@@ -329,8 +329,8 @@ export class PrimType<T = any> extends BaseValue {
 	}
 }
 
-export const NumType = PrimType.ofLiteral('Num', new Num(0))
-;(Num.prototype.superType as Num['superType']) = NumType
+export const NumberType = PrimType.ofLiteral('Number', new Number(0))
+;(Number.prototype.superType as Number['superType']) = NumberType
 
 export const StrType = PrimType.ofLiteral('Str', new Str(''))
 ;(Str.prototype.superType as Str['superType']) = StrType
@@ -706,13 +706,13 @@ export class Vec<TItems extends Value[] = Value[]>
 
 	get fnType() {
 		return FnType.of({
-			params: {index: NumType},
+			params: {index: NumberType},
 			out: unionType(...this.items),
 		})
 	}
 
 	get fn(): IFn {
-		return (index: Arg<Num>) => {
+		return (index: Arg<Number>) => {
 			const ret = this.items[index().value]
 			if (ret === undefined) {
 				throw new Error('Index out of range')

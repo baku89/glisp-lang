@@ -137,7 +137,7 @@ NumLiteral "number" = [+-]? (Digit* ".")? Digit+
 		const raw = text()
 		const v = parseFloat(raw)
 		
-		const num = Expr.num(v)
+		const num = Expr.numberLiteral(v)
 		num.extras = {raw}
 		return num
 	}

@@ -5,8 +5,8 @@ import {
 	False,
 	fnType,
 	never,
-	num,
-	NumType,
+	number as num,
+	NumberType,
 	str,
 	StrType,
 	True,
@@ -25,44 +25,47 @@ describe('evaluating literals', () => {
 
 	testEval('[]', vec())
 	testEval('[0]', vec([num(0)]))
-	testEval('[...Num]', vec([], undefined, NumType))
-	testEval('[1 ...Num]', vec([num(1)], undefined, NumType))
+	testEval('[...Number]', vec([], undefined, NumberType))
+	testEval('[1 ...Number]', vec([num(1)], undefined, NumberType))
 	testEval('[0]', vec([num(0)]))
 	testEval('{a:1 b:2}', dict({a: num(1), b: num(2)}))
-	testEval('{a?:Num ...Str}', dict({a: NumType}, ['a'], StrType))
-	testEval('(=> [x:Num]: Str)', fnType({params: {x: NumType}, out: StrType}))
+	testEval('{a?:Number ...Str}', dict({a: NumberType}, ['a'], StrType))
+	testEval(
+		'(=> [x:Number]: Str)',
+		fnType({params: {x: NumberType}, out: StrType})
+	)
 	testEval('(let a: 10 a)', num(10))
 	testEval('(let a: (let a: 20 a) a)', num(20))
 })
 
 describe('evaluating function definition', () => {
 	testEval('((=> [] 5))', '5')
-	testEval('((=> [x:Num] x) 1)', '1')
-	testEval('((=> [x:Num] (+ x 1)) 10)', '11')
+	testEval('((=> [x:Number] x) 1)', '1')
+	testEval('((=> [x:Number] (+ x 1)) 10)', '11')
 	testEval(
 		`
-(let add: (=> [x:Num] (=> [y:Num] (+ x y)))
+(let add: (=> [x:Number] (=> [y:Number] (+ x y)))
      ((add 2) 3))
 `,
 		'5'
 	)
 	testEval(
 		`
-(let f: (=> [x:Num] (let x: 20 x))
+(let f: (=> [x:Number] (let x: 20 x))
      (f 5))
 `,
 		'20'
 	)
 	testEval(
 		`
-(let f: (=> [x:Num]
+(let f: (=> [x:Number]
             (let x: 100
-                 (=> [y:Num] (+ x y))))
+                 (=> [y:Number] (+ x y))))
      ((f 2) 3))
 `,
 		'103'
 	)
-	testEval('((=> [f:(=> [x:Num]: Num)] (f 1)) id)', '1')
+	testEval('((=> [f:(=> [x:Number]: Number)] (f 1)) id)', '1')
 })
 
 describe('run-time error handling', () => {
@@ -70,7 +73,7 @@ describe('run-time error handling', () => {
 })
 
 describe('resolving identifier', () => {
-	testEval('(let X: Num (=> [a:X]: X))', '(=> [a:Num]: Num)')
+	testEval('(let X: Number (=> [a:X]: X))', '(=> [a:Number]: Number)')
 })
 
 describe('inferring expression type', () => {
@@ -81,41 +84,44 @@ describe('inferring expression type', () => {
 	test('"foo"', '"foo"')
 	test('true', 'true')
 
-	test('Num', '_')
+	test('Number', '_')
 	test('Bool', '_')
 
 	test('[]', '[]')
 	test('[0 1]', '[0 1]')
-	test('[Num]', '[_]')
+	test('[Number]', '[_]')
 	test('[...0]', '_')
 
 	test('{}', '{}')
 	test('{a:0}', '{a:0}')
-	test('{a:Num}', '{a:_}')
+	test('{a:Number}', '{a:_}')
 	test('{a?:0}', '_')
 	test('{...0}', '_')
-	test('{a: Num}', '{a: _}')
-	test('{a: (+ 1 2)}', '{a: Num}')
+	test('{a: Number}', '{a: _}')
+	test('{a: (+ 1 2)}', '{a: Number}')
 
-	test('(+ 1 2)', 'Num')
-	test('[(+ 1 2)]', '[Num]')
+	test('(+ 1 2)', 'Number')
+	test('[(+ 1 2)]', '[Number]')
 
 	test('(=> [] 5)', '(=> []: 5)')
-	test('(=> [x:Num] "foo")', '(=> [x:Num]: "foo")')
-	test('(=> [x:Num] x)', '(=> [x:Num]: Num)')
-	test('(=> [x:(+ 1 2)] (+ x 4))', '(=> [x:3]: Num)')
-	test('(=> [x:_] Num)', '(=> [x:_]: _)')
+	test('(=> [x:Number] "foo")', '(=> [x:Number]: "foo")')
+	test('(=> [x:Number] x)', '(=> [x:Number]: Number)')
+	test('(=> [x:(+ 1 2)] (+ x 4))', '(=> [x:3]: Number)')
+	test('(=> [x:_] Number)', '(=> [x:_]: _)')
 
-	test('(=> [x:Num]: Num)', '_')
+	test('(=> [x:Number]: Number)', '_')
 
-	test('(let a: Num a)', '_')
+	test('(let a: Number a)', '_')
 	test('(let a: 10)', '()')
-	test('(let a: (+ 1 2) b: a b)', 'Num')
+	test('(let a: (+ 1 2) b: a b)', 'Number')
 
 	test('((=> (T) [x:T] x) 4)', '4')
-	test('((=> (T) [x:T] x) (+ 1 2))', 'Num')
-	test('((=> (T) [f:(=> [t:T]: T)] f) inc)', '(=> [t:Num]: Num)')
-	test('((=> (T) [f:(=> [t:T]: T)] (=> [x:T] (f x))) inc)', '(=> [t:Num]: Num)')
+	test('((=> (T) [x:T] x) (+ 1 2))', 'Number')
+	test('((=> (T) [f:(=> [t:T]: T)] f) inc)', '(=> [t:Number]: Number)')
+	test(
+		'((=> (T) [f:(=> [t:T]: T)] (=> [x:T] (f x))) inc)',
+		'(=> [t:Number]: Number)'
+	)
 	test('(try 1 2)', '(union 1 2)')
 
 	function test(input: string, expected: string) {
@@ -129,8 +135,8 @@ describe('inferring expression type', () => {
 })
 
 describe('evaluating function body', () => {
-	test('(=> [x:Num] x)', '0')
-	test('(=> [x:Num] (+ x 10))', '10')
+	test('(=> [x:Number] x)', '0')
+	test('(=> [x:Number] (+ x 10))', '10')
 	test('(=> [x:Bool] x)', 'false')
 	test('(=> (T) [x:T] x)', '()')
 

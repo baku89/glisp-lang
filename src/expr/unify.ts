@@ -105,7 +105,7 @@ export class Unifier {
 		const utvs = getTypeVars(u)
 		if (ltvs.size === 0 && utvs.size === 0) {
 			/**
-			 * When both limits have no typeVars (e.g. α |-> [Num, Bool]),
+			 * When both limits have no typeVars (e.g. α |-> [Numer, Bool]),
 			 * simply copy lower to upper
 			 **/
 			this.#uppers.set(tv, l)

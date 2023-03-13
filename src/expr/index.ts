@@ -5,7 +5,7 @@ import {
 	Expr,
 	FnDef,
 	Identifier,
-	NumLiteral,
+	NumberLiteral,
 	ParamsDef,
 	Scope,
 	StrLiteral,
@@ -27,7 +27,7 @@ export {
 	Expr,
 	Identifier,
 	ValueContainer,
-	NumLiteral,
+	NumberLiteral as NumLiteral,
 	StrLiteral,
 	App,
 	Scope,
@@ -45,7 +45,7 @@ export const id = (name: string) => new Identifier(name)
 export const valueContainer = <V extends Value = Value>(value: V) =>
 	new ValueContainer(value)
 
-export const num = (value: number) => new NumLiteral(value)
+export const numberLiteral = (value: number) => new NumberLiteral(value)
 
 export const str = (value: string) => new StrLiteral(value)
 

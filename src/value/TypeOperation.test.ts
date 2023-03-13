@@ -5,8 +5,8 @@ import {
 	False,
 	intersectionType,
 	never,
-	num,
-	NumType,
+	number as num,
+	NumberType,
 	str,
 	StrType,
 	True,
@@ -36,10 +36,10 @@ describe('uniting types', () => {
 	test(N1, N2, S1).toBe(unite(N1, N2, S1))
 	test(S1, StrType).toBe(StrType)
 	test(unite(N1, N2), unite(N2, N3)).toBe(unite(N1, N2, N3))
-	test(unite(N1, N2), NumType).toBe(NumType)
-	test(NumType, unite(N1, N2)).toBe(NumType)
-	test(NumType, BoolType).toBe(unite(NumType, BoolType))
-	test(NumType, never).toBe(NumType)
+	test(unite(N1, N2), NumberType).toBe(NumberType)
+	test(NumberType, unite(N1, N2)).toBe(NumberType)
+	test(NumberType, BoolType).toBe(unite(NumberType, BoolType))
+	test(NumberType, never).toBe(NumberType)
 	test(never, never).toBe(never)
 	test(never, all).toBe(all)
 	test(True, False).toBe(BoolType)
@@ -72,9 +72,9 @@ describe('intersecting types', () => {
 	test(N1, N2).toBe(never)
 	test(unite(N1, N2), unite(S1, S2)).toBe(never)
 	test(unite(N1, N2), unite(N1, N2)).toBe(unite(N1, N2))
-	test(N1, NumType).toBe(N1)
+	test(N1, NumberType).toBe(N1)
 	test(unite(N1, False), N1).toBe(N1)
-	test(unite(NumType, False), unite(N1, N2, BoolType)).toBe(
+	test(unite(NumberType, False), unite(N1, N2, BoolType)).toBe(
 		unite(N1, N2, False)
 	)
 
@@ -108,14 +108,14 @@ describe('differential types', () => {
 	test(N1, N1).toBe(never)
 	test(S1, S1).toBe(never)
 	test(True, True).toBe(never)
-	test(NumType, NumType).toBe(never)
+	test(NumberType, NumberType).toBe(never)
 	test(StrType, StrType).toBe(never)
 	test(BoolType, BoolType).toBe(never)
 	test(unite(N1, N2), unite(N1, N2)).toBe(never)
 
 	// T - S = T
 	test(all, N1).toBe(all)
-	test(NumType, N1).toBe(NumType)
+	test(NumberType, N1).toBe(NumberType)
 	test(all, N1).toBe(all)
 
 	// Enum substraction

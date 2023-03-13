@@ -5,8 +5,8 @@ import {
 	BoolType,
 	fnType,
 	isEqual,
-	num,
-	NumType,
+	number as num,
+	NumberType,
 	TypeVar,
 	typeVar,
 	UnionType,
@@ -53,34 +53,34 @@ describe('getTypeVars', () => {
 })
 
 describe('unifyTypeVars', () => {
-	test([[T, '>=', NumType]], T, NumType)
+	test([[T, '>=', NumberType]], T, NumberType)
 	test(
 		[
 			[T, '>=', unit],
-			[T, '>=', NumType],
+			[T, '>=', NumberType],
 		],
 		T,
-		UnionType.fromTypesUnsafe([unit, NumType])
+		UnionType.fromTypesUnsafe([unit, NumberType])
 	)
-	test([[NumType, '>=', T]], T, NumType)
+	test([[NumberType, '>=', T]], T, NumberType)
 	test(
 		[
 			[T, '>=', unit],
-			[T, '>=', NumType],
+			[T, '>=', NumberType],
 		],
 		T,
-		UnionType.fromTypesUnsafe([unit, NumType])
+		UnionType.fromTypesUnsafe([unit, NumberType])
 	)
 	test([[ft(ft(T1, T2), T3), '==', ft(T4, T5)]], T4, ft(T1, T2))
 	test([[ft(T1, T2), '==', ft(T3, ft(T4, T5))]], T2, ft(T4, T5))
-	test([[ft(T, U), '>=', ft(NumType, NumType)]], T, NumType)
+	test([[ft(T, U), '>=', ft(NumberType, NumberType)]], T, NumberType)
 	test(
 		[
-			[ft(T1, T2), '>=', ft(NumType, NumType)],
-			[ft(T2, T3), '>=', ft(NumType, BoolType)],
+			[ft(T1, T2), '>=', ft(NumberType, NumberType)],
+			[ft(T2, T3), '>=', ft(NumberType, BoolType)],
 		],
 		ft(T1, T3),
-		ft(NumType, BoolType)
+		ft(NumberType, BoolType)
 	)
 
 	function test(consts: Const[], original: Value, expected: Value) {

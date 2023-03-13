@@ -5,7 +5,7 @@ import {
 	fnDef,
 	id,
 	isSame,
-	num,
+	numberLiteral as num,
 	paramsDef,
 	scope,
 	str,
@@ -18,7 +18,7 @@ import {parse} from '.'
 const all = id('_')
 const never = id('Never')
 
-const Num = id('Num')
+const Number = id('Number')
 const Bool = id('Bool')
 const x = id('x')
 const y = id('y')
@@ -139,11 +139,11 @@ describe('parsing dictionary', () => {
 })
 
 describe('parsing function definition', () => {
-	testParsing('(=> [x:Num] x)', fnDef(null, {x: Num}, null, x))
-	testParsing('(=> [ x: Num ] x)', fnDef(null, {x: Num}, null, x))
+	testParsing('(=> [x:Number] x)', fnDef(null, {x: Number}, null, x))
+	testParsing('(=> [ x: Number ] x)', fnDef(null, {x: Number}, null, x))
 	testParsing(
-		'(=> [x: Num y: Bool] x)',
-		fnDef(null, {x: Num, y: Bool}, null, x)
+		'(=> [x: Number y: Bool] x)',
+		fnDef(null, {x: Number, y: Bool}, null, x)
 	)
 	testParsing('(=> [] _)', fnDef(null, {}, null, all))
 	testParsing('(=>[]_)', fnDef(null, {}, null, all))
@@ -161,7 +161,7 @@ describe('parsing function definition', () => {
 	// Polymorphic functions
 	testParsing('(=> (T) [x:T] x)', fnDef(['T'], {x: id('T')}, null, x))
 	testParsing('(=> (T U) [x:T] x)', fnDef(['T', 'U'], {x: id('T')}, null, x))
-	testParsing('(=> () [] Num)', fnDef([], {}, null, Num))
+	testParsing('(=> () [] Number)', fnDef([], {}, null, Number))
 
 	// functions with rest parameter
 	testParsing(
@@ -243,13 +243,13 @@ describe('parsing expression metadata', () => {
 	// 	id('layer').setNodeMeta(new NodeMeta(dict({collapsed: id('true')})))
 	// )
 	// testParsing(
-	// 	'^{default: 0 label: "number"} Num#{prop: "A"}',
-	// 	id('Num')
+	// 	'^{default: 0 label: "number"} Number#{prop: "A"}',
+	// 	id('Number')
 	// 		.setValueMeta(new ValueMeta(num(0), dict({label: str('number')})))
 	// 		.setNodeMeta(new NodeMeta(dict({prop: str('A')})))
 	// )
 	// testErrorParsing('layer#{}#{}')
-	// testErrorParsing('Num#{}^0')
+	// testErrorParsing('Number#{}^0')
 })
 
 function testParsing(input: string, expected: Expr) {

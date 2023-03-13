@@ -7,8 +7,8 @@ import {
 	FnType,
 	IFn,
 	Never,
-	Num,
-	NumType,
+	Number,
+	NumberType,
 	Prim,
 	PrimType,
 	Str,
@@ -27,7 +27,7 @@ export {
 	All,
 	Never,
 	Unit,
-	Num,
+	Number,
 	Str,
 	Prim,
 	PrimType,
@@ -45,12 +45,12 @@ const BoolType = EnumType.of('Bool', ['false', 'true'])
 const True = BoolType.getEnum('true')
 const False = BoolType.getEnum('false')
 
-export {NumType, StrType, BoolType, True, False}
+export {NumberType, StrType, BoolType, True, False}
 
 export const all = All.instance
 export const never = Never.instance
 export const unit = Unit.instance
-export const num = (value: number) => new Num(value)
+export const number = (value: number) => new Number(value)
 export const str = (value: string) => new Str(value)
 export const bool = (value: boolean) => (value ? True : False)
 export const primType = PrimType.of

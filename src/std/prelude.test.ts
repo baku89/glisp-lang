@@ -1,5 +1,5 @@
 import {testEval} from '../util/TestUtil'
-import {NumType, unionType, unit} from '../value'
+import {NumberType, unionType, unit} from '../value'
 
 describe('functions in the prelude module', () => {
 	testEval('(+ 1 2)', '3')
@@ -15,7 +15,7 @@ describe('functions in the prelude module', () => {
 	testEval('(gcd 20 16)', '4')
 	testEval('(- 10 9)', '1')
 
-	testEval('(union () Num)', unionType(unit, NumType))
+	testEval('(union () Number)', unionType(unit, NumberType))
 
 	testEval('(inc 10)', '11')
 	testEval('(dec 10)', '9')
