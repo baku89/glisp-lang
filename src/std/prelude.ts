@@ -181,14 +181,6 @@ PreludeScope.defs({
 		(start: Number, end: Number, step: Number) =>
 			vec(range(start.value, end.value, step.value).map(number))
 	),
-	gcd: defn(
-		'(=> [x:Number y:Number]: Number)',
-		(() => {
-			const gcd = (x: Number, y: Number): Number =>
-				x.value % y.value ? gcd(y, number(x.value % y.value)) : y
-			return gcd
-		})()
-	),
 	rest: defn('(=> (T) [coll:[...T]]: [...T])', (coll: Vec) =>
 		vec(coll.items.slice(1))
 	),
