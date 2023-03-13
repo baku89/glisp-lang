@@ -598,7 +598,7 @@ export class FnType extends BaseValue implements IFnType {
 			value.rest?.value
 		)
 
-		return isSubtype(valueParam, thisParam) && isSubtype(this.out, value.out)
+		return valueParam.isSubtypeOf(thisParam) && this.out.isSubtypeOf(value.out)
 	}
 
 	isTypeFor!: (value: Value) => value is Fn
@@ -700,12 +700,12 @@ export class Vec<TItems extends Value[] = Value[]>
 		for (const vi of value.items) {
 			const ti = tIter.next().value
 			if (!ti && value.optionalPos <= i++) break
-			if (!ti || !isSubtype(ti, vi)) return false
+			if (!ti || !ti.isSubtypeOf(vi)) return false
 		}
 
 		if (value.rest) {
 			for (let ti; (ti = tIter.next(true).value); ) {
-				if (!isSubtype(ti, value.rest)) return false
+				if (!ti.isSubtypeOf(value.rest)) return false
 			}
 		}
 
@@ -811,10 +811,10 @@ export class Dict<
 			const vi = value.items[k]
 			if (value.#isRequredKey(k)) {
 				const sv = this.#isRequredKey(k) ? this.items[k] : false
-				if (!sv || !isSubtype(sv, vi)) return false
+				if (!sv || !sv.isSubtypeOf(vi)) return false
 			} else {
 				const sv = k in this.items ? this.items[k] : this.rest
-				if (sv && !isSubtype(sv, vi)) return false
+				if (sv && !sv.isSubtypeOf(vi)) return false
 			}
 		}
 
@@ -822,9 +822,9 @@ export class Dict<
 			const sKeys = keys(this.items)
 			const extraKeys = difference(sKeys, tKeys)
 			for (const k of extraKeys) {
-				if (!isSubtype(this.items[k], value.rest)) return false
+				if (!this.items[k].isSubtypeOf(value.rest)) return false
 			}
-			if (this.rest && !isSubtype(this.rest, value.rest)) return false
+			if (this.rest && !this.rest.isSubtypeOf(value.rest)) return false
 		}
 
 		return true

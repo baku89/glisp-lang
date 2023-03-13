@@ -1,5 +1,5 @@
 import {evaluate, parse} from '../util/TestUtil'
-import {isSubtype, Value} from './value'
+import {Value} from './value'
 
 describe('value equality', () => {
 	test('()')
@@ -116,8 +116,8 @@ describe('subtyping', () => {
 					: expected === '='
 					? [true, true]
 					: [false, false]
-			expect(isSubtype(x, y)).toBe(x2y)
-			expect(isSubtype(y, x)).toBe(y2x)
+			expect(x.isSubtypeOf(y)).toBe(x2y)
+			expect(y.isSubtypeOf(x)).toBe(y2x)
 		})
 	}
 })
