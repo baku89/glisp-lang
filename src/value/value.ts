@@ -84,8 +84,7 @@ abstract class BaseValue {
 	toExpr = (): Expr => {
 		const expr = this.toExprExceptMeta()
 
-		const hasDefaultValueChanged = !isEqual(
-			this.defaultValue,
+		const hasDefaultValueChanged = !this.defaultValue.isEqualTo(
 			this.initialDefaultValue
 		)
 
@@ -242,7 +241,7 @@ export class Prim<T = any> extends BaseValue {
 	isEqualTo = (value: Value) =>
 		this.type === value.type &&
 		this.value === value.value &&
-		isEqual(this.superType, value.superType)
+		this.superType.isEqualTo(value.superType)
 
 	clone = () => {
 		const value = new Prim(this.superType, this.value)
@@ -572,16 +571,16 @@ export class FnType extends BaseValue implements IFnType {
 		)
 	}
 
-	isEqualTo = (value: Value) =>
+	isEqualTo = (value: Value): boolean =>
 		this.type === value.type &&
 		isEqualArray(values(this.params), values(value.params), isEqual) &&
 		this.optionalPos === value.optionalPos &&
 		nullishEqual(
 			this.rest,
 			value.rest,
-			(a, b) => a.name === b.name && isEqual(a.value, b.value)
+			(a, b) => a.name === b.name && a.value.isEqualTo(b.value)
 		) &&
-		isEqual(this.out, value.out)
+		this.out.isEqualTo(value.out)
 
 	isSubtypeOf = (value: Value): boolean => {
 		if (this.superType.isSubtypeOf(value)) return true

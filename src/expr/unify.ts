@@ -10,7 +10,6 @@ import {
 	FnType,
 	fnType,
 	intersectionType,
-	isEqual,
 	never,
 	TypeVar,
 	unionType,
@@ -158,7 +157,7 @@ export class Unifier {
 
 		const [[t, R, u], ...cs] = consts
 
-		if (isEqual(t, u)) {
+		if (t.isEqualTo(u)) {
 			return this.#addConsts(...cs)
 		}
 

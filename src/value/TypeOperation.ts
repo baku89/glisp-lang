@@ -35,7 +35,7 @@ export function unionType(...types: Value[]): Value {
 			const enumType = pty.superType
 
 			const includesAllEnum = enumType.types.every(enm =>
-				prevTypes.some(p => isEqual(p, enm))
+				prevTypes.some(p => p.isEqualTo(enm))
 			)
 			if (!includesAllEnum) continue
 

@@ -1,5 +1,5 @@
 import {evaluate, parse} from '../util/TestUtil'
-import {isEqual, isSubtype, Value} from './value'
+import {isSubtype, Value} from './value'
 
 describe('value equality', () => {
 	test('()')
@@ -20,7 +20,7 @@ describe('value equality', () => {
 	function test(input: string) {
 		it(`${input} equals to itself`, () => {
 			const value = parse(input).eval().result
-			expect(isEqual(value, value)).toBe(true)
+			expect(value.isEqualTo(value)).toBe(true)
 		})
 	}
 })

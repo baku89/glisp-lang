@@ -14,7 +14,6 @@ import {
 	Fn,
 	fnFrom,
 	IFn,
-	isEqual,
 	Never,
 	Number,
 	number,
@@ -142,12 +141,12 @@ PreludeScope.defs({
 		boolean(x.value < y.value)
 	),
 	'==': defn('(=> [...xs:_]: Boolean)', (x: Value, y: Value) =>
-		boolean(isEqual(x, y))
+		boolean(x.isEqualTo(y))
 	),
 	if: defn(
 		'(=> (T) [test:Boolean then:T else:T]: T)',
 		(test: Expr.Arg, then: Expr.Arg, _else: Expr.Arg) =>
-			isEqual(test(), True) ? then() : _else(),
+			test().isEqualTo(True) ? then() : _else(),
 		{lazy: true}
 	),
 	'&&': defn(
