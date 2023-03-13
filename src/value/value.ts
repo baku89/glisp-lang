@@ -625,12 +625,12 @@ export class FnType extends BaseValue implements IFnType {
 		if (value.type === 'UnionType') return value.isSupertypeOf(this)
 		if (value.type !== 'FnType') return false
 
-		const thisParam = Vec.of(
+		const thisParam = new Vec(
 			values(this.params),
 			this.optionalPos,
 			this.rest?.value
 		)
-		const valueParam = Vec.of(
+		const valueParam = new Vec(
 			values(value.params),
 			value.optionalPos,
 			value.rest?.value
@@ -658,21 +658,32 @@ export class FnType extends BaseValue implements IFnType {
 	}
 }
 
-export class Vec<TItems extends Value[] = Value[]>
-	extends BaseValue
-	implements IFnLike
-{
+export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 	readonly type = 'Vec' as const
 	readonly superType = All.instance
 
-	constructor(
-		public readonly items: TItems,
-		public readonly optionalPos: number,
-		public readonly rest?: Value
-	) {
+	public readonly items: V[]
+	public readonly optionalPos: number
+	public readonly rest?: Value
+
+	constructor(items?: V[], optionalPos?: number, rest?: Value) {
 		super()
-		if (optionalPos < 0 || items.length < optionalPos || optionalPos % 1 !== 0)
+
+		items ??= []
+
+		optionalPos ??= items.length
+
+		if (
+			optionalPos < 0 ||
+			items.length < optionalPos ||
+			optionalPos % 1 !== 0
+		) {
 			throw new Error('Invalid optionalPos: ' + optionalPos)
+		}
+
+		this.items = items ?? []
+		this.optionalPos = optionalPos
+		this.rest = rest
 	}
 
 	#defaultValue?: Vec
@@ -680,12 +691,16 @@ export class Vec<TItems extends Value[] = Value[]>
 		return (this.#defaultValue ??= this.initialDefaultValue)
 	}
 
+	#initialDefaultValue?: Vec
 	get initialDefaultValue(): Vec {
-		const items = this.items
-			.slice(0, this.optionalPos)
-			.map(it => it.defaultValue)
+		if (!this.#initialDefaultValue) {
+			const items = this.items
+				.slice(0, this.optionalPos)
+				.map(it => it.defaultValue)
 
-		return Vec.of(items)
+			this.#initialDefaultValue = new Vec(items)
+		}
+		return this.#initialDefaultValue
 	}
 
 	protected toExprExceptMeta = (): Expr => {
@@ -764,14 +779,6 @@ export class Vec<TItems extends Value[] = Value[]>
 		value.#defaultValue = this.#defaultValue
 		value.meta = this.meta
 		return value
-	}
-
-	static of<TItems extends Value[]>(
-		items: TItems = [] as any,
-		optionalPos?: number,
-		rest?: Value
-	) {
-		return new Vec(items, optionalPos ?? items.length, rest)
 	}
 }
 

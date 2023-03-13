@@ -89,7 +89,11 @@ export const fnType: IFnTypeConstructor = (
 
 export const typeVar = (name: string) => new TypeVar(name)
 
-export const vec = Vec.of
+export const vec = <V extends Value = Value>(
+	items?: V[],
+	optionalPos?: number,
+	rest?: Value
+) => new Vec(items, optionalPos, rest)
 
 export const dict = Dict.of
 
