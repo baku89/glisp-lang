@@ -84,6 +84,7 @@ const Delimiter = seq(
 	zeroOrOne(Whitespace),
 	many(seq(zeroOrOne(Comment), P.newline, many(Whitespace))),
 	zeroOrOne(Comment.skip(P.eof))
+).desc('delimiter')
 )
 
 interface IParser {
@@ -133,10 +134,9 @@ export const Parser = P.createLanguage<IParser>({
 			.desc('numeric literal')
 	},
 	StringLiteral() {
-		return many(P.noneOf('"'))
-			.wrap(P.string('"'), P.string('"'))
-			.map(raw => new StringLiteral(raw))
-			.desc('string literal')
+		return StringLiteralParser.map(raw => new StringLiteral(raw)).desc(
+			'string literal'
+		)
 	},
 	App(r) {
 		return P.seq(Delimiter, P.seq(r.Expr, Delimiter).many())
