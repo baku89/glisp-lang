@@ -1,3 +1,4 @@
+import {Parser} from '../parser'
 import {parse, testEval} from '../util/TestUtil'
 import {
 	all,
@@ -153,4 +154,47 @@ describe('evaluating function body', () => {
 			if (!result.isEqualTo(e)) throw new Error('Got=' + result.print())
 		})
 	}
+})
+
+describe('resolving path symbols', () => {
+	test('(let x: 10)', 'x', '10')
+	test('(let x: ["first" "second"])', 'x/1', '"second"')
+	test('(+ 1 2 3 4)', './0', '+')
+	test('(+ 1 2 3 4)', './0/..', '10')
+
+	function test(input: string, path: string, expected: string) {
+		const i = parse(input)
+		const s = Parser.Symbol.tryParse(path)
+		const e = parse(expected).eval().result
+
+		if (
+			i.type === 'Literal' ||
+			i.type === 'ValueContainer' ||
+			i.type === 'Symbol'
+		) {
+			throw new Error()
+		}
+
+		s.parent = i
+
+		const resolved = s.resolve()
+
+		if (!resolved) throw new Error()
+
+		const {expr} = resolved
+
+		const evaluated = expr.eval().result
+
+		if (!evaluated.isEqualTo(e)) {
+			throw new Error('Got=' + evaluated.print())
+		}
+	}
+})
+
+describe('evaluating path symbols', () => {
+	testEval('(+ 7 ./1)', '14')
+	testEval('(let x: (+ 1 2) (inc ../x/1))', '2')
+	testEval('(let x: (+ 1 2) [(inc ../../x/1)])', '2')
+	testEval('(let x: {y: 1} (inc x/y))', '2')
+	testEval('(let x: [1] (inc x/0))', '2')
 })
