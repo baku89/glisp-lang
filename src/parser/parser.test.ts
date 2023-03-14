@@ -4,6 +4,7 @@ import {
 	Expr,
 	fnDef,
 	numberLiteral as num,
+	ParamsDef,
 	paramsDef,
 	scope,
 	stringLiteral as str,
@@ -163,6 +164,29 @@ describe('parsing dictionary', () => {
 			symbol('c')
 		)
 	)
+})
+
+describe('parsing parameters in function definition', () => {
+	testParsing('[]', paramsDef())
+	testParsing('[x: Number]', paramsDef({x: Number}))
+	testParsing('[x:Number]', paramsDef({x: Number}))
+	testParsing('[\nx:\n Number\n]', paramsDef({x: Number}))
+	testParsing('[x: Number y:Boolean]', paramsDef({x: Number, y: Boolean}))
+	testParsing('[...xs:Number]', paramsDef({}, null, {name: 'xs', expr: Number}))
+	testParsing(
+		'[...xs:  Number ]',
+		paramsDef({}, null, {name: 'xs', expr: Number})
+	)
+	testParsing(
+		'[x:Number...xs:Number]',
+		paramsDef({x: Number}, null, {name: 'xs', expr: Number})
+	)
+
+	function testParsing(input: string, expected: ParamsDef) {
+		it(`parsing ${input} to be ${expected.print()}`, () => {
+			Parser.ParamsDef.tryParse(input).isSameTo(expected)
+		})
+	}
 })
 
 describe('parsing function definition', () => {

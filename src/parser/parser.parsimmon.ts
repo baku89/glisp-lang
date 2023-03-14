@@ -5,6 +5,7 @@ import {
 	DictLiteral,
 	Expr,
 	NumberLiteral,
+	ParamsDef,
 	Scope,
 	StringLiteral,
 	Symbol,
@@ -118,6 +119,7 @@ interface IParser {
 	App: App
 	ScopeEntry: [string, Expr, [string, string]]
 	Scope: Scope
+	ParamsDef: ParamsDef
 	VecLiteral: VecLiteral
 	DictEntry: [string, boolean, Expr, [string, string]]
 	DictLiteral: DictLiteral
@@ -166,6 +168,52 @@ export const Parser = P.createLanguage<IParser>({
 		return StringLiteralParser.map(raw => new StringLiteral(raw)).desc(
 			'string literal'
 		)
+	},
+	ParamsDef(r) {
+		return P.seq(
+			Delimiter,
+			// Items part
+			r.DictEntry.many(),
+			// Rest part
+			opt(
+				P.seq(
+					P.string('...'),
+					SymbolParser,
+					P.string(':'),
+					Delimiter,
+					r.Expr,
+					Delimiter
+				)
+			)
+		)
+			.wrap(P.string('['), P.string(']'))
+			.map(([d0, pairs, restDs]) => {
+				const items: ParamsDef['items'] = {}
+				const optionalFlags: boolean[] = []
+
+				const delimiters = [d0]
+
+				for (const [key, optional, expr, ds] of pairs) {
+					if (key in items) throw new Error(`Duplicated name: ${key}`)
+
+					items[key] = expr
+					optionalFlags.push(optional)
+					delimiters.push(...ds)
+				}
+
+				const optionalPos = getOptionalPos(optionalFlags, 'parameter')
+
+				let rest: ParamsDef['rest']
+				if (restDs) {
+					const [, name, , dr0, expr, dr1] = restDs
+					rest = {name, expr}
+					delimiters.push(dr0, dr1)
+				}
+
+				const expr = new ParamsDef(items, optionalPos, rest)
+				expr.extras = {delimiters}
+				return expr
+			})
 	},
 	App(r) {
 		return P.seq(Delimiter, P.seq(r.Expr, Delimiter).many())
