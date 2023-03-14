@@ -8,10 +8,9 @@ import {
 	Expr,
 	FnDef,
 	InnerNode,
-	NumberLiteral,
+	Literal,
 	ParamsDef,
 	Scope,
-	StringLiteral,
 	Symbol,
 	TryCatch,
 	ValueMeta,
@@ -130,8 +129,8 @@ const TypeVars = P.seq(Delimiter, P.seq(SymbolParser, Delimiter).many())
 interface IParser {
 	Program: Expr
 	Expr: Expr
-	NumberLiteral: NumberLiteral
-	StringLiteral: StringLiteral
+	NumberLiteral: Literal
+	StringLiteral: Literal
 	ScopeEntry: [string, Expr, [string, string]]
 	Scope: Scope
 	ParamsDef: ParamsDef
@@ -180,7 +179,7 @@ export const Parser = P.createLanguage<IParser>({
 			P.string('NaN')
 		)
 			.map(raw => {
-				const expr = new NumberLiteral(parseFloat(raw))
+				const expr = new Literal(parseFloat(raw))
 				expr.extras = {raw}
 				return expr
 			})
@@ -189,7 +188,7 @@ export const Parser = P.createLanguage<IParser>({
 	StringLiteral() {
 		return many(P.noneOf('"'))
 			.wrap(P.string('"'), P.string('"'))
-			.map(raw => new StringLiteral(raw))
+			.map(raw => new Literal(raw))
 			.desc('string literal')
 	},
 	ParamsDef(r) {

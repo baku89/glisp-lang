@@ -40,7 +40,7 @@ export type AnyExpr = Expr | ParamsDef
 /**
  * ASTs that cannot have child elements
  */
-export type AtomExpr = Symbol | ValueContainer | NumberLiteral | StringLiteral
+export type AtomExpr = Symbol | ValueContainer | Literal
 
 /**
  * ASTs that can have child elements
@@ -284,16 +284,19 @@ export const valueContainer = <V extends Value = Value>(value: V) =>
 /**
  * AST representing numeric literal
  */
-export class NumberLiteral extends BaseExpr {
-	readonly type = 'NumberLiteral' as const
+export class Literal extends BaseExpr {
+	readonly type = 'Literal' as const
 
-	constructor(public readonly value: number) {
+	constructor(public readonly value: number | string) {
 		super()
 	}
 
-	protected forceEval = () => withLog(number(this.value))
+	protected forceEval = () =>
+		withLog(
+			typeof this.value === 'number' ? number(this.value) : string(this.value)
+		)
 
-	protected forceInfer = () => withLog(number(this.value))
+	protected forceInfer = this.forceEval
 
 	resolveSymbol = () => null
 
@@ -302,42 +305,29 @@ export class NumberLiteral extends BaseExpr {
 			this.extras = {raw: this.value.toString()}
 		}
 
-		return this.extras.raw
+		if (typeof this.value === 'number') {
+			return this.extras.raw
+		} else {
+			return '"' + this.extras.raw + '"'
+		}
 	}
 
-	isSameTo = (expr: AnyExpr) =>
-		this.type === expr.type &&
-		((isNaN(this.value) && isNaN(expr.value)) || this.value === expr.value)
+	isSameTo = (expr: AnyExpr) => {
+		if (this.type !== expr.type) return false
+		if (typeof this.value === 'number' && typeof expr.value === 'number') {
+			return (
+				this.value === expr.value || (isNaN(this.value) && isNaN(expr.value))
+			)
+		}
+		return this.value === expr.value
+	}
 
-	clone = () => new NumberLiteral(this.value)
+	clone = () => new Literal(this.value)
 
 	extras?: {raw: string}
 }
 
-export const numberLiteral = (value: number) => new NumberLiteral(value)
-
-export class StringLiteral extends BaseExpr {
-	readonly type = 'StringLiteral' as const
-
-	constructor(public readonly value: string) {
-		super()
-	}
-
-	protected forceEval = () => withLog(string(this.value))
-
-	protected forceInfer = () => withLog(string(this.value))
-
-	resolveSymbol = () => null
-
-	print = () => '"' + this.value + '"'
-
-	isSameTo = (expr: AnyExpr) =>
-		this.type === expr.type && this.value === expr.value
-
-	clone = () => new StringLiteral(this.value)
-}
-
-export const stringLiteral = (value: string) => new StringLiteral(value)
+export const literal = (value: number | string) => new Literal(value)
 
 /**
  * AST represents function definition

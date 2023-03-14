@@ -17,10 +17,9 @@ import {
 	Expr,
 	FnDef,
 	fnDef,
-	numberLiteral,
+	literal,
 	paramsDef,
 	PrintOptions,
-	stringLiteral,
 	symbol,
 	valueContainer,
 	valueMeta,
@@ -253,7 +252,7 @@ export class Prim<T = any> extends BaseValue {
 }
 
 export class Number extends Prim<number> {
-	protected toExprExceptMeta = () => numberLiteral(this.value)
+	protected toExprExceptMeta = () => literal(this.value)
 
 	constructor(value: number) {
 		super(NumberType, value)
@@ -261,7 +260,7 @@ export class Number extends Prim<number> {
 }
 
 export class String extends Prim<string> {
-	protected toExprExceptMeta = () => stringLiteral(this.value)
+	protected toExprExceptMeta = () => literal(this.value)
 
 	constructor(value: string) {
 		super(StringType, value)
