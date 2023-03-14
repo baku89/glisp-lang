@@ -46,6 +46,13 @@ function seq(...parsers: P.Parser<string>[]) {
 	return P.seq(...parsers).tie()
 }
 
+/**
+ * Matches zero or one time. Equivalent to ? (question mark) in Regex.
+ */
+function opt<T>(parser: P.Parser<T>): P.Parser<T | null> {
+	return parser.atMost(1).map(result => result[0] ?? null)
+}
+
 function getOptionalPos(optionalFlags: boolean[], label: string) {
 	let optionalPos = optionalFlags.length
 	let i = 0
@@ -189,26 +196,31 @@ export const Parser = P.createLanguage<IParser>({
 		return P.seq(
 			Delimiter,
 			P.string('let'),
-			oneOrMore(Delimiter),
+			Delimiter,
 			r.ScopeEntry.many(),
-			r.Expr.atMost(1),
-			Delimiter
+			opt(P.seq(r.Expr, Delimiter))
 		)
 			.wrap(P.string('('), P.string(')'))
-			.map(([d0, , d1, entries, [out], dl]) => {
+			.map(([d0, , d1, entries, outPart]) => {
 				const items: Scope['items'] = {}
 				const delimiters = [d0, d1]
 
-				for (const [name, expr, ds] of entries) {
-					if (name in items)
+				for (const [name, expr, d2s] of entries) {
+					if (name in items) {
 						throw new Error(`Duplicated symbol name: '${name}'`)
+					}
 
 					items[name] = expr
 
-					delimiters.push(...ds)
+					delimiters.push(...d2s)
 				}
 
-				delimiters.push(dl)
+				let out: Expr | undefined
+				if (outPart) {
+					const [_out, d3] = outPart
+					out = _out
+					delimiters.push(d3)
+				}
 
 				const expr = new Scope(items, out)
 				expr.extras = {delimiters}
