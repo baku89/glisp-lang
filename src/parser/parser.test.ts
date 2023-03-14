@@ -8,7 +8,6 @@ import {
 	paramsDef,
 	scope,
 	symbol,
-	tryCatch,
 	valueMeta,
 	vecLiteral as vec,
 } from '../expr'
@@ -63,13 +62,13 @@ describe('parsing symbols', () => {
 	testParsing('🍡', '🍡')
 	testParsing('`_`', '_')
 	testParsing('->', '->')
+	testParsing('try', 'try')
 
 	testErrorParsing('symbol?')
 	testErrorParsing('10deg')
 	testErrorParsing('10 20')
 	testErrorParsing('/')
 	testErrorParsing('@')
-	testErrorParsing('try')
 	testErrorParsing('=>')
 	testErrorParsing(';')
 
@@ -308,8 +307,6 @@ describe('parsing value metadata', () => {
 })
 
 describe('parsing try catch', () => {
-	testParsing('(try 0 x)', tryCatch(literal(0), symbol('x')))
-	testParsing('(try[]())', tryCatch(vec(), app()))
 	testParsing('(try+())', app(symbol('try+'), app()))
 })
 

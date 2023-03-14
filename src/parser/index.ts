@@ -12,7 +12,6 @@ import {
 	ParamsDef,
 	Scope,
 	Symbol,
-	TryCatch,
 	ValueMeta,
 	VecLiteral,
 } from '../expr'
@@ -111,7 +110,7 @@ const Delimiter = seq(
 
 const OptionalMark = zeroOrOne(P.string('?')).map(r => !!r)
 
-const Reserved = new Set(['=>', 'let', 'return', 'try'])
+const Reserved = new Set(['=>', 'let', 'return'])
 
 const SymbolParser = seq(
 	AllowedCharForSymbol,
@@ -135,7 +134,6 @@ interface IParser {
 	Scope: Scope
 	ParamsDef: ParamsDef
 	FnDef: FnDef
-	TryCatch: TryCatch
 	App: App
 	VecLiteral: VecLiteral
 	DictEntry: [string, boolean, Expr, [string, string]]
@@ -157,7 +155,6 @@ export const Parser = P.createLanguage<IParser>({
 			r.Scope,
 			r.FnDef,
 			r.App,
-			r.TryCatch,
 			r.VecLiteral,
 			r.DictLiteral,
 			r.Symbol,
@@ -282,23 +279,6 @@ export const Parser = P.createLanguage<IParser>({
 				return expr
 			}
 		).wrap(P.string('('), P.string(')'))
-	},
-	TryCatch(r) {
-		return P.seq(
-			Delimiter,
-			P.string('try'),
-			Delimiter,
-			r.Expr,
-			Delimiter,
-			r.Expr,
-			Delimiter
-		)
-			.wrap(P.string('('), P.string(')'))
-			.map(([d0, , d1, block, d2, handler, d3]) => {
-				const tryCatch = new TryCatch(block, handler)
-				tryCatch.extras = {delimiters: [d0, d1, d2, d3]}
-				return tryCatch
-			})
 	},
 	App(r) {
 		return P.seq(Delimiter, P.seq(r.Expr, Delimiter).many())

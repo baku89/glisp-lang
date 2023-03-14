@@ -1,6 +1,6 @@
 import {range} from 'lodash'
 
-import * as Expr from '../expr'
+import {Arg, scope, ValueContainer, valueContainer} from '../expr'
 import {Log, withLog} from '../log'
 import {parse, parseModule} from '../parser'
 import {Writer} from '../util/Writer'
@@ -31,24 +31,24 @@ import {
 interface Defn {
 	(
 		type: string,
-		f: (...args: Expr.Arg<any>[]) => Value,
+		f: (...args: Arg<any>[]) => Value,
 		options?: {lazy?: true; writeLog?: false}
-	): Expr.ValueContainer
+	): ValueContainer
 	(
 		type: string,
 		f: (...args: any[]) => Value,
 		options?: {lazy?: false; writeLog?: false}
-	): Expr.ValueContainer
+	): ValueContainer
 	(
 		type: string,
 		f: IFn,
 		options?: {lazy?: true; writeLog?: true}
-	): Expr.ValueContainer
+	): ValueContainer
 	(
 		type: string,
 		f: (...args: any[]) => ReturnType<IFn>,
 		options?: {lazy?: false; writeLog?: true}
-	): Expr.ValueContainer
+	): ValueContainer
 }
 
 const defn: Defn = (type, f, {lazy = false, writeLog = false} = {}) => {
@@ -70,16 +70,16 @@ const defn: Defn = (type, f, {lazy = false, writeLog = false} = {}) => {
 
 	const _fn = fn(fnType, _f)
 
-	return Expr.valueContainer(_fn)
+	return valueContainer(_fn)
 }
 
-export const PreludeScope = Expr.scope({
-	Number: Expr.valueContainer(NumberType),
-	String: Expr.valueContainer(StringType),
-	Boolean: Expr.valueContainer(BooleanType),
-	_: Expr.valueContainer(All.instance),
-	All: Expr.valueContainer(All.instance),
-	Never: Expr.valueContainer(Never.instance),
+export const PreludeScope = scope({
+	Number: valueContainer(NumberType),
+	String: valueContainer(StringType),
+	Boolean: valueContainer(BooleanType),
+	_: valueContainer(All.instance),
+	All: valueContainer(All.instance),
+	Never: valueContainer(Never.instance),
 })
 
 PreludeScope.defs({
@@ -89,8 +89,8 @@ PreludeScope.defs({
 })
 
 PreludeScope.defs({
-	true: Expr.valueContainer(True),
-	false: Expr.valueContainer(False),
+	true: valueContainer(True),
+	false: valueContainer(False),
 	log: defn(
 		'(=> (T) [value:T level:(union "error" "warn" "info") reason:String]: T)',
 		(value: Value, level: String, reason: String) =>
@@ -145,13 +145,13 @@ PreludeScope.defs({
 	),
 	if: defn(
 		'(=> (T) [test:Boolean then:T else:T]: T)',
-		(test: Expr.Arg, then: Expr.Arg, _else: Expr.Arg) =>
+		(test: Arg, then: Arg, _else: Arg) =>
 			test().isEqualTo(True) ? then() : _else(),
 		{lazy: true}
 	),
 	'&&': defn(
 		'(=> [...xs:^{default: true} Boolean]: Boolean)',
-		(...xs: Expr.Arg<Enum>[]) => {
+		(...xs: Arg<Enum>[]) => {
 			for (const x of xs) {
 				if (x().isEqualTo(False)) return boolean(false)
 			}
@@ -161,7 +161,7 @@ PreludeScope.defs({
 	),
 	'||': defn(
 		'(=> [...xs:Boolean]: Boolean)',
-		(...xs: Expr.Arg<Enum>[]) => {
+		(...xs: Arg<Enum>[]) => {
 			for (const x of xs) {
 				if (x().isEqualTo(True)) return boolean(true)
 			}
@@ -219,6 +219,17 @@ PreludeScope.defs({
 	show: defn('(=> [value:_]: String)', (value: Value) => string(value.print())),
 	'++': defn('(=> [a:String b:String]: String)', (a: String, b: String) =>
 		string(a.value + b.value)
+	),
+	try: defn(
+		'(=> (T) [block: T handler: T]: T)',
+		(block: Arg, handler: Arg) => {
+			try {
+				return block()
+			} catch (e) {
+				return handler()
+			}
+		},
+		{lazy: true}
 	),
 })
 

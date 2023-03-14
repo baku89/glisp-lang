@@ -23,7 +23,6 @@ import {
 	string,
 	TypeVar,
 	typeVar,
-	unionType,
 	Unit,
 	unit,
 	Value,
@@ -48,7 +47,6 @@ export type AtomExpr = Symbol | ValueContainer | Literal
 export type InnerNode =
 	| App
 	| Scope
-	| TryCatch
 	| FnDef
 	| VecLiteral
 	| DictLiteral
@@ -1179,88 +1177,6 @@ export class Scope extends BaseExpr {
 }
 export const scope = (items?: Record<string, Expr>, ret?: Expr) =>
 	new Scope(items, ret)
-
-/**
- * AST representing try..catch clause
- * e.g.
- * (try (sqrt -1) 0)
- */
-export class TryCatch extends BaseExpr {
-	readonly type = 'TryCatch'
-
-	constructor(public block: Expr, public handler: Expr) {
-		super()
-
-		// Set parent
-		block.parent = this
-		handler.parent = this
-	}
-
-	protected forceEval = (env: Env): WithLog => {
-		try {
-			return this.block.eval(env)
-		} catch (e) {
-			if (!(e instanceof GlispError)) throw e
-
-			const log: Log = {
-				level: 'error',
-				reason: e.message,
-				ref: e.ref,
-			}
-
-			const [handler, lh] = this.handler.eval(env).asTuple
-
-			return withLog(handler, log, ...lh)
-		}
-	}
-
-	protected forceInfer = (env: Env): Value => {
-		const block = this.block.infer(env)
-		const handler = this.handler.infer(env)
-
-		return unionType(block, handler)
-	}
-
-	resolveSymbol = (path: string | number): Expr | null => {
-		switch (path) {
-			case 'block':
-			case 1:
-				return this.block
-			case 'handler':
-			case 2:
-				return this.handler
-			default:
-				return null
-		}
-	}
-
-	print = (options?: PrintOptions): string => {
-		if (!this.extras) {
-			this.extras = {delimiters: ['', ' ', ' ', '']}
-		}
-
-		const block = this.block.print(options)
-		const handler = this.handler.print(options)
-		const [d0, d1, d2, d3] = this.extras.delimiters
-
-		return `(${d0}try${d1}${block}${d2}${handler}${d3})`
-	}
-
-	extras?: {delimiters: string[]}
-
-	isSameTo = (expr: AnyExpr): boolean =>
-		this.type === expr.type &&
-		this.block.isSameTo(expr.block) &&
-		nullishEqual(this.handler, expr.handler, isSame)
-
-	clone = (): TryCatch => new TryCatch(this.block.clone(), this.handler.clone())
-}
-
-/**
- * Alias for TryCatch constructor
- */
-export const tryCatch = (block: Expr, handler: Expr) =>
-	new TryCatch(block, handler)
 
 export class ValueMeta extends BaseExpr {
 	readonly type = 'ValueMeta' as const
