@@ -20,6 +20,45 @@ function zip<T1, T2, T3, T4>(
 	return [as, bs, cs, ds]
 }
 
+// string Parser modofiers
+function zeroOrOne(parser: P.Parser<string>) {
+	return parser.atMost(1).tie()
+}
+
+function oneOrMore(parser: P.Parser<string>) {
+	return parser.atLeast(1).tie()
+}
+
+function many(parser: P.Parser<string>) {
+	return parser.many().tie()
+}
+
+function seq(...parsers: P.Parser<string>[]) {
+	return P.seq(...parsers).tie()
+}
+
+// Internal parsers
+const OneOrMoreDigits = oneOrMore(P.digit)
+
+const Punctuation = P.oneOf('()[]{}"@#^:;,?\\')
+
+const AllowedCharForSymbol = P.notFollowedBy(
+	P.alt(P.digit, P.whitespace, Punctuation)
+).then(P.any)
+
+const Comment = seq(
+	P.string(';'),
+	many(P.notFollowedBy(P.newline).then(P.any))
+).desc('comment')
+
+const Whitespace = P.alt(P.whitespace, P.string(',')).desc('whitespace')
+
+const Delimiter = seq(
+	zeroOrOne(Whitespace),
+	many(seq(zeroOrOne(Comment), P.newline, many(Whitespace))),
+	zeroOrOne(Comment.skip(P.eof))
+)
+
 interface IParser {
 	Program: Expr
 	Expr: Expr
@@ -29,15 +68,9 @@ interface IParser {
 	Symbol: Symbol
 }
 
-const OneOrMoreDigits = P.digit.atLeast(1).tie()
-
-const AllowedCharForSymbol = P.notFollowedBy(
-	P.alt(P.digit, P.whitespace, P.oneOf('()[]{}"@#^:;,?'))
-).then(P.any)
-
 export const Parser = P.createLanguage<IParser>({
 	Program(r) {
-		return P.seqMap(P.optWhitespace, r.Expr, P.optWhitespace, (_, expr) => {
+		return P.seqMap(Delimiter, r.Expr, Delimiter, (_, expr) => {
 			return expr
 		}).desc('program')
 	},
@@ -48,15 +81,15 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	NumberLiteral() {
 		return P.alt(
-			P.seq(
+			seq(
 				P.regex(/[+-]?/),
 				P.alt(
 					// Integer
-					P.seq(OneOrMoreDigits, P.string('.').atMost(1).tie()).tie(),
+					seq(OneOrMoreDigits, zeroOrOne(P.string('.'))),
 					// Float
-					P.seq(P.digits, P.string('.'), OneOrMoreDigits).tie()
+					seq(P.digits, P.string('.'), OneOrMoreDigits)
 				)
-			).tie(),
+			),
 			P.regex(/-?Infinity/),
 			P.string('NaN')
 		)
@@ -68,9 +101,7 @@ export const Parser = P.createLanguage<IParser>({
 			.desc('numeric literal')
 	},
 	StringLiteral() {
-		return P.noneOf('"')
-			.many()
-			.tie()
+		return many(P.noneOf('"'))
 			.wrap(P.string('"'), P.string('"'))
 			.map(raw => new StringLiteral(raw))
 			.desc('string literal')
@@ -91,11 +122,7 @@ export const Parser = P.createLanguage<IParser>({
 			.desc('function application')
 	},
 	Symbol() {
-		return P.seq(
-			AllowedCharForSymbol,
-			P.alt(P.digit, AllowedCharForSymbol).many().tie()
-		)
-			.tie()
+		return seq(AllowedCharForSymbol, many(P.alt(P.digit, AllowedCharForSymbol)))
 			.map(name => new Symbol(name))
 			.desc('symbol')
 	},

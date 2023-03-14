@@ -86,13 +86,17 @@ describe('parsing symbols', () => {
 
 describe('parsing line comment', () => {
 	testParsing('1;comment', num(1))
+	testParsing('1;;;;', num(1))
+	testParsing(';;;\n1;;;;', num(1))
+	testParsing(';;\n1', num(1))
+	testParsing('1;comment;comment', num(1))
+	testParsing(' ;comment\n 1 ; comment', num(1))
 	testParsing(';comment\n1', num(1))
 	testParsing('1;comment\n\n', num(1))
 	testParsing('1;comment\n;comment\n', num(1))
 	testParsing(';comment\n;comment\n1', num(1))
 	testParsing(';\n;\n1', num(1))
-	testParsing('[;comment]\n1;comment]\n]', vec([num(1)]))
-	testParsing(';;\n1', num(1))
+	testParsing('(;comment)\n1;comment)\n]', app(num(1)))
 })
 
 describe('parsing app expressions', () => {
