@@ -311,7 +311,8 @@ export class NumberLiteral extends BaseExpr {
 	}
 
 	isSameTo = (expr: Expr) =>
-		this.type === expr.type && this.value === expr.value
+		this.type === expr.type &&
+		((isNaN(this.value) && isNaN(expr.value)) || this.value === expr.value)
 
 	clone = () => new NumberLiteral(this.value)
 

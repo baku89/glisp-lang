@@ -1,6 +1,6 @@
 import P from 'parsimmon'
 
-import {App, Expr, NumberLiteral, StringLiteral} from '../expr'
+import {App, Expr, NumberLiteral, StringLiteral, Symbol} from '../expr'
 
 function zip<T1, T2, T3, T4>(
 	coll: [T1, T2, T3?, T4?][]
@@ -26,9 +26,14 @@ interface IParser {
 	NumberLiteral: NumberLiteral
 	StringLiteral: StringLiteral
 	App: App
+	Symbol: Symbol
 }
 
 const OneOrMoreDigits = P.digit.atLeast(1).tie()
+
+const AllowedCharForSymbol = P.notFollowedBy(
+	P.alt(P.digit, P.whitespace, P.oneOf('()[]{}"@#^:;,?'))
+).then(P.any)
 
 export const Parser = P.createLanguage<IParser>({
 	Program(r) {
@@ -37,7 +42,9 @@ export const Parser = P.createLanguage<IParser>({
 		}).desc('program')
 	},
 	Expr(r) {
-		return P.alt(r.NumberLiteral, r.StringLiteral, r.App).desc('expression')
+		return P.alt(r.NumberLiteral, r.StringLiteral, r.App, r.Symbol).desc(
+			'expression'
+		)
 	},
 	NumberLiteral() {
 		return P.alt(
@@ -82,5 +89,14 @@ export const Parser = P.createLanguage<IParser>({
 				return expr
 			})
 			.desc('function application')
+	},
+	Symbol() {
+		return P.seq(
+			AllowedCharForSymbol,
+			P.alt(P.digit, AllowedCharForSymbol).many().tie()
+		)
+			.tie()
+			.map(name => new Symbol(name))
+			.desc('symbol')
 	},
 })

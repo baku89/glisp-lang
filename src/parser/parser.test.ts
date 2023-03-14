@@ -13,9 +13,9 @@ import {
 	vec,
 } from '../expr'
 import {parse} from '.'
+import {Parser} from './parser.parsimmon'
 
 const all = symbol('_')
-// const never = symbol('Never')
 
 const Number = symbol('Number')
 const Boolean = symbol('Boolean')
@@ -49,32 +49,38 @@ describe('parsing literals', () => {
 	testParsing(' () ', app())
 	testParsing(' (  \t   ) ', app())
 	testParsing(' ( 0 1 2 ) ', app(num(0), num(1), num(2)))
-	// testParsing(' _ ', all)
-	// testParsing('Never', never)
 })
 
 describe('parsing symbols', () => {
-	run('foo', 'foo')
-	run('BAR', 'BAR')
-	run('true1', 'true1')
-	run('abc123 ', 'abc123')
-	run('+-*&|<=>_', '+-*&|<=>_')
-	run('変数', '変数')
-	run('🍡', '🍡')
-	// run('`a symbol with spaces`', 'a symbol with spaces')
-	// run('`    `', '    ')
-	// run('`_`', '_')
-	// run('`( )`', '( )')
-	run('symbol?', null)
-	run('10deg', null)
-	run('->', '->')
+	test('a', 'a')
+	test('$', '$')
+	test('false', 'false')
+	test('true', 'true')
+	test('foo', 'foo')
+	test('BAR', 'BAR')
+	test('true1', 'true1')
+	test('a12', 'a12')
+	test('abc12', 'abc12')
+	test('+-*&|<=>_', '+-*&|<=>_')
+	test('変数', '変数')
+	test('🍡', '🍡')
+	test('`_`', '_')
+	test('->', '->')
 
-	function run(input: string, expected: string | null) {
-		if (expected) {
-			testParsing(input, symbol(expected))
-		} else {
-			testErrorParsing(input)
-		}
+	testError('symbol?')
+	testError('10deg')
+	testError('10 20')
+
+	function test(input: string, name: string) {
+		it(`parsing ${input} to be a symbol with name '${name}'`, () => {
+			Parser.Symbol.tryParse(input).isSameTo(symbol(name))
+		})
+	}
+
+	function testError(input: string) {
+		it(`parsing ${input} throws an error`, () => {
+			expect(() => Parser.Symbol.tryParse(input)).toThrow()
+		})
 	}
 })
 
