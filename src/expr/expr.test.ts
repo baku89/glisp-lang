@@ -161,6 +161,7 @@ describe('resolving path symbols', () => {
 	test('(let x: ["first" "second"])', 'x/1', '"second"')
 	test('(+ 1 2 3 4)', './0', '+')
 	test('(+ 1 2 3 4)', './0/..', '10')
+	test('(if true 9 8)', './else', '8')
 
 	function test(input: string, path: string, expected: string) {
 		const i = parse(input)
@@ -193,6 +194,7 @@ describe('resolving path symbols', () => {
 
 describe('evaluating path symbols', () => {
 	testEval('(+ 7 ./1)', '14')
+	testEval('(if true ./else "else")', '"else"')
 	testEval('(let x: (+ 1 2) (inc ../x/1))', '2')
 	testEval('(let x: (+ 1 2) [(inc ../../x/1)])', '2')
 	testEval('(let x: {y: 1} (inc x/y))', '2')

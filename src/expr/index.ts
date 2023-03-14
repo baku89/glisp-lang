@@ -153,6 +153,7 @@ export class Symbol extends BaseExpr {
 			} else if (path == CurrentPath) {
 				// Do nothing
 			} else {
+				// path === NamePath || path === IndexPath
 				if (!isFirstPath) {
 					expr = expr.resolveSymbol(path)
 				} else {
@@ -260,7 +261,11 @@ export class ValueContainer<V extends Value = Value> extends BaseExpr {
 
 	protected forceEval = () => withLog(this.value)
 
-	protected forceInfer = () => (this.value.isType ? all : this.value)
+	protected forceInfer = () => {
+		if (this.value.isType) return all
+		if (this.value.type === 'Fn') return this.value.fnType
+		return this.value
+	}
 
 	resolveSymbol = () => null
 
