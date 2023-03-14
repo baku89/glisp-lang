@@ -21,8 +21,10 @@
 		"glisp": "./bin/glisp"
 	},
 	"dependencies": {
+		"@types/parsimmon": "^1.10.6",
 		"lodash": "^4.17.21",
-		"ordinal": "^1.0.3"
+		"ordinal": "^1.0.3",
+		"parsimmon": "^1.18.1"
 	},
 	"devDependencies": {
 		"@types/jest": "^29.4.0",
