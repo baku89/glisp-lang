@@ -12,7 +12,6 @@ export function parse(str: string, parent: InnerNode | null = null): Expr {
 		expr.parent = parent
 		return expr
 	} else {
-		console.log(result.expected, result.index)
 		return app()
 	}
 }
