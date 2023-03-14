@@ -72,9 +72,18 @@ function startRepl() {
 				expr = parse(input, replScope)
 			} catch (err) {
 				if (!(err instanceof Error)) throw err
+
+				const reason =
+					'Parsing error\n' +
+					err.message
+						.split('\n')
+						.slice(2)
+						.filter(s => !!s)
+						.join('\n')
+
 				const r = withLog(unit, {
 					level: 'error',
-					reason: err.message,
+					reason,
 					ref: expr,
 				})
 				cb(null, r)
