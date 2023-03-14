@@ -351,10 +351,10 @@ export class FnDef extends BaseExpr {
 	public readonly body?: Expr
 
 	constructor(
-		typeVars: TypeVarsDef | string[] | null | undefined,
-		params: ParamsDef | Record<string, Expr>,
-		returnType: Expr | null,
-		body: Expr | null
+		typeVars?: TypeVarsDef | string[] | null,
+		params?: ParamsDef | Record<string, Expr> | null,
+		returnType?: Expr | null,
+		body?: Expr | null
 	) {
 		super()
 
