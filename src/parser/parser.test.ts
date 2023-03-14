@@ -148,7 +148,7 @@ describe('parsing vector', () => {
 
 describe('parsing dictionary', () => {
 	testParsing('{   a:    1 }', dict({a: num(1)}))
-	testParsing('{\t"foo bar": 1\t}', dict({'foo bar': num(1)}))
+	testParsing('{\tfoo_bar: 1\t}', dict({foo_bar: num(1)}))
 	testParsing('{   }', dict({}))
 	testParsing('{a: A b: B}', dict({a: symbol('A'), b: symbol('B')}))
 	testParsing('{a: {a: 1}}', dict({a: dict({a: num(1)})}))
@@ -164,6 +164,8 @@ describe('parsing dictionary', () => {
 			symbol('c')
 		)
 	)
+
+	testErrorParsing('{"a": 0}')
 })
 
 describe('parsing parameters in function definition', () => {

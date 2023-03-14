@@ -107,11 +107,6 @@ const Delimiter = seq(
 
 const OptionalMark = zeroOrOne(P.string('?')).map(r => !!r)
 
-const StringLiteralParser = many(P.noneOf('"')).wrap(
-	P.string('"'),
-	P.string('"')
-)
-
 const SymbolParser = seq(
 	AllowedCharForSymbol,
 	many(P.alt(P.digit, AllowedCharForSymbol))
@@ -123,8 +118,6 @@ const TypeVars = P.seq(Delimiter, P.seq(SymbolParser, Delimiter).many())
 		const [items, ds] = zip(itemDs)
 		return [items, [d0, ...ds]] as [string[], string[]]
 	})
-
-const DictKey = P.alt(SymbolParser, StringLiteralParser)
 
 // Main parser
 interface IParser {
@@ -183,9 +176,10 @@ export const Parser = P.createLanguage<IParser>({
 			.desc('numeric literal')
 	},
 	StringLiteral() {
-		return StringLiteralParser.map(raw => new StringLiteral(raw)).desc(
-			'string literal'
-		)
+		return many(P.noneOf('"'))
+			.wrap(P.string('"'), P.string('"'))
+			.map(raw => new StringLiteral(raw))
+			.desc('string literal')
 	},
 	ParamsDef(r) {
 		return P.seq(
@@ -364,7 +358,7 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	DictEntry(r) {
 		return P.seq(
-			DictKey,
+			SymbolParser,
 			OptionalMark,
 			P.string(':'),
 			Delimiter,
