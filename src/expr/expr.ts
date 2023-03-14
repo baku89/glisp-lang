@@ -747,19 +747,22 @@ export class DictLiteral extends BaseExpr {
 	public readonly rest?: Expr
 
 	constructor(
-		items: Record<string, Expr> = {},
-		optionalKeys: Iterable<string> = [],
-		rest?: Expr
+		items?: Record<string, Expr> | null,
+		optionalKeys?: Iterable<string> | null,
+		rest?: Expr | null
 	) {
 		super()
 
-		this.items = items
+		this.items = items ?? {}
 		this.optionalKeys = new Set(optionalKeys)
-		this.rest = rest
+
+		if (rest) {
+			this.rest = rest
+		}
 
 		// Set parent
-		forOwn(items, it => (it.parent = this))
-		if (rest) rest.parent = this
+		forOwn(this.items, it => (it.parent = this))
+		if (this.rest) this.rest.parent = this
 	}
 
 	#isOptional(key: string) {

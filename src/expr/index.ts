@@ -79,7 +79,7 @@ export const vec = (
 ) => new VecLiteral(items, optionalPos, rest)
 
 export const dict = (
-	items: Record<string, Expr> = {},
-	optionalKeys: Iterable<string> = [],
-	rest?: Expr
+	items?: Record<string, Expr> | null,
+	optionalKeys?: Iterable<string> | null,
+	rest?: Expr | null
 ) => new DictLiteral(items, optionalKeys, rest)
