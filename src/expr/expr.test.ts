@@ -123,7 +123,7 @@ describe('inferring expression type', () => {
 
 	function test(input: string, expected: string) {
 		it(`${input} is inferred to be ${expected}`, () => {
-			const i = parse(input).infer().result
+			const i = parse(input).infer()
 			const e = parse(expected).eval().result
 
 			if (!i.isEqualTo(e)) throw new Error('Got=' + i.print())

@@ -7,7 +7,6 @@ import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
 import {isEqualSet} from '../util/isEqualSet'
 import {nullishEqual} from '../util/nullishEqual'
-import {union} from '../util/SetOperation'
 import {Writer} from '../util/Writer'
 import {zip} from '../util/zip'
 import {
@@ -15,6 +14,7 @@ import {
 	all,
 	Dict,
 	dict,
+	Fn,
 	fn,
 	FnType,
 	fnType,
@@ -76,7 +76,7 @@ export abstract class BaseExpr {
 	abstract print(options?: PrintOptions): string
 
 	protected abstract forceEval(env: Env): WithLog
-	protected abstract forceInfer(env: Env): WithLog
+	protected abstract forceInfer(env: Env): Value
 
 	abstract resolveSymbol(path: string | number, env: Env): Expr | null
 
@@ -217,21 +217,17 @@ export class Symbol extends BaseExpr {
 		return expr.eval(env).fmap(v => (shouldUseDefault ? v.defaultValue : v))
 	}
 
-	protected forceInfer = (env: Env): WithLog => {
+	protected forceInfer = (env: Env): Value => {
 		const resolved = this.resolve(env)
 
 		if (!resolved) {
-			return withLog(unit, {
-				level: 'error',
-				ref: this,
-				reason: 'Symbol not bound: ' + this.print(),
-			})
+			return unit
 		}
 
 		const {expr, mode} = resolved
 
 		if (mode) {
-			return expr.eval(env)
+			return expr.eval(env).result
 		} else {
 			return expr.infer(env)
 		}
@@ -262,7 +258,7 @@ export class ValueContainer<V extends Value = Value> extends BaseExpr {
 
 	protected forceEval = () => withLog(this.value)
 
-	protected forceInfer = () => withLog(this.value.isType ? all : this.value)
+	protected forceInfer = () => (this.value.isType ? all : this.value)
 
 	resolveSymbol = () => null
 
@@ -296,7 +292,7 @@ export class Literal extends BaseExpr {
 			typeof this.value === 'number' ? number(this.value) : string(this.value)
 		)
 
-	protected forceInfer = this.forceEval
+	protected forceInfer = () => this.forceEval().result
 
 	resolveSymbol = () => null
 
@@ -375,7 +371,7 @@ export class FnDef extends BaseExpr {
 		if (this.body) this.body.parent = this
 	}
 
-	protected forceEval = (env: Env): WithLog => {
+	protected forceEval = (env: Env): WithLog<FnType | Fn> => {
 		if (this.body) {
 			// Returns function
 			const {body} = this
@@ -392,12 +388,22 @@ export class FnDef extends BaseExpr {
 				return body.eval(innerEnv)
 			}
 
-			// fnType should be FnType as the expression is function definition
-			const [fnType, fnTypeLog] = this.forceInfer(env).asTuple
+			const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
 
-			const _fn = fn(fnType as FnType, fnObj, this.body)
+			// Then, infer the function body
+			const arg = mapValues(params, p => () => p)
+			if (rest) {
+				arg[rest.name] = () => vec([], undefined, rest.value)
+			}
 
-			return withLog(_fn, ...fnTypeLog)
+			const innerEnv = env.extend(arg)
+			const out = this.body.infer(innerEnv)
+
+			const _fnType = fnType(params, this.params.optionalPos, rest, out)
+
+			const _fn = fn(_fnType, fnObj, this.body)
+
+			return withLog(_fn, ...paramsLog)
 		} else {
 			// Returns a function type if there's no function body
 			const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
@@ -421,29 +427,10 @@ export class FnDef extends BaseExpr {
 		}
 	}
 
-	protected forceInfer = (env: Env): WithLog<FnType | All> => {
-		if (this.body) {
-			// Infer parameter types by simply evaluating 'em
-			const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
+	protected forceInfer = (env: Env): FnType | All => {
+		const fn = this.forceEval(env).result
 
-			// Then, infer the function body
-			const arg = mapValues(params, p => () => p)
-			if (rest) {
-				const {name, value} = rest
-				arg[name] = () => vec([], undefined, value)
-			}
-
-			const innerEnv = env.extend(arg)
-
-			const [out, lo] = this.body.infer(innerEnv).asTuple
-
-			const _fnType = fnType(params, this.params.optionalPos, rest, out)
-
-			return withLog(_fnType, ...paramsLog, ...lo)
-		} else {
-			// If there's no function body, the expression represents function type
-			return withLog(all)
-		}
+		return fn.type === 'Fn' ? fn.fnType : all
 	}
 
 	resolveSymbol = (path: number | string): Expr | null => {
@@ -711,12 +698,12 @@ export class VecLiteral extends BaseExpr {
 		return withLog(vec(items, this.optionalPos, rest), ...li, ...lr)
 	}
 
-	protected forceInfer = (env: Env): WithLog => {
+	protected forceInfer = (env: Env): Value => {
 		if (this.rest || this.items.length < this.optionalPos) {
-			return withLog(all)
+			return all
 		}
-		const [items, log] = Writer.map(this.items, it => it.infer(env)).asTuple
-		return withLog(vec(items), ...log)
+		const items = this.items.map(it => it.infer(env))
+		return vec(items)
 	}
 
 	resolveSymbol = (path: number | string): Expr | null => {
@@ -799,13 +786,11 @@ export class DictLiteral extends BaseExpr {
 
 	eval!: (env?: Env) => WithLog<Dict>
 
-	protected forceInfer = (env: Env): WithLog => {
-		if (this.optionalKeys.size > 0 || this.rest) return withLog(all)
+	protected forceInfer = (env: Env): Value => {
+		if (this.optionalKeys.size > 0 || this.rest) return all
 
-		const [items, logs] = Writer.mapValues(this.items, it =>
-			it.infer(env)
-		).asTuple
-		return withLog(dict(items), ...logs)
+		const items = mapValues(this.items, it => it.infer(env))
+		return dict(items)
 	}
 
 	resolveSymbol(path: string | number): Expr | null {
@@ -882,11 +867,11 @@ export class App extends BaseExpr {
 	#unify(env: Env): [Unifier, Value[], Set<Log>] {
 		if (!this.fn) throw new Error('Cannot unify unit literal')
 
-		const [fnInferred, fnLog] = this.fn.infer(env).asTuple
+		const [fn, fnLog] = this.fn.eval(env).asTuple
 
-		if (!('fnType' in fnInferred)) return [new Unifier(), [], fnLog]
+		if (!('fnType' in fn)) return [new Unifier(), [], fnLog]
 
-		const fnType = fnInferred.fnType
+		const fnType = fn.fnType
 
 		const params = values(fnType.params)
 
@@ -895,17 +880,16 @@ export class App extends BaseExpr {
 
 		// 実引数をshadowする必要があるのは、(id id) のように多相関数の引数として
 		// 自らを渡した際に、仮引数と実引数とで型変数が被るのを防ぐため
-		const [shadowedArgs, argLog] = Writer.map(args, a => {
-			const [inferred, log] = a.infer(env).asTuple
-			return withLog(shadowTypeVars(inferred), ...log)
-		}).asTuple
+		const shadowedArgs = args.map(a => {
+			return shadowTypeVars(a.infer(env))
+		})
 
 		const paramsType = vec(params, fnType.optionalPos, fnType.rest?.value)
 		const argsType = vec(shadowedArgs)
 
 		const unifier = new Unifier([paramsType, '>=', argsType])
 
-		return [unifier, shadowedArgs, union(fnLog, argLog)]
+		return [unifier, shadowedArgs, fnLog]
 	}
 
 	protected forceEval = (env: Env): WithLog => {
@@ -1034,11 +1018,11 @@ export class App extends BaseExpr {
 		return withLog(unifiedResult, ...fnLog, ...argLog, ...callLogWithRef)
 	}
 
-	protected forceInfer = (env: Env): WithLog => {
-		if (!this.fn) return this.forceEval(env)
+	protected forceInfer = (env: Env): Value => {
+		if (!this.fn) return unit
 
-		const [ty, log] = this.fn.infer(env).asTuple
-		if (!('fnType' in ty)) return withLog(ty, ...log)
+		const ty = this.fn.infer(env)
+		if (!('fnType' in ty)) return ty
 
 		/**
 		 * A function type whose return type equals to All is type constructor
@@ -1046,11 +1030,11 @@ export class App extends BaseExpr {
 		 * the expression
 		 */
 		if (ty.fnType.out.isEqualTo(all)) {
-			return this.eval(env)
+			return this.eval(env).result
 		}
 
 		const [unifier] = this.#unify(env)
-		return withLog(unifier.substitute(ty.fnType.out, true), ...log)
+		return unifier.substitute(ty.fnType.out, true)
 	}
 
 	resolveSymbol = (path: string | number): Expr | null => {
@@ -1058,7 +1042,7 @@ export class App extends BaseExpr {
 
 		// NOTE: 実引数として渡された関数の方ではなく、仮引数の方で名前を参照するべきなので、
 		// Env.globalのほうが良いのでは?
-		const [fnType] = this.fn.infer(Env.global).asTuple
+		const fnType = this.fn.infer(Env.global)
 		if (fnType.type !== 'FnType') return null
 
 		let index
@@ -1129,10 +1113,13 @@ export class Scope extends BaseExpr {
 		this.out = out
 	}
 
-	protected forceInfer = (env: Env): WithLog =>
-		this.out?.infer(env) ?? withLog(unit)
+	protected forceInfer = (env: Env): Value => {
+		return this.out?.infer(env) ?? unit
+	}
 
-	protected forceEval = (env: Env) => this.out?.eval(env) ?? Writer.of(unit)
+	protected forceEval = (env: Env) => {
+		return this.out?.eval(env) ?? Writer.of(unit)
+	}
 
 	resolveSymbol = (path: string | number): Expr | null => {
 		if (typeof path === 'number') return null
@@ -1227,11 +1214,11 @@ export class TryCatch extends BaseExpr {
 		}
 	}
 
-	protected forceInfer = (env: Env): WithLog => {
-		const [block, lb] = this.block.infer(env).asTuple
-		const [handler, lh] = this.handler.infer(env).asTuple
+	protected forceInfer = (env: Env): Value => {
+		const block = this.block.infer(env)
+		const handler = this.handler.infer(env)
 
-		return withLog(unionType(block, handler), ...lb, ...lh)
+		return unionType(block, handler)
 	}
 
 	resolveSymbol = (path: string | number): Expr | null => {
@@ -1335,9 +1322,7 @@ export class ValueMeta extends BaseExpr {
 		return withLog(expr, ...fieldLog, ...exprLog, ...metaLog)
 	}
 
-	protected forceInfer = (env: Env): WithLog<Value> => {
-		return this.expr.infer(env)
-	}
+	protected forceInfer = this.expr.infer
 
 	resolveSymbol = () => {
 		throw new Error('Cannot resolve any symbol in withMeta expression')

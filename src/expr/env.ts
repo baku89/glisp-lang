@@ -1,4 +1,5 @@
 import {WithLog} from '../log'
+import {Value} from '../value'
 import type {Arg, BaseExpr} from '.'
 
 type ArgDict = Record<string, Arg>
@@ -13,7 +14,7 @@ export class Env {
 	#outer!: Env | undefined
 	#arg: ArgDict
 	#evalCache: WeakMap<BaseExpr, WithLog> = new WeakMap()
-	#inferCache: WeakMap<BaseExpr, WithLog> = new WeakMap()
+	#inferCache: WeakMap<BaseExpr, Value> = new WeakMap()
 
 	private constructor(original: Env | undefined, arg: ArgDict) {
 		this.#outer = original
@@ -44,7 +45,7 @@ export class Env {
 		return cache
 	}
 
-	memoizeInfer(expr: BaseExpr, infer: (env: Env) => WithLog): WithLog {
+	memoizeInfer(expr: BaseExpr, infer: (env: Env) => Value): Value {
 		let cache = this.#inferCache.get(expr)
 		if (!cache) {
 			this.#inferCache.set(expr, (cache = infer(this)))
