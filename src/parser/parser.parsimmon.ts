@@ -28,6 +28,8 @@ interface IParser {
 	App: App
 }
 
+const oneOrMoreDigits = P.digit.atLeast(1).tie()
+
 export const Parser = P.createLanguage<IParser>({
 	Program(r) {
 		return P.seqMap(P.optWhitespace, r.Expr, P.optWhitespace, (_, expr) => {
@@ -40,8 +42,12 @@ export const Parser = P.createLanguage<IParser>({
 	NumberLiteral() {
 		return P.seq(
 			P.regex(/[+-]?/),
-			P.seq(P.digits, P.string('.')).tie().fallback(''),
-			P.digit.atLeast(1).tie()
+			P.alt(
+				// Integer
+				P.seq(oneOrMoreDigits, P.string('.').times(0, 1).tie()).tie(),
+				// Float
+				P.seq(P.digits, P.string('.'), oneOrMoreDigits).tie()
+			)
 		)
 			.tie()
 			.map(raw => {
