@@ -111,10 +111,10 @@ export abstract class BaseExpr {
 	getLog = () => this.eval(Env.global).log
 }
 
-type UpPath = {type: 'up'}
-type CurrentPath = {type: 'current'}
-type NamePath = {type: 'name'; name: string | number}
-type Path = UpPath | CurrentPath | NamePath
+export type UpPath = {type: 'up'}
+export type CurrentPath = {type: 'current'}
+export type NamePath = {type: 'name'; name: string | number}
+export type Path = UpPath | CurrentPath | NamePath
 
 /**
  * AST representing any identifier
@@ -265,7 +265,7 @@ export class Symbol extends BaseExpr {
 	clone = () => new Symbol(this.paths.map(p => ({...p})))
 }
 
-export const symbol = (name: string) => new Symbol(name)
+export const symbol = (paths: string | Path[]) => new Symbol(paths)
 
 /**
  * AST to directry store a value that cannot be parsed from string

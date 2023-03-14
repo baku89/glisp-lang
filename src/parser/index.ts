@@ -1,5 +1,6 @@
 import P from 'parsimmon'
 
+import type {Path} from '../expr'
 import {
 	App,
 	app,
@@ -90,7 +91,7 @@ function getOptionalPos(optionalFlags: boolean[], label: string) {
 // Internal parsers
 const OneOrMoreDigits = oneOrMore(P.digit)
 
-const Punctuation = P.oneOf('()[]{}"@#^:;,.?/\\')
+const Punctuation = P.oneOf('()[]{}"@#^:;.,?/\\')
 
 const AllowedCharForSymbol = P.notFollowedBy(
 	P.alt(P.digit, P.whitespace, Punctuation)
@@ -426,7 +427,16 @@ export const Parser = P.createLanguage<IParser>({
 			})
 	},
 	Symbol() {
-		return SymbolParser.map(name => new Symbol(name)).desc('symbol')
+		return P.notFollowedBy(P.string('...')).then(
+			P.alt<Path>(
+				P.string('..').map(() => ({type: 'up'})),
+				P.string('.').map(() => ({type: 'current'})),
+				SymbolParser.map(name => ({type: 'name', name}))
+			)
+				.sepBy1(P.string('/'))
+				.map(paths => new Symbol(paths))
+				.desc('symbol')
+		)
 	},
 	ValueMeta(r) {
 		return P.seq(P.string('^'), Delimiter, r.Expr, Delimiter, r.Expr)

@@ -87,6 +87,20 @@ describe('parsing symbols', () => {
 	}
 })
 
+describe('parsing path symbols', () => {
+	testParsing('./x', symbol([{type: 'current'}, {type: 'name', name: 'x'}]))
+	testParsing(
+		'x/y',
+		symbol([
+			{type: 'name', name: 'x'},
+			{type: 'name', name: 'y'},
+		])
+	)
+	testParsing('x/.', symbol([{type: 'name', name: 'x'}, {type: 'current'}]))
+	testParsing('../x', symbol([{type: 'up'}, {type: 'name', name: 'x'}]))
+	testParsing('x/..', symbol([{type: 'name', name: 'x'}, {type: 'up'}]))
+})
+
 describe('parsing line comment', () => {
 	testParsing('1;comment', num(1))
 	testParsing('1;;;;', num(1))
