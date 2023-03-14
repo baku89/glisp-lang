@@ -1,6 +1,5 @@
 import P from 'parsimmon'
 
-import type {Path} from '../expr'
 import {
 	App,
 	DictLiteral,
@@ -406,10 +405,21 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	Symbol() {
 		return P.notFollowedBy(P.string('...')).then(
-			P.alt<Path>(P.string('..'), P.string('.'), SymbolParser)
-				.sepBy1(P.string('/'))
-				.map(paths => new Symbol(...paths))
-				.desc('symbol')
+			P.seq(
+				P.alt(P.string('..'), P.string('.'), SymbolParser),
+				P.seq(
+					P.string('/'),
+					P.alt<string | number>(
+						P.string('..'),
+						P.string('.'),
+						SymbolParser,
+						P.regex(/([1-9][0-9]*|0)/).map(parseInt)
+					)
+				).many()
+			).map(([first, restPart]) => {
+				const [, rest] = zip(restPart)
+				return new Symbol(first, ...rest)
+			})
 		)
 	},
 	ValueMeta(r) {

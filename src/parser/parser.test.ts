@@ -91,6 +91,8 @@ describe('parsing path symbols', () => {
 	testParsing('x/.', symbol('x', '.'))
 	testParsing('../x', symbol('..', 'x'))
 	testParsing('x/..', symbol('x', '..'))
+	testParsing('./0', symbol('.', 0))
+	testParsing('x/111/222', symbol('x', 111, 222))
 })
 
 describe('parsing line comment', () => {

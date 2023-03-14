@@ -261,6 +261,8 @@ square: (=> [x:Number] (** x 2))
 
 hypot:  (=> [x:Number y:Number] (sqrt (+ (* x x) (* y y))))
 
+test: (inc 20)
+
 PI: 3.1415926535897932384626433832795028841971693993
 	`)
 )

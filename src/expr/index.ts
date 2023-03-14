@@ -112,7 +112,8 @@ export abstract class BaseExpr {
 export const UpPath = '..' as const
 export const CurrentPath = '.' as const
 export type NamePath = string
-export type Path = typeof UpPath | typeof CurrentPath | NamePath
+export type IndexPath = number
+export type Path = typeof UpPath | typeof CurrentPath | NamePath | IndexPath
 
 /**
  * AST representing any identifier
@@ -153,7 +154,7 @@ export class Symbol extends BaseExpr {
 				// Do nothing
 			} else {
 				if (!isFirstPath) {
-					expr = expr?.resolveSymbol(path)
+					expr = expr.resolveSymbol(path)
 				} else {
 					while (expr) {
 						if (expr.type === 'Scope') {
@@ -171,6 +172,9 @@ export class Symbol extends BaseExpr {
 									break
 								}
 							} else {
+								if (typeof path !== 'string') {
+									throw new Error('Invalid')
+								}
 								const arg = env.get(path)
 								if (arg) {
 									expr = new ValueContainer(arg())
@@ -1047,13 +1051,14 @@ export class App extends BaseExpr {
 
 		if (typeof path === 'string') {
 			const paramNames = keys(fnType.params)
-			index = paramNames.indexOf(path)
-			if (index === -1) return null
+			index = paramNames.indexOf(path) + 1
+			if (index <= 0) return null
 		} else {
 			index = path
 		}
 
-		return this.args[index] ?? null
+		// index begins like (fn=0 arg0=1 arg2=2 ...)
+		return (index == 0 ? this.fn : this.args[index - 1]) ?? null
 	}
 
 	print = (options?: PrintOptions): string => {
