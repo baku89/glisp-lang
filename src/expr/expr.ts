@@ -662,21 +662,28 @@ export class VecLiteral extends BaseExpr {
 	public readonly optionalPos: number
 	public readonly rest?: Expr
 
-	constructor(items: Expr[] = [], optionalPos?: number, rest?: Expr) {
+	constructor(
+		items?: Expr[] | null,
+		optionalPos?: number | null,
+		rest?: Expr | null
+	) {
 		super()
 
-		this.items = items
-		this.optionalPos = optionalPos ?? items.length
-		this.rest = rest
+		this.items = items ?? []
+		this.optionalPos = optionalPos ?? this.items.length
+
+		if (rest) {
+			this.rest = rest
+		}
 
 		// Set parent
-		items.forEach(it => (it.parent = this))
+		this.items.forEach(it => (it.parent = this))
 		if (rest) rest.parent = this
 
 		// Check if the passed optionalPos is valid
 		if (
 			this.optionalPos < 0 ||
-			items.length < this.optionalPos ||
+			this.items.length < this.optionalPos ||
 			this.optionalPos % 1 !== 0
 		)
 			throw new Error('Invalid optionalPos: ' + optionalPos)

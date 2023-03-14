@@ -72,8 +72,11 @@ export const paramsDef = (
 	rest?: {name: string; expr: Expr}
 ) => new ParamsDef(items, optionalPos, rest)
 
-export const vec = (items: Expr[] = [], optionalPos?: number, rest?: Expr) =>
-	new VecLiteral(items, optionalPos, rest)
+export const vec = (
+	items?: Expr[] | null,
+	optionalPos?: number | null,
+	rest?: Expr | null
+) => new VecLiteral(items, optionalPos, rest)
 
 export const dict = (
 	items: Record<string, Expr> = {},
