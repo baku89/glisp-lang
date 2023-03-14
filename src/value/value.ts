@@ -33,6 +33,7 @@ import {isEqualDict} from '../util/isEqualDict'
 import {isEqualSet} from '../util/isEqualSet'
 import {createUniqueName} from '../util/NameCollision'
 import {nullishEqual} from '../util/nullishEqual'
+import {union} from '../util/SetOperation'
 import {Writer} from '../util/Writer'
 import {unionType} from './TypeOperation'
 import {createFoldFn} from './walk'
@@ -586,6 +587,21 @@ export class FnType extends BaseValue implements IFnType {
 		return this.#initialDefaultValue
 	}
 
+	#typeVars?: Set<TypeVar>
+	get typeVars() {
+		if (!this.#typeVars) {
+			const tvParams = union(
+				...values(this.params).map(getTypeVars),
+				this.rest ? getTypeVars(this.rest.value) : new Set()
+			)
+
+			const tvOut = getTypeVars(this.out)
+
+			this.#typeVars = union(tvParams, tvOut)
+		}
+		return this.#typeVars
+	}
+
 	protected toExprExceptMeta = (): FnDef => {
 		// Collect all type varaibles
 		const typeVars: string[] = []
@@ -653,6 +669,7 @@ export class FnType extends BaseValue implements IFnType {
 		const value = new FnType(this.params, this.optionalPos, this.rest, this.out)
 		value.#defaultValue = this.#defaultValue
 		value.#initialDefaultValue = this.#initialDefaultValue
+		value.#typeVars = this.#typeVars
 		value.meta = this.meta
 		return value
 	}
