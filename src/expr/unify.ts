@@ -50,10 +50,13 @@ export function shadowTypeVars(ty: Value) {
 export class Unifier {
 	#lowers = new Map<TypeVar, Value>()
 	#uppers = new Map<TypeVar, Value>()
-	#isEmpty = true
 
 	constructor(...consts: Const[]) {
 		this.#addConsts(...consts)
+	}
+
+	get isEmpty() {
+		return this.#lowers.size == 0 && this.#uppers.size == 0
 	}
 
 	#getLower(tv: TypeVar) {
@@ -65,21 +68,18 @@ export class Unifier {
 	}
 
 	#setLower(tv: TypeVar, l: Value) {
-		this.#isEmpty = false
 		const nl = unionType(l, this.#getLower(tv))
 		this.#lowers.set(tv, nl)
 		this.#normalizeRange(tv)
 	}
 
 	#setUpper(tv: TypeVar, u: Value) {
-		this.#isEmpty = false
 		const nu = intersectionType(u, this.#getUpper(tv))
 		this.#uppers.set(tv, nu)
 		this.#normalizeRange(tv)
 	}
 
 	#setEqual(tv: TypeVar, e: Value) {
-		this.#isEmpty = false
 		const nl = unionType(e, this.#getLower(tv))
 		this.#lowers.set(tv, nl)
 
@@ -249,7 +249,7 @@ export class Unifier {
 	}
 
 	substitute = (value: Value, unshadow = false): Value => {
-		if (this.#isEmpty) return value
+		if (this.isEmpty) return value
 		if (value.type !== 'Fn' && !value.isType) return value
 
 		switch (value.type) {
