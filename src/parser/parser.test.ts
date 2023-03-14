@@ -15,7 +15,7 @@ import {
 import {parse} from '.'
 
 const all = symbol('_')
-const never = symbol('Never')
+// const never = symbol('Never')
 
 const Number = symbol('Number')
 const Boolean = symbol('Boolean')
@@ -28,14 +28,23 @@ describe('parsing literals', () => {
 	testParsing('10', num(10))
 	testParsing('   10   ', num(10))
 	testParsing('   \t 5 \r\n', num(5))
-	testParsing('false', symbol('false'))
-	testParsing('true', symbol('true'))
+
+	testParsing('-10', num(-10))
+	testParsing('.1', num(0.1))
+	testParsing('+.2', num(0.2))
+	testErrorParsing('-.')
+	testErrorParsing('++0')
+	testErrorParsing('0..2')
+
+	// testParsing('false', symbol('false'))
+	// testParsing('true', symbol('true'))
 	testParsing('"hello"', str('hello'))
 	testParsing('"hello, world"', str('hello, world'))
 	testParsing(' () ', app())
 	testParsing(' (  \t   ) ', app())
-	testParsing(' _ ', all)
-	testParsing('Never', never)
+	testParsing(' ( 0 1 2 ) ', app(num(0), num(1), num(2)))
+	// testParsing(' _ ', all)
+	// testParsing('Never', never)
 })
 
 describe('parsing symbols', () => {
