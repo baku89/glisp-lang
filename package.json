@@ -8,7 +8,7 @@
 	"license": "MIT",
 	"private": true,
 	"scripts": {
-		"build": "npm run build:tsc",
+		"build": "tsc",
 		"lint": "eslint src",
 		"test": "jest --slient=false",
 		"serve": "npm run test -- --watch",
