@@ -111,10 +111,10 @@ export abstract class BaseExpr {
 	getLog = () => this.eval(Env.global).log
 }
 
-export type UpPath = {type: 'up'}
-export type CurrentPath = {type: 'current'}
-export type NamePath = {type: 'name'; name: string | number}
-export type Path = UpPath | CurrentPath | NamePath
+export const UpPath = '..' as const
+export const CurrentPath = '.' as const
+export type NamePath = string
+export type Path = typeof UpPath | typeof CurrentPath | NamePath
 
 /**
  * AST representing any identifier
@@ -133,14 +133,14 @@ export class Symbol extends BaseExpr {
 			}
 			this.paths = paths
 		} else {
-			this.paths = [{type: 'name', name: paths}]
+			this.paths = [paths]
 		}
 	}
 
-	get name() {
-		if (this.paths[0].type !== 'name') throw new Error()
-		return this.paths[0].name
-	}
+	// get name() {
+	// 	if (this.paths[0].type !== 'name') throw new Error()
+	// 	return this.paths[0].name
+	// }
 
 	resolve(env: Env): {expr: Expr; mode?: 'param' | 'arg'} | null {
 		let expr: Expr | ParamsDef | null = this.parent
@@ -153,29 +153,31 @@ export class Symbol extends BaseExpr {
 				return null
 			}
 
-			if (path.type === 'name') {
-				const {name} = path
+			if (path === UpPath) {
+				expr = expr.parent
+			} else if (path == CurrentPath) {
+				// Do nothing
+			} else {
 				if (!isFirstPath) {
-					expr = expr?.resolveSymbol(name)
+					expr = expr?.resolveSymbol(path)
 				} else {
 					while (expr) {
 						if (expr.type === 'Scope') {
-							const e = expr.resolveSymbol(name)
+							const e = expr.resolveSymbol(path)
 							if (e) {
 								expr = e
 								break
 							}
 						} else if (expr.type === 'FnDef') {
 							if (env.isGlobal) {
-								const e = expr.resolveSymbol(name)
+								const e = expr.resolveSymbol(path)
 								if (e) {
 									expr = e
 									mode = 'param'
 									break
 								}
 							} else {
-								if (typeof name !== 'string') throw new Error()
-								const arg = env.get(name)
+								const arg = env.get(path)
 								if (arg) {
 									expr = new ValueContainer(arg())
 									mode = 'arg'
@@ -187,10 +189,6 @@ export class Symbol extends BaseExpr {
 						expr = expr.parent
 					}
 				}
-			} else if (path.type === 'current') {
-				// Do nothing
-			} else if (path.type === 'up') {
-				expr = expr.parent
 			}
 
 			isFirstPath = false
@@ -245,24 +243,12 @@ export class Symbol extends BaseExpr {
 
 	resolveSymbol = () => null
 
-	print = () => {
-		let strs = this.paths.map(path => {
-			if (path.type === 'up') {
-				return '..'
-			} else if (path.type === 'current') {
-				return '.'
-			} else {
-				return path.name
-			}
-		})
-
-		return strs.join('/')
-	}
+	print = () => this.paths.join('/')
 
 	isSameTo = (expr: AnyExpr) =>
 		this.type === expr.type && this.print() === expr.print()
 
-	clone = () => new Symbol(this.paths.map(p => ({...p})))
+	clone = () => new Symbol([...this.paths])
 }
 
 export const symbol = (paths: string | Path[]) => new Symbol(paths)

@@ -428,11 +428,7 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	Symbol() {
 		return P.notFollowedBy(P.string('...')).then(
-			P.alt<Path>(
-				P.string('..').map(() => ({type: 'up'})),
-				P.string('.').map(() => ({type: 'current'})),
-				SymbolParser.map(name => ({type: 'name', name}))
-			)
+			P.alt<Path>(P.string('..'), P.string('.'), SymbolParser)
 				.sepBy1(P.string('/'))
 				.map(paths => new Symbol(paths))
 				.desc('symbol')
