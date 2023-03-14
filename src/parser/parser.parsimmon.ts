@@ -114,8 +114,8 @@ const SymbolParser = seq(
 
 const TypeVars = P.seq(Delimiter, P.seq(SymbolParser, Delimiter).many())
 	.wrap(P.string('('), P.string(')'))
-	.map(([d0, itemDs]) => {
-		const [items, ds] = zip(itemDs)
+	.map(([d0, ItemsPart]) => {
+		const [items, ds] = zip(ItemsPart)
 		return [items, [d0, ...ds]] as [string[], string[]]
 	})
 
@@ -343,9 +343,9 @@ export const Parser = P.createLanguage<IParser>({
 			opt(P.seq(P.string('...'), r.Expr, Delimiter))
 		)
 			.wrap(P.string('['), P.string(']'))
-			.map(([d0, itemDs, restDs]) => {
-				const [items, optionalFlags, ds] = zip(itemDs)
-				const [, rest, dl] = restDs ?? [null, null, null]
+			.map(([d0, ItemsPart, RestPart]) => {
+				const [items, optionalFlags, ds] = zip(ItemsPart)
+				const [, rest, dl] = RestPart ?? [null, null, null]
 
 				const optionalPos = getOptionalPos(optionalFlags, 'item')
 
