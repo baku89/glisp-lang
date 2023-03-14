@@ -3,7 +3,6 @@ import P from 'parsimmon'
 import type {Path} from '../expr'
 import {
 	App,
-	app,
 	DictLiteral,
 	Expr,
 	FnDef,
@@ -425,20 +424,12 @@ export const Parser = P.createLanguage<IParser>({
 })
 
 export function parse(str: string, parent: InnerNode | null = null): Expr {
-	const result = Parser.Program.parse(str)
-	if (result.status) {
-		const expr = result.value
-		expr.parent = parent
-		return expr
-	} else {
-		return app()
-	}
+	const expr = Parser.Program.tryParse(str)
+	expr.parent = parent
+	return expr
 }
 
 export function parseModule(str: string): Record<string, Expr> {
-	const result = Parser.Scope.parse('(let ' + str + ')')
-
-	if (!result.status) return {}
-
-	return result.value.items
+	const expr = Parser.Scope.tryParse('(let ' + str + ')')
+	return expr.items
 }
