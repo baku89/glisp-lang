@@ -124,8 +124,9 @@ describe('parsing scope', () => {
 })
 
 describe('parsing vector', () => {
-	testParsing('\t[   ]  ', vec())
-	testParsing('[    1   \t]', vec([num(1)]))
+	testParsing('[]', vec())
+	testParsing('[   ]', vec())
+	testParsing('[    1  ]', vec([num(1)]))
 	testParsing('[1 2 3]', vec([num(1), num(2), num(3)]))
 	testParsing('[1 [2] 3]', vec([num(1), vec([num(2)]), num(3)]))
 	testParsing('[1[2] 3]', vec([num(1), vec([num(2)]), num(3)]))
@@ -138,6 +139,7 @@ describe('parsing vector', () => {
 	testParsing('[1? ...2]', vec([num(1)], 0, num(2)))
 	testParsing('[1 2?]', vec([num(1), num(2)], 1))
 	testParsing('[1 2? 3? ...4]', vec([num(1), num(2), num(3)], 1, num(4)))
+
 	testErrorParsing('[1? 2]')
 	testErrorParsing('[1? 2 3? 4?]')
 })

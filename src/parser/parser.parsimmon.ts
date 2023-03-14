@@ -1,6 +1,13 @@
 import P from 'parsimmon'
 
-import {App, Expr, NumberLiteral, StringLiteral, Symbol} from '../expr'
+import {
+	App,
+	Expr,
+	NumberLiteral,
+	StringLiteral,
+	Symbol,
+	VecLiteral,
+} from '../expr'
 
 function zip<T1, T2, T3, T4>(
 	coll: [T1, T2, T3?, T4?][]
@@ -37,10 +44,30 @@ function seq(...parsers: P.Parser<string>[]) {
 	return P.seq(...parsers).tie()
 }
 
+function getOptionalPos(optionalFlags: boolean[], label: string) {
+	let optionalPos = optionalFlags.length
+	let i = 0
+
+	for (; i < optionalFlags.length; i++) {
+		if (optionalFlags[i]) {
+			optionalPos = i
+			break
+		}
+	}
+
+	for (i++; i < optionalFlags.length; i++) {
+		if (!optionalFlags[i]) {
+			throw new Error(`A required ${label} cannot follow an optional ${label}`)
+		}
+	}
+
+	return optionalPos
+}
+
 // Internal parsers
 const OneOrMoreDigits = oneOrMore(P.digit)
 
-const Punctuation = P.oneOf('()[]{}"@#^:;,?\\')
+const Punctuation = P.oneOf('()[]{}"@#^:;,.?\\')
 
 const AllowedCharForSymbol = P.notFollowedBy(
 	P.alt(P.digit, P.whitespace, Punctuation)
@@ -65,6 +92,7 @@ interface IParser {
 	NumberLiteral: NumberLiteral
 	StringLiteral: StringLiteral
 	App: App
+	VecLiteral: VecLiteral
 	Symbol: Symbol
 }
 
@@ -75,9 +103,13 @@ export const Parser = P.createLanguage<IParser>({
 		}).desc('program')
 	},
 	Expr(r) {
-		return P.alt(r.NumberLiteral, r.StringLiteral, r.App, r.Symbol).desc(
-			'expression'
-		)
+		return P.alt(
+			r.NumberLiteral,
+			r.StringLiteral,
+			r.App,
+			r.VecLiteral,
+			r.Symbol
+		).desc('expression')
 	},
 	NumberLiteral() {
 		return P.alt(
@@ -120,6 +152,32 @@ export const Parser = P.createLanguage<IParser>({
 				return expr
 			})
 			.desc('function application')
+	},
+	VecLiteral(r) {
+		return P.seq(
+			Delimiter,
+			// Items part
+			P.seq(
+				r.Expr,
+				zeroOrOne(P.string('?')).map(r => !!r),
+				Delimiter
+			).many(),
+			// Rest part
+			P.seq(P.string('...'), r.Expr, Delimiter).atMost(1)
+		)
+			.wrap(P.string('['), P.string(']'))
+			.map(([d0, itemDs, restDs]) => {
+				const [items, optionalFlags, ds] = zip(itemDs)
+				const [, rest, dl] = restDs[0] ?? [null, undefined, null]
+
+				const optionalPos = getOptionalPos(optionalFlags, 'item')
+
+				const delimiters = [d0, ...ds, ...(dl !== null ? [dl] : [])]
+
+				const expr = new VecLiteral(items, optionalPos, rest)
+				expr.extras = {delimiters}
+				return expr
+			})
 	},
 	Symbol() {
 		return seq(AllowedCharForSymbol, many(P.alt(P.digit, AllowedCharForSymbol)))
