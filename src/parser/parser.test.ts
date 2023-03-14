@@ -1,6 +1,6 @@
 import {
 	app,
-	dict,
+	dictLiteral as dict,
 	Expr,
 	fnDef,
 	numberLiteral as num,
@@ -11,7 +11,7 @@ import {
 	symbol,
 	tryCatch,
 	valueMeta,
-	vec,
+	vecLiteral as vec,
 } from '../expr'
 import {parse} from '.'
 import {Parser} from '.'

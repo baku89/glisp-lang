@@ -1,5 +1,5 @@
 import {WithLog} from '../log'
-import type {Arg, BaseExpr} from './expr'
+import type {Arg, BaseExpr} from '.'
 
 type ArgDict = Record<string, Arg>
 

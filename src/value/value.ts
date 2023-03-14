@@ -12,8 +12,8 @@ import {
 	App,
 	app,
 	Arg,
-	dict,
 	DictLiteral,
+	dictLiteral,
 	Expr,
 	FnDef,
 	fnDef,
@@ -24,7 +24,7 @@ import {
 	symbol,
 	valueContainer,
 	valueMeta,
-	vec,
+	vecLiteral,
 } from '../expr'
 import {getTypeVars} from '../expr/unify'
 import {Log, withLog} from '../log'
@@ -102,7 +102,7 @@ abstract class BaseValue {
 				metaItems = {default: defaultValue, ...metaItems}
 			}
 
-			return valueMeta(dict(metaItems), expr)
+			return valueMeta(dictLiteral(metaItems), expr)
 		} else {
 			return expr
 		}
@@ -722,7 +722,7 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 
 	protected toExprExceptMeta = (): Expr => {
 		const items = this.items.map(it => it.toExpr())
-		return vec(items, this.optionalPos, this.rest?.toExpr())
+		return vecLiteral(items, this.optionalPos, this.rest?.toExpr())
 	}
 
 	isEqualTo = (value: Value) =>
@@ -833,7 +833,7 @@ export class Dict<
 
 	protected toExprExceptMeta = (): DictLiteral => {
 		const items = mapValues(this.items, it => it.toExpr())
-		return dict(items, this.optionalKeys, this.rest?.toExpr())
+		return dictLiteral(items, this.optionalKeys, this.rest?.toExpr())
 	}
 
 	toExpr!: () => DictLiteral
