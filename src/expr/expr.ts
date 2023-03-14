@@ -847,8 +847,12 @@ export class App extends BaseExpr {
 		const fnType = fnInferred.fnType
 
 		const params = values(fnType.params)
+
+		// 可変長引数関数では無い限り、余分な実引数は無視する
 		const args = fnType.rest ? this.args : this.args.slice(0, params.length)
 
+		// 実引数をshadowする必要があるのは、(id id) のように多相関数の引数として
+		// 自らを渡した際に、仮引数と実引数とで型変数が被るのを防ぐため
 		const [shadowedArgs, argLog] = Writer.map(args, a => {
 			const [inferred, log] = a.infer(env).asTuple
 			return withLog(shadowTypeVars(inferred), ...log)
