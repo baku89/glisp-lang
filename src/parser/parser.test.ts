@@ -111,7 +111,7 @@ describe('parsing app expressions', () => {
 })
 
 describe('parsing scope', () => {
-	testParsing('(let)', scope({}))
+	testParsing('(let)', scope())
 	testParsing('(let 10)', scope({}, num(10)))
 	testParsing('(let x: 1 x)', scope({x: num(1)}, x))
 	testParsing('(let x: 1)', scope({x: num(1)}))

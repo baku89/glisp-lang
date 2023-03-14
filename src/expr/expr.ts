@@ -1069,12 +1069,18 @@ export class App extends BaseExpr {
 export class Scope extends BaseExpr {
 	readonly type = 'Scope' as const
 
-	constructor(public readonly items: Record<string, Expr>, public out?: Expr) {
+	public readonly items: Record<string, Expr>
+	public readonly out?: Expr
+
+	constructor(items: Record<string, Expr> = {}, out?: Expr) {
 		super()
 
 		// Set parent
 		forOwn(items, v => (v.parent = this))
 		if (out) out.parent = this
+
+		this.items = items
+		this.out = out
 	}
 
 	protected forceInfer = (env: Env): WithLog =>

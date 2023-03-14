@@ -51,7 +51,7 @@ export const stringLiteral = (value: string) => new StringLiteral(value)
 
 export const app = (fn?: Expr, ...args: Expr[]) => new App(fn, ...args)
 
-export const scope = (items: Record<string, Expr>, ret?: Expr) =>
+export const scope = (items?: Record<string, Expr>, ret?: Expr) =>
 	new Scope(items, ret)
 
 export const tryCatch = (block: Expr, handler: Expr) =>
