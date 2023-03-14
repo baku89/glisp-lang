@@ -263,20 +263,20 @@ export const Parser = P.createLanguage<IParser>({
 	DictLiteral(r) {
 		return P.seq(
 			Delimiter,
-			// Items part
+			// Pairs part
 			r.DictEntry.many(),
 			// Rest part
-			P.seq(P.string('...'), r.Expr, Delimiter).atMost(1)
+			opt(P.seq(P.string('...'), r.Expr, Delimiter))
 		)
 			.wrap(P.string('{'), P.string('}'))
-			.map(([d0, entries, restDs]) => {
-				const [, rest, dl] = restDs[0] ?? [null, undefined, null]
+			.map(([d0, pairsPart, restPart]) => {
+				const [, rest, dl] = restPart ?? [null, null, null]
 
 				const optionalKeys = new Set<string>()
 				const delimiters = [d0]
 
 				const items: DictLiteral['items'] = {}
-				for (const [key, optional, value, ds] of entries) {
+				for (const [key, optional, value, ds] of pairsPart) {
 					if (key in items) throw new Error(`Duplicated key: ${key}`)
 
 					items[key] = value
