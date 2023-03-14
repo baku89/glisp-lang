@@ -14,7 +14,7 @@ import {
 	vec,
 } from '../expr'
 import {parse} from '.'
-import {Parser} from './parser.parsimmon'
+import {Parser} from '.'
 
 const all = symbol('_')
 
