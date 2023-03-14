@@ -312,7 +312,12 @@ function testParsing(input: string, expected: Expr) {
 	test(`parsing '${input}' to be ${expected.print()}`, () => {
 		const result = parse(input)
 		if (!result.isSameTo(expected)) {
-			throw new Error('Not as same as expected, got=' + result.print())
+			throw new Error(
+				'Not as same as expected, got=' +
+					result.print() +
+					' with type ' +
+					result.type
+			)
 		}
 		// if (result.print() !== input) {
 		// 	throw new Error(`Doesn't store CST properly, got='${result.print()}'`)
