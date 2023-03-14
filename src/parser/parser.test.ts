@@ -49,32 +49,32 @@ describe('parsing literals', () => {
 })
 
 describe('parsing symbols', () => {
-	test('a', 'a')
-	test('$', '$')
-	test('false', 'false')
-	test('true', 'true')
-	test('foo', 'foo')
-	test('BAR', 'BAR')
-	test('true1', 'true1')
-	test('a12', 'a12')
-	test('abc12', 'abc12')
-	test('+-*&|<=>_', '+-*&|<=>_')
-	test('変数', '変数')
-	test('🍡', '🍡')
-	test('`_`', '_')
-	test('->', '->')
+	testParsing('a', 'a')
+	testParsing('$', '$')
+	testParsing('false', 'false')
+	testParsing('true', 'true')
+	testParsing('foo', 'foo')
+	testParsing('BAR', 'BAR')
+	testParsing('true1', 'true1')
+	testParsing('a12', 'a12')
+	testParsing('abc12', 'abc12')
+	testParsing('+-*&|<=>_', '+-*&|<=>_')
+	testParsing('変数', '変数')
+	testParsing('🍡', '🍡')
+	testParsing('`_`', '_')
+	testParsing('->', '->')
 
-	testError('symbol?')
-	testError('10deg')
-	testError('10 20')
+	testErrorParsing('symbol?')
+	testErrorParsing('10deg')
+	testErrorParsing('10 20')
 
-	function test(input: string, name: string) {
+	function testParsing(input: string, name: string) {
 		it(`parsing ${input} to be a symbol with name '${name}'`, () => {
 			Parser.Symbol.tryParse(input).isSameTo(symbol(name))
 		})
 	}
 
-	function testError(input: string) {
+	function testErrorParsing(input: string) {
 		it(`parsing ${input} throws an error`, () => {
 			expect(() => Parser.Symbol.tryParse(input)).toThrow()
 		})
