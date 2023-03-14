@@ -9,7 +9,7 @@ describe('functions in the prelude module', () => {
 	testEval('(< 4 (if true 1 2))', 'false')
 	testEval('(! true)', 'false')
 	testEval('(isEven 2)', 'true')
-	testEval('(/ 15 5)', '3')
+	testEval('(div 15 5)', '3')
 	testEval('(% 5 2)', '1')
 	testEval('(** 6 3)', '216')
 	testEval('(- 10 9)', '1')

@@ -90,7 +90,7 @@ function getOptionalPos(optionalFlags: boolean[], label: string) {
 // Internal parsers
 const OneOrMoreDigits = oneOrMore(P.digit)
 
-const Punctuation = P.oneOf('()[]{}"@#^:;,.?\\')
+const Punctuation = P.oneOf('()[]{}"@#^:;,.?/\\')
 
 const AllowedCharForSymbol = P.notFollowedBy(
 	P.alt(P.digit, P.whitespace, Punctuation)

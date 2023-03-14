@@ -118,7 +118,7 @@ PreludeScope.defs({
 	'*': defn('(=> [...xs:^{default: 1} Number]: Number)', (...xs: Number[]) =>
 		number(xs.reduce((prod, x) => prod * x.value, 1))
 	),
-	'/': defn('(=> [...xs:^{default: 1} Number]: Number)', (...xs: Number[]) => {
+	div: defn('(=> [...xs:^{default: 1} Number]: Number)', (...xs: Number[]) => {
 		switch (xs.length) {
 			case 0:
 				return number(1)

@@ -68,6 +68,11 @@ describe('parsing symbols', () => {
 	testErrorParsing('symbol?')
 	testErrorParsing('10deg')
 	testErrorParsing('10 20')
+	testErrorParsing('/')
+	testErrorParsing('@')
+	testErrorParsing('try')
+	testErrorParsing('=>')
+	testErrorParsing(';')
 
 	function testParsing(input: string, name: string) {
 		it(`parsing ${input} to be a symbol with name '${name}'`, () => {
