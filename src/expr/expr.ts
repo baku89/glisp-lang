@@ -520,18 +520,22 @@ export class ParamsDef {
 	readonly type = 'ParamsDef' as const
 	parent!: FnDef
 
+	public items: Record<string, Expr>
 	public optionalPos: number
+	public rest?: {name: string; expr: Expr}
 
 	constructor(
-		public items: Record<string, Expr>,
-		optionalPos?: number,
-		public rest?: {name: string; expr: Expr}
+		items?: Record<string, Expr> | null,
+		optionalPos?: number | null,
+		rest?: ParamsDef['rest'] | null
 	) {
-		this.optionalPos = optionalPos ?? values(items).length
+		this.items = items ?? {}
+		this.optionalPos = optionalPos ?? values(this.items).length
+		if (rest) this.rest = rest
 
 		// Set parent
-		forOwn(items, p => (p.parent = this))
-		if (rest) rest.expr.parent = this
+		forOwn(this.items, p => (p.parent = this))
+		if (this.rest) this.rest.expr.parent = this
 	}
 
 	eval = (env: Env) => {

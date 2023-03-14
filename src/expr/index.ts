@@ -67,9 +67,9 @@ export const fnDef = (
 ) => new FnDef(typeVars, param, returnType, body)
 
 export const paramsDef = (
-	items: Record<string, Expr>,
-	optionalPos: number,
-	rest?: {name: string; expr: Expr}
+	items?: Record<string, Expr> | null,
+	optionalPos?: number | null,
+	rest?: ParamsDef['rest'] | null
 ) => new ParamsDef(items, optionalPos, rest)
 
 export const vec = (
