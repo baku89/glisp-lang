@@ -55,6 +55,14 @@ function opt<T>(parser: P.Parser<T>): P.Parser<T | null> {
 	return parser.atMost(1).map(result => result[0] ?? null)
 }
 
+/**
+ * Check if the boolean array is like [...false, ...true],
+ * and returns the first index of element with true.
+ * e.g.
+ * [false, true true] => 1
+ * [true] => 0
+ * [false, true, false] => Error
+ */
 function getOptionalPos(optionalFlags: boolean[], label: string) {
 	let optionalPos = optionalFlags.length
 	let i = 0
