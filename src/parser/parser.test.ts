@@ -292,6 +292,7 @@ describe('parsing try catch', () => {
 	testParsing('(try+())', app(symbol('try+'), app()))
 })
 
+/*
 describe('parsing expression metadata', () => {
 	// testParsing('layer#{}', symbol('layer').setNodeMeta(new NodeMeta(dict())))
 	// testParsing(
@@ -307,6 +308,7 @@ describe('parsing expression metadata', () => {
 	// testErrorParsing('layer#{}#{}')
 	// testErrorParsing('Number#{}^0')
 })
+*/
 
 function testParsing(input: string, expected: Expr) {
 	test(`parsing '${input}' to be ${expected.print()}`, () => {
