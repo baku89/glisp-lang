@@ -35,6 +35,8 @@ import {shadowTypeVars, Unifier} from './unify'
 
 export type Expr = AtomExpr | InnerNode
 
+export type AnyExpr = Expr | ParamsDef
+
 /**
  * ASTs that cannot have child elements
  */
@@ -84,7 +86,7 @@ export abstract class BaseExpr {
 	 * デリミタ、数値リテラルの表記ゆれ、辞書式の順序は区別しない
 	 * 主にパーサーのテストコード用
 	 */
-	abstract isSameTo(expr: Expr): boolean
+	abstract isSameTo(expr: AnyExpr): boolean
 
 	abstract clone(): Expr
 
@@ -254,7 +256,7 @@ export class Symbol extends BaseExpr {
 		return strs.join('/')
 	}
 
-	isSameTo = (expr: Expr) =>
+	isSameTo = (expr: AnyExpr) =>
 		this.type === expr.type && this.print() === expr.print()
 
 	clone = () => new Symbol(this.paths.map(p => ({...p})))
@@ -283,7 +285,7 @@ export class ValueContainer<V extends Value = Value> extends BaseExpr {
 		return `<value container of ${this.value.type}>`
 	}
 
-	isSameTo = (expr: Expr) =>
+	isSameTo = (expr: AnyExpr) =>
 		this.type === expr.type && this.value === expr.value
 
 	clone = () => new ValueContainer(this.value)
@@ -310,7 +312,7 @@ export class NumberLiteral extends BaseExpr {
 		return this.extras.raw
 	}
 
-	isSameTo = (expr: Expr) =>
+	isSameTo = (expr: AnyExpr) =>
 		this.type === expr.type &&
 		((isNaN(this.value) && isNaN(expr.value)) || this.value === expr.value)
 
@@ -334,7 +336,7 @@ export class StringLiteral extends BaseExpr {
 
 	print = () => '"' + this.value + '"'
 
-	isSameTo = (expr: Expr) =>
+	isSameTo = (expr: AnyExpr) =>
 		this.type === expr.type && this.value === expr.value
 
 	clone = () => new StringLiteral(this.value)
@@ -499,7 +501,7 @@ export class FnDef extends BaseExpr {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (expr: Expr) =>
+	isSameTo = (expr: AnyExpr) =>
 		this.type === expr.type &&
 		nullishEqual(this.typeVars, expr.typeVars, TypeVarsDef.isSame) &&
 		this.params.isSameTo(expr.params) &&
@@ -619,8 +621,9 @@ export class ParamsDef {
 		}
 	}
 
-	isSameTo = (expr: ParamsDef): boolean => {
+	isSameTo = (expr: AnyExpr): boolean => {
 		return (
+			this.type === expr.type &&
 			isEqualDict(this.items, expr.items, isSame) &&
 			this.optionalPos === expr.optionalPos &&
 			nullishEqual(
@@ -733,7 +736,7 @@ export class VecLiteral extends BaseExpr {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (expr: Expr): boolean =>
+	isSameTo = (expr: AnyExpr): boolean =>
 		this.type === expr.type &&
 		isEqualArray(this.items, expr.items, isSame) &&
 		this.optionalPos === expr.optionalPos &&
@@ -822,7 +825,7 @@ export class DictLiteral extends BaseExpr {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (expr: Expr): boolean =>
+	isSameTo = (expr: AnyExpr): boolean =>
 		this.type === expr.type &&
 		isEqualDict(this.items, expr.items, isSame) &&
 		isEqualSet(this.optionalKeys, expr.optionalKeys) &&
@@ -1074,7 +1077,7 @@ export class App extends BaseExpr {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (expr: Expr) =>
+	isSameTo = (expr: AnyExpr) =>
 		this.type === expr.type && isEqualArray(this.args, expr.args, isSame)
 
 	clone = (): App => new App(this.fn, ...this.args.map(clone))
@@ -1128,7 +1131,7 @@ export class Scope extends BaseExpr {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (expr: Expr) =>
+	isSameTo = (expr: AnyExpr) =>
 		this.type === expr.type &&
 		nullishEqual(this.out, expr.out, isSame) &&
 		isEqualDict(this.items, expr.items, isSame)
@@ -1222,7 +1225,7 @@ export class TryCatch extends BaseExpr {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (expr: Expr): boolean =>
+	isSameTo = (expr: AnyExpr): boolean =>
 		this.type === expr.type &&
 		this.block.isSameTo(expr.block) &&
 		nullishEqual(this.handler, expr.handler, isSame)
@@ -1300,7 +1303,7 @@ export class ValueMeta extends BaseExpr {
 
 	clone = (): ValueMeta => new ValueMeta(this.fields.clone(), this.expr.clone())
 
-	isSameTo = (expr: Expr): boolean => {
+	isSameTo = (expr: AnyExpr): boolean => {
 		return (
 			this.type === expr.type &&
 			this.fields.isSameTo(expr.fields) &&
