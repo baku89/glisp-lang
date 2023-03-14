@@ -28,7 +28,7 @@ interface IParser {
 	App: App
 }
 
-const oneOrMoreDigits = P.digit.atLeast(1).tie()
+const OneOrMoreDigits = P.digit.atLeast(1).tie()
 
 export const Parser = P.createLanguage<IParser>({
 	Program(r) {
@@ -44,9 +44,9 @@ export const Parser = P.createLanguage<IParser>({
 			P.regex(/[+-]?/),
 			P.alt(
 				// Integer
-				P.seq(oneOrMoreDigits, P.string('.').atMost(1).tie()).tie(),
+				P.seq(OneOrMoreDigits, P.string('.').atMost(1).tie()).tie(),
 				// Float
-				P.seq(P.digits, P.string('.'), oneOrMoreDigits).tie()
+				P.seq(P.digits, P.string('.'), OneOrMoreDigits).tie()
 			)
 		)
 			.tie()
