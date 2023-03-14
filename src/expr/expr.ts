@@ -877,9 +877,11 @@ export class App extends BaseExpr {
 			})
 		}
 
+		const {fnType} = fn
+
 		// Start function application
-		const names = keys(fn.fnType.params)
-		const params = values(fn.fnType.params)
+		const names = keys(fnType.params)
+		const params = values(fnType.params)
 
 		// Unify FnType and args
 		const [unifier, shadowedArgs, argLog] = this.#unify(env)
@@ -931,8 +933,8 @@ export class App extends BaseExpr {
 		})
 
 		// For rest argument
-		if (fn.fnType.rest) {
-			const {name, value: pType} = fn.fnType.rest
+		if (fnType.rest) {
+			const {name, value: pType} = fnType.rest
 
 			for (let i = unifiedParams.length; i < this.args.length; i++) {
 				const aType = unifiedArgs[i]
@@ -963,9 +965,6 @@ export class App extends BaseExpr {
 				}
 			}
 		}
-
-		// Also binds unified types for type variables
-		this.fn
 
 		// Call the function
 		let result: Value, appLog: Set<Log | Omit<Log, 'ref'>>
