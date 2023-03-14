@@ -137,7 +137,7 @@ export class Symbol extends BaseExpr {
 	// 	return this.paths[0].name
 	// }
 
-	resolve(env: Env): {expr: Expr; mode?: 'param' | 'arg'} | null {
+	resolve(env: Env = Env.global): {expr: Expr; mode?: 'param' | 'arg'} | null {
 		let expr: Expr | ParamsDef | null = this.parent
 
 		let isFirstPath = true
@@ -1041,15 +1041,14 @@ export class App extends BaseExpr {
 
 	resolveSymbol = (path: string | number): Expr | null => {
 		if (!this.fn) return null
-
-		// NOTE: 実引数として渡された関数の方ではなく、仮引数の方で名前を参照するべきなので、
-		// Env.globalのほうが良いのでは?
-		const fnType = this.fn.infer(Env.global)
-		if (fnType.type !== 'FnType') return null
-
 		let index
 
 		if (typeof path === 'string') {
+			// NOTE: 実引数として渡された関数の方ではなく、仮引数の方で名前を参照するべきなので、
+			// Env.globalのほうが良いのでは?
+			const fnType = this.fn.infer(Env.global)
+			if (fnType.type !== 'FnType') return null
+
 			const paramNames = keys(fnType.params)
 			index = paramNames.indexOf(path) + 1
 			if (index <= 0) return null
