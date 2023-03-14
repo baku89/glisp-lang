@@ -10,6 +10,7 @@ import {
 	Scope,
 	StringLiteral,
 	Symbol,
+	ValueMeta,
 	VecLiteral,
 } from '../expr'
 
@@ -134,6 +135,7 @@ interface IParser {
 	DictEntry: [string, boolean, Expr, [string, string]]
 	DictLiteral: DictLiteral
 	Symbol: Symbol
+	ValueMeta: ValueMeta
 }
 
 export const Parser = P.createLanguage<IParser>({
@@ -151,7 +153,8 @@ export const Parser = P.createLanguage<IParser>({
 			r.App,
 			r.VecLiteral,
 			r.DictLiteral,
-			r.Symbol
+			r.Symbol,
+			r.ValueMeta
 		).desc('expression')
 	},
 	NumberLiteral() {
@@ -400,5 +403,14 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	Symbol() {
 		return SymbolParser.map(name => new Symbol(name)).desc('symbol')
+	},
+	ValueMeta(r) {
+		return P.seq(P.string('^'), Delimiter, r.Expr, Delimiter, r.Expr)
+			.map(([, d0, fields, d1, expr]) => {
+				const meta = new ValueMeta(fields, expr)
+				meta.extras = {delimiters: [d0, d1]}
+				return meta
+			})
+			.desc('value metadata')
 	},
 })
