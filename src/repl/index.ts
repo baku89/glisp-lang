@@ -8,7 +8,16 @@ import {GlispError} from '../GlispError'
 import {Log, WithLog, withLog} from '../log'
 import {parse} from '../parser'
 import {PreludeScope} from '../std/prelude'
-import {all, fn, primType, String, StringType, unit, Value} from '../value'
+import {
+	all,
+	fn,
+	fnType,
+	primType,
+	String,
+	StringType,
+	unit,
+	Value,
+} from '../value'
 
 const IO = primType('IO', () => {
 	return
@@ -40,8 +49,7 @@ const replScope = PreludeScope.extend({
 	IO: valueContainer(IO),
 	def: valueContainer(
 		fn(
-			{name: StringType, value: all},
-			IO,
+			fnType({name: StringType, value: all}, IO),
 			(name: Arg<String>, value: Arg<Value>) =>
 				withLog(
 					IO.of(() => {
