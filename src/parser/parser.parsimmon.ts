@@ -5,6 +5,7 @@ import {
 	DictLiteral,
 	Expr,
 	NumberLiteral,
+	Scope,
 	StringLiteral,
 	Symbol,
 	VecLiteral,
@@ -108,6 +109,8 @@ interface IParser {
 	NumberLiteral: NumberLiteral
 	StringLiteral: StringLiteral
 	App: App
+	ScopeEntry: [string, Expr, [string, string]]
+	Scope: Scope
 	VecLiteral: VecLiteral
 	DictEntry: [string, boolean, Expr, [string, string]]
 	DictLiteral: DictLiteral
@@ -124,6 +127,7 @@ export const Parser = P.createLanguage<IParser>({
 		return P.alt(
 			r.NumberLiteral,
 			r.StringLiteral,
+			r.Scope,
 			r.App,
 			r.VecLiteral,
 			r.DictLiteral,
@@ -170,6 +174,47 @@ export const Parser = P.createLanguage<IParser>({
 				return expr
 			})
 			.desc('function application')
+	},
+	ScopeEntry(r) {
+		return P.seqMap(
+			SymbolParser,
+			P.string(':'),
+			Delimiter,
+			r.Expr,
+			Delimiter,
+			(name, _, d0, expr, d1) => [name, expr, [d0, d1]]
+		)
+	},
+	Scope(r) {
+		return P.seq(
+			Delimiter,
+			P.string('let'),
+			oneOrMore(Delimiter),
+			r.ScopeEntry.many(),
+			r.Expr.atMost(1),
+			Delimiter
+		)
+			.wrap(P.string('('), P.string(')'))
+			.map(([d0, , d1, entries, [out], dl]) => {
+				const items: Scope['items'] = {}
+				const delimiters = [d0, d1]
+
+				for (const [name, expr, ds] of entries) {
+					if (name in items)
+						throw new Error(`Duplicated symbol name: '${name}'`)
+
+					items[name] = expr
+
+					delimiters.push(...ds)
+				}
+
+				delimiters.push(dl)
+
+				const expr = new Scope(items, out)
+				expr.extras = {delimiters}
+				return expr
+			})
+			.desc('scope')
 	},
 	VecLiteral(r) {
 		return P.seq(

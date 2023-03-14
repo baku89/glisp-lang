@@ -111,11 +111,12 @@ describe('parsing app expressions', () => {
 })
 
 describe('parsing scope', () => {
+	testParsing('(let)', scope({}))
+	testParsing('(let 10)', scope({}, num(10)))
 	testParsing('(let x: 1 x)', scope({x: num(1)}, x))
 	testParsing('(let x: 1)', scope({x: num(1)}))
 	testParsing('(let x: (let x: 1))', scope({x: scope({x: num(1)})}))
 	testParsing('(let (let 1))', scope({}, scope({}, num(1))))
-	testParsing('(let)', scope({}))
 	testParsing('(let x:[]y:[]z)', scope({x: vec(), y: vec()}, symbol('z')))
 
 	testParsing('(let+ 20)', app(symbol('let+'), num(20)))
