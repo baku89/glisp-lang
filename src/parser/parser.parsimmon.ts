@@ -234,12 +234,12 @@ export const Parser = P.createLanguage<IParser>({
 			// Items part
 			P.seq(r.Expr, OptionalMark, Delimiter).many(),
 			// Rest part
-			P.seq(P.string('...'), r.Expr, Delimiter).atMost(1)
+			opt(P.seq(P.string('...'), r.Expr, Delimiter))
 		)
 			.wrap(P.string('['), P.string(']'))
 			.map(([d0, itemDs, restDs]) => {
 				const [items, optionalFlags, ds] = zip(itemDs)
-				const [, rest, dl] = restDs[0] ?? [null, undefined, null]
+				const [, rest, dl] = restDs ?? [null, null, null]
 
 				const optionalPos = getOptionalPos(optionalFlags, 'item')
 
