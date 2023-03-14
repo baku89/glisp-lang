@@ -40,16 +40,19 @@ export const Parser = P.createLanguage<IParser>({
 		return P.alt(r.NumberLiteral, r.StringLiteral, r.App).desc('expression')
 	},
 	NumberLiteral() {
-		return P.seq(
-			P.regex(/[+-]?/),
-			P.alt(
-				// Integer
-				P.seq(OneOrMoreDigits, P.string('.').atMost(1).tie()).tie(),
-				// Float
-				P.seq(P.digits, P.string('.'), OneOrMoreDigits).tie()
-			)
+		return P.alt(
+			P.seq(
+				P.regex(/[+-]?/),
+				P.alt(
+					// Integer
+					P.seq(OneOrMoreDigits, P.string('.').atMost(1).tie()).tie(),
+					// Float
+					P.seq(P.digits, P.string('.'), OneOrMoreDigits).tie()
+				)
+			).tie(),
+			P.regex(/-?Infinity/),
+			P.string('NaN')
 		)
-			.tie()
 			.map(raw => {
 				const expr = new NumberLiteral(parseFloat(raw))
 				expr.extras = {raw}

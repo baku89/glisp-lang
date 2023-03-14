@@ -35,13 +35,15 @@ describe('parsing literals', () => {
 	testParsing('5.', num(5))
 	testParsing('-0.', num(0))
 	testParsing('003', num(3))
+	testParsing('Infinity', num(Infinity))
+	testParsing('-Infinity', num(-Infinity))
+	testParsing('NaN', num(NaN))
+
 	testErrorParsing('.')
 	testErrorParsing('-.')
 	testErrorParsing('++0')
 	testErrorParsing('0..2')
 
-	// testParsing('false', symbol('false'))
-	// testParsing('true', symbol('true'))
 	testParsing('"hello"', str('hello'))
 	testParsing('"hello, world"', str('hello, world'))
 	testParsing(' () ', app())
