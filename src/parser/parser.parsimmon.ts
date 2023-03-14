@@ -4,6 +4,7 @@ import {
 	App,
 	DictLiteral,
 	Expr,
+	FnDef,
 	NumberLiteral,
 	ParamsDef,
 	Scope,
@@ -108,6 +109,13 @@ const SymbolParser = seq(
 	many(P.alt(P.digit, AllowedCharForSymbol))
 )
 
+const TypeVars = P.seq(Delimiter, P.seq(SymbolParser, Delimiter).many())
+	.wrap(P.string('('), P.string(')'))
+	.map(([d0, itemDs]) => {
+		const [items, ds] = zip(itemDs)
+		return [items, [d0, ...ds]] as [string[], string[]]
+	})
+
 const DictKey = P.alt(SymbolParser, StringLiteralParser)
 
 // Main parser
@@ -116,10 +124,11 @@ interface IParser {
 	Expr: Expr
 	NumberLiteral: NumberLiteral
 	StringLiteral: StringLiteral
-	App: App
 	ScopeEntry: [string, Expr, [string, string]]
 	Scope: Scope
 	ParamsDef: ParamsDef
+	FnDef: FnDef
+	App: App
 	VecLiteral: VecLiteral
 	DictEntry: [string, boolean, Expr, [string, string]]
 	DictLiteral: DictLiteral
@@ -137,6 +146,7 @@ export const Parser = P.createLanguage<IParser>({
 			r.NumberLiteral,
 			r.StringLiteral,
 			r.Scope,
+			r.FnDef,
 			r.App,
 			r.VecLiteral,
 			r.DictLiteral,
@@ -214,6 +224,52 @@ export const Parser = P.createLanguage<IParser>({
 				expr.extras = {delimiters}
 				return expr
 			})
+	},
+	FnDef(r) {
+		return P.seqMap(
+			Delimiter,
+			P.string('=>'),
+			Delimiter,
+			// Type variables part
+			opt(P.seq(TypeVars, Delimiter)),
+			// Parameters part
+			r.ParamsDef,
+			Delimiter,
+			// Return type part
+			opt(P.seq(P.string(':'), Delimiter, r.Expr, Delimiter)),
+			// Body part
+			opt(P.seq(r.Expr, Delimiter)),
+			(d0, _, d1, typeVarsPart, paramsDef, d4, returnTypePart, bodyPart) => {
+				const delimiters = [d0, d1]
+
+				let typeVars: string[] | null = null
+				if (typeVarsPart) {
+					const [[_typeVars, d2s], d3] = typeVarsPart
+					typeVars = _typeVars
+					delimiters.push(...d2s, d3)
+				}
+
+				delimiters.push(d4)
+
+				let returnType: Expr | null = null
+				if (returnTypePart) {
+					const [, d5, _returnType, d6] = returnTypePart
+					returnType = _returnType
+					delimiters.push(d5, d6)
+				}
+
+				let body: Expr | null = null
+				if (bodyPart) {
+					const [_body, d7] = bodyPart
+					body = _body
+					delimiters.push(d7)
+				}
+
+				const expr = new FnDef(typeVars, paramsDef, returnType, body)
+				expr.extras = {delimiters}
+				return expr
+			}
+		).wrap(P.string('('), P.string(')'))
 	},
 	App(r) {
 		return P.seq(Delimiter, P.seq(r.Expr, Delimiter).many())
