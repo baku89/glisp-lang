@@ -46,9 +46,6 @@ describe('parsing literals', () => {
 
 	testParsing('"hello"', str('hello'))
 	testParsing('"hello, world"', str('hello, world'))
-	testParsing(' () ', app())
-	testParsing(' (  \t   ) ', app())
-	testParsing(' ( 0 1 2 ) ', app(num(0), num(1), num(2)))
 })
 
 describe('parsing symbols', () => {
@@ -100,6 +97,9 @@ describe('parsing line comment', () => {
 })
 
 describe('parsing app expressions', () => {
+	testParsing(' () ', app())
+	testParsing(' (  \t   ) ', app())
+	testParsing(' ( 0 1 2 ) ', app(num(0), num(1), num(2)))
 	testParsing('(+ 1 2)', app(symbol('+'), num(1), num(2)))
 	testParsing('(* 1 2)', app(symbol('*'), num(1), num(2)))
 	testParsing('(()2())', app(app(), num(2), app()))

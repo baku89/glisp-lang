@@ -107,7 +107,7 @@ export const Parser = P.createLanguage<IParser>({
 			.desc('string literal')
 	},
 	App(r) {
-		return P.seq(P.optWhitespace, P.seq(r.Expr, P.optWhitespace).many())
+		return P.seq(Delimiter, P.seq(r.Expr, Delimiter).many())
 			.wrap(P.string('('), P.string(')'))
 			.map(([d0, itemDs]) => {
 				const [items, ds] = zip(itemDs)
