@@ -105,7 +105,7 @@ describe('parsing line comment', () => {
 	testParsing('1;comment\n;comment\n', literal(1))
 	testParsing(';comment\n;comment\n1', literal(1))
 	testParsing(';\n;\n1', literal(1))
-	testParsing('(;comment)\n1;comment)\n]', app(literal(1)))
+	testParsing('(;comment)\n1;comment)\n)', app(literal(1)))
 })
 
 describe('parsing app expressions', () => {
