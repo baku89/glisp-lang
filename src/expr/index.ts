@@ -60,8 +60,8 @@ export const tryCatch = (block: Expr, handler: Expr) =>
 export const valueMeta = (meta: Expr, value: Expr) => new ValueMeta(meta, value)
 
 export const fnDef = (
-	typeVars: TypeVarsDef | string[] | null | undefined,
-	param: ParamsDef | Record<string, Expr>,
+	typeVars?: TypeVarsDef | string[] | null,
+	param?: ParamsDef | Record<string, Expr> | null,
 	returnType?: Expr | null,
 	body?: Expr | null
 ) => new FnDef(typeVars, param, returnType, body)
