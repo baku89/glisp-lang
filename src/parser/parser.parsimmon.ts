@@ -44,7 +44,7 @@ export const Parser = P.createLanguage<IParser>({
 			P.regex(/[+-]?/),
 			P.alt(
 				// Integer
-				P.seq(oneOrMoreDigits, P.string('.').times(0, 1).tie()).tie(),
+				P.seq(oneOrMoreDigits, P.string('.').atMost(1).tie()).tie(),
 				// Float
 				P.seq(P.digits, P.string('.'), oneOrMoreDigits).tie()
 			)
