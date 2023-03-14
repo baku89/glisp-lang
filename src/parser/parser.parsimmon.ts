@@ -2,6 +2,7 @@ import P from 'parsimmon'
 
 import {
 	App,
+	DictLiteral,
 	Expr,
 	NumberLiteral,
 	StringLiteral,
@@ -85,8 +86,22 @@ const Delimiter = seq(
 	many(seq(zeroOrOne(Comment), P.newline, many(Whitespace))),
 	zeroOrOne(Comment.skip(P.eof))
 ).desc('delimiter')
+
+const OptionalMark = zeroOrOne(P.string('?')).map(r => !!r)
+
+const StringLiteralParser = many(P.noneOf('"')).wrap(
+	P.string('"'),
+	P.string('"')
 )
 
+const SymbolParser = seq(
+	AllowedCharForSymbol,
+	many(P.alt(P.digit, AllowedCharForSymbol))
+)
+
+const DictKey = P.alt(SymbolParser, StringLiteralParser)
+
+// Main parser
 interface IParser {
 	Program: Expr
 	Expr: Expr
@@ -94,6 +109,8 @@ interface IParser {
 	StringLiteral: StringLiteral
 	App: App
 	VecLiteral: VecLiteral
+	DictEntry: [string, boolean, Expr, [string, string]]
+	DictLiteral: DictLiteral
 	Symbol: Symbol
 }
 
@@ -109,6 +126,7 @@ export const Parser = P.createLanguage<IParser>({
 			r.StringLiteral,
 			r.App,
 			r.VecLiteral,
+			r.DictLiteral,
 			r.Symbol
 		).desc('expression')
 	},
@@ -157,11 +175,7 @@ export const Parser = P.createLanguage<IParser>({
 		return P.seq(
 			Delimiter,
 			// Items part
-			P.seq(
-				r.Expr,
-				zeroOrOne(P.string('?')).map(r => !!r),
-				Delimiter
-			).many(),
+			P.seq(r.Expr, OptionalMark, Delimiter).many(),
 			// Rest part
 			P.seq(P.string('...'), r.Expr, Delimiter).atMost(1)
 		)
@@ -179,9 +193,49 @@ export const Parser = P.createLanguage<IParser>({
 				return expr
 			})
 	},
+	DictEntry(r) {
+		return P.seq(
+			DictKey,
+			OptionalMark,
+			P.string(':'),
+			Delimiter,
+			r.Expr,
+			Delimiter
+		).map(([key, optional, , d0, expr, d1]) => [key, optional, expr, [d0, d1]])
+	},
+	DictLiteral(r) {
+		return P.seq(
+			Delimiter,
+			// Items part
+			r.DictEntry.many(),
+			// Rest part
+			P.seq(P.string('...'), r.Expr, Delimiter).atMost(1)
+		)
+			.wrap(P.string('{'), P.string('}'))
+			.map(([d0, entries, restDs]) => {
+				const [, rest, dl] = restDs[0] ?? [null, undefined, null]
+
+				const optionalKeys = new Set<string>()
+				const delimiters = [d0]
+
+				const items: DictLiteral['items'] = {}
+				for (const [key, optional, value, ds] of entries) {
+					if (key in items) throw new Error(`Duplicated key: ${key}`)
+
+					items[key] = value
+					if (optional) optionalKeys.add(key)
+
+					delimiters.push(...ds)
+				}
+
+				if (dl !== null) delimiters.push(dl)
+
+				const expr = new DictLiteral(items, optionalKeys, rest)
+				expr.extras = {delimiters}
+				return expr
+			})
+	},
 	Symbol() {
-		return seq(AllowedCharForSymbol, many(P.alt(P.digit, AllowedCharForSymbol)))
-			.map(name => new Symbol(name))
-			.desc('symbol')
+		return SymbolParser.map(name => new Symbol(name)).desc('symbol')
 	},
 })
