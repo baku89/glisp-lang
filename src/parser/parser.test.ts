@@ -88,11 +88,11 @@ describe('parsing symbols', () => {
 })
 
 describe('parsing path symbols', () => {
-	testParsing('./x', symbol(['.', 'x']))
-	testParsing('x/y', symbol(['x', 'y']))
-	testParsing('x/.', symbol(['x', '.']))
-	testParsing('../x', symbol(['..', 'x']))
-	testParsing('x/..', symbol(['x', '..']))
+	testParsing('./x', symbol('.', 'x'))
+	testParsing('x/y', symbol('x', 'y'))
+	testParsing('x/.', symbol('x', '.'))
+	testParsing('../x', symbol('..', 'x'))
+	testParsing('x/..', symbol('x', '..'))
 })
 
 describe('parsing line comment', () => {

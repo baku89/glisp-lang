@@ -430,7 +430,7 @@ export const Parser = P.createLanguage<IParser>({
 		return P.notFollowedBy(P.string('...')).then(
 			P.alt<Path>(P.string('..'), P.string('.'), SymbolParser)
 				.sepBy1(P.string('/'))
-				.map(paths => new Symbol(paths))
+				.map(paths => new Symbol(...paths))
 				.desc('symbol')
 		)
 	},

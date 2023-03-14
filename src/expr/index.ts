@@ -124,17 +124,13 @@ export class Symbol extends BaseExpr {
 
 	public readonly paths: Path[]
 
-	constructor(paths: string | Path[]) {
+	constructor(...paths: Path[]) {
 		super()
 
-		if (Array.isArray(paths)) {
-			if (paths.length === 0) {
-				throw new Error('Zero-length path cannot be set to a new Symbol')
-			}
-			this.paths = paths
-		} else {
-			this.paths = [paths]
+		if (paths.length === 0) {
+			throw new Error('Zero-length path cannot be set to a new Symbol')
 		}
+		this.paths = paths
 	}
 
 	// get name() {
@@ -248,10 +244,10 @@ export class Symbol extends BaseExpr {
 	isSameTo = (expr: AnyExpr) =>
 		this.type === expr.type && this.print() === expr.print()
 
-	clone = () => new Symbol([...this.paths])
+	clone = () => new Symbol(...this.paths)
 }
 
-export const symbol = (paths: string | Path[]) => new Symbol(paths)
+export const symbol = (...paths: Path[]) => new Symbol(...paths)
 
 /**
  * AST to directry store a value that cannot be parsed from string
