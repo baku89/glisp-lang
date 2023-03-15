@@ -1,5 +1,6 @@
+import {tryParse} from '..'
 import {Parser} from '../parser'
-import {parse, testEval} from '../util/TestUtil'
+import {testEval} from '../util/TestUtil'
 import {
 	all,
 	dict,
@@ -125,8 +126,8 @@ describe('inferring expression type', () => {
 
 	function test(input: string, expected: string) {
 		it(`${input} is inferred to be ${expected}`, () => {
-			const i = parse(input).infer()
-			const e = parse(expected).eval().result
+			const i = tryParse(input).infer()
+			const e = tryParse(expected).eval().result
 
 			if (!i.isEqualTo(e)) throw new Error('Got=' + i.print())
 		})
@@ -141,8 +142,10 @@ describe('evaluating function body', () => {
 
 	function test(input: string, expected: string) {
 		it(`body of ${input} should evaluate to ${expected}`, () => {
-			const i = parse(input)
-			const e = parse(expected).eval().result
+			const i = tryParse(input).expr
+			const e = tryParse(expected).eval().result
+
+			if (!i) throw new Error('Empty program')
 
 			if (i.type !== 'FnDef')
 				throw new Error('Not a function. Got=' + i.print())
@@ -165,11 +168,12 @@ describe('resolving path symbols', () => {
 	test('(if true 9 8)', './else', '8')
 
 	function test(input: string, path: string, expected: string) {
-		const i = parse(input)
+		const i = tryParse(input).expr
 		const s = Parser.Symbol.tryParse(path)
-		const e = parse(expected).eval().result
+		const e = tryParse(expected).eval().result
 
 		if (
+			!i ||
 			i.type === 'Literal' ||
 			i.type === 'ValueContainer' ||
 			i.type === 'Symbol'

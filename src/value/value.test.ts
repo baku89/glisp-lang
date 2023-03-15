@@ -1,4 +1,4 @@
-import {evaluate, parse} from '../util/TestUtil'
+import {tryParse} from '..'
 import {Value} from './value'
 
 describe('value equality', () => {
@@ -19,7 +19,7 @@ describe('value equality', () => {
 
 	function test(input: string) {
 		it(`${input} equals to itself`, () => {
-			const value = parse(input).eval().result
+			const value = tryParse(input).eval().result
 			expect(value.isEqualTo(value)).toBe(true)
 		})
 	}
@@ -107,8 +107,8 @@ describe('subtyping', () => {
 
 	function test(xInput: string, yInput: string, expected: '<' | '=' | '!=') {
 		it(`${xInput} ${expected} ${yInput}`, () => {
-			const x = evaluate(parse(xInput))
-			const y = evaluate(parse(yInput))
+			const x = tryParse(xInput).eval().result
+			const y = tryParse(yInput).eval().result
 
 			const [x2y, y2x] =
 				expected === '<'
@@ -150,7 +150,7 @@ describe('checking type or atom', () => {
 
 	function test(input: string, isType: boolean) {
 		it(input + ' is ' + (isType ? 'type' : 'an atom'), () => {
-			const expr = evaluate(parse(input))
+			const expr = tryParse(input).eval().result
 			expect(expr.isType).toBe(isType)
 		})
 	}
@@ -188,8 +188,8 @@ describe('instance relationship', () => {
 
 	function test(i: string, t: string, expected = true) {
 		it(`${i} is ${expected ? '' : 'not '}a instance of ${t}`, () => {
-			const iv = parse(i)
-			const tv = evaluate(parse(t))
+			const iv = tryParse(i)
+			const tv = tryParse(t).eval().result
 			expect(iv.infer().isSubtypeOf(tv)).toBe(expected)
 		})
 	}
@@ -234,8 +234,8 @@ describe('default values of types', () => {
 		const eString = fn ? `(=> [] ${expected})` : expected
 
 		it(`default value of '${input}' is '${eString}'`, () => {
-			let dv: Value = parse(input).eval().result.defaultValue
-			const ev = parse(expected).eval().result
+			let dv: Value = tryParse(input).eval().result.defaultValue
+			const ev = tryParse(expected).eval().result
 
 			if (fn) {
 				if (dv.type !== 'Fn') throw new Error('Got=' + dv.print())

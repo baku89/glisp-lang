@@ -332,13 +332,16 @@ describe('parsing expression metadata', () => {
 
 function testParsing(input: string, expected: Expr) {
 	test(`parsing '${input}' to be ${expected.print()}`, () => {
-		const result = parse(input)
-		if (!result.isSameTo(expected)) {
+		let result = parse(input)
+		if (!result.expr) throw new Error('Empty program')
+		const {expr} = result
+
+		if (!expr.isSameTo(expected)) {
 			throw new Error(
 				'Not as same as expected, got=' +
-					result.print() +
+					expr.print() +
 					' with type ' +
-					result.type
+					expr.type
 			)
 		}
 		// if (result.print() !== input) {
