@@ -278,6 +278,11 @@ de-indent@^1.0.2:
   resolved "https://registry.yarnpkg.com/de-indent/-/de-indent-1.0.2.tgz#b2038e846dc33baa5796128d0804b455b8c1e21d"
   integrity sha512-e/1zu3xH5MQryN2zdVaF0OrdNLUbvWxzMbi+iNA6Bky7l1RoP8a2fIbRocyHclXt/arDrrR6lL3TqFD9pMQTsg==
 
+destyle.css@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/destyle.css/-/destyle.css-4.0.0.tgz#fa4843efa058e9977b82dfebdb98bbacdacf80d9"
+  integrity sha512-yE2SpDRZdqfEZRkYSIxSWSuh4Higsm01VinAWC3hny9DDV+NjBARpCEqf6TLDTWka1I7pu4bDJ68aF1WjLPKUw==
+
 esbuild@^0.16.14:
   version "0.16.17"
   resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.16.17.tgz#fc2c3914c57ee750635fee71b89f615f25065259"

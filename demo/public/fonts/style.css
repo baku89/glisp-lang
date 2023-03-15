@@ -1,0 +1,26 @@
+@font-face {
+	font-family: 'Gestures';
+	src: url('Gestures-Regular.woff2') format('woff2'),
+		url('Gestures-Regular.woff') format('woff');
+}
+
+@font-face {
+	font-family: 'Gestures';
+	src: url('Gestures-Medium.woff2') format('woff2'),
+		url('Gestures-Medium.woff') format('woff');
+	font-weight: 500;
+}
+
+@font-face {
+	font-family: 'Gestures';
+	src: url('Gestures-Bold.woff2') format('woff2'),
+		url('Gestures-Bold.woff') format('woff');
+	font-weight: 700;
+}
+
+@font-face {
+	font-family: 'Gestures';
+	src: url('Gestures-Heavy.woff2') format('woff2'),
+		url('Gestures-Heavy.woff') format('woff');
+	font-weight: 900;
+}
