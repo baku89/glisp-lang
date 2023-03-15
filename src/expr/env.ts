@@ -37,18 +37,18 @@ export class Env {
 		return this.#arg[name]
 	}
 
-	memoizeEval(expr: BaseExpr, evaluate: (env: Env) => WithLog): WithLog {
+	memoizeEval(expr: BaseExpr): WithLog {
 		let cache = this.#evalCache.get(expr)
 		if (!cache) {
-			this.#evalCache.set(expr, (cache = evaluate(this)))
+			this.#evalCache.set(expr, (cache = expr.forceEval(this)))
 		}
 		return cache
 	}
 
-	memoizeInfer(expr: BaseExpr, infer: (env: Env) => Value): Value {
+	memoizeInfer(expr: BaseExpr): Value {
 		let cache = this.#inferCache.get(expr)
 		if (!cache) {
-			this.#inferCache.set(expr, (cache = infer(this)))
+			this.#inferCache.set(expr, (cache = expr.forceInfer(this)))
 		}
 		return cache
 	}

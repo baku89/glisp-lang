@@ -76,8 +76,8 @@ export abstract class BaseExpr {
 
 	abstract print(options?: PrintOptions): string
 
-	protected abstract forceEval(env: Env): WithLog
-	protected abstract forceInfer(env: Env): Value
+	abstract forceEval(env: Env): WithLog
+	abstract forceInfer(env: Env): Value
 
 	abstract resolveSymbol(path: string | number, env: Env): Expr | null
 
@@ -102,11 +102,11 @@ export abstract class BaseExpr {
 	*/
 
 	eval(env = Env.global) {
-		return env.memoizeEval(this, this.forceEval)
+		return env.memoizeEval(this)
 	}
 
 	infer(env = Env.global) {
-		return env.memoizeInfer(this, this.forceInfer)
+		return env.memoizeInfer(this)
 	}
 }
 
@@ -126,14 +126,14 @@ export class Program extends BaseExpr {
 		if (this.expr) this.expr.parent = this
 	}
 
-	protected forceEval = (env: Env) => {
+	forceEval(env: Env) {
 		if (!this.expr) {
 			return withLog(unit, {level: 'error', reason: 'Empty program'})
 		}
 		return this.expr.eval(env)
 	}
 
-	protected forceInfer = (env: Env) => {
+	forceInfer(env: Env) {
 		if (!this.expr) return unit
 		return this.expr.infer(env)
 	}
@@ -142,7 +142,7 @@ export class Program extends BaseExpr {
 		return null
 	}
 
-	print = (options?: PrintOptions): string => {
+	print(options?: PrintOptions): string {
 		if (this.expr) {
 			return this.before + this.expr.print(options) + this.after
 		} else {
@@ -150,11 +150,11 @@ export class Program extends BaseExpr {
 		}
 	}
 
-	clone = (): Program => {
+	clone(): Program {
 		return new Program(this.before, this.expr?.clone(), this.after)
 	}
 
-	isSameTo = (expr: AnyExpr): boolean => {
+	isSameTo(expr: AnyExpr): boolean {
 		if (this.type !== expr.type) return false
 		return nullishEqual(this.expr, expr.expr, isSame)
 	}
@@ -259,7 +259,7 @@ export class Symbol extends BaseExpr {
 		return {expr, mode}
 	}
 
-	protected forceEval = (env: Env): WithLog => {
+	forceEval(env: Env): WithLog {
 		const resolved = this.resolve(env)
 
 		if (!resolved) {
@@ -279,7 +279,7 @@ export class Symbol extends BaseExpr {
 		return expr.eval(env).fmap(v => (shouldUseDefault ? v.defaultValue : v))
 	}
 
-	protected forceInfer = (env: Env): Value => {
+	forceInfer(env: Env): Value {
 		const resolved = this.resolve(env)
 
 		if (!resolved) {
@@ -295,14 +295,21 @@ export class Symbol extends BaseExpr {
 		}
 	}
 
-	resolveSymbol = () => null
+	resolveSymbol() {
+		return null
+	}
 
-	print = () => this.paths.join('/')
+	print() {
+		return this.paths.join('/')
+	}
 
-	isSameTo = (expr: AnyExpr) =>
-		this.type === expr.type && this.print() === expr.print()
+	isSameTo(expr: AnyExpr) {
+		return this.type === expr.type && this.print() === expr.print()
+	}
 
-	clone = () => new Symbol(...this.paths)
+	clone() {
+		return new Symbol(...this.paths)
+	}
 }
 
 export const symbol = (...paths: Path[]) => new Symbol(...paths)
@@ -318,26 +325,33 @@ export class ValueContainer<V extends Value = Value> extends BaseExpr {
 		super()
 	}
 
-	protected forceEval = () => withLog(this.value)
+	forceEval() {
+		return withLog(this.value)
+	}
 
-	protected forceInfer = () => {
+	forceInfer() {
 		if (this.value.isType) return all
 		if (this.value.type === 'Fn') return this.value.fnType
 		return this.value
 	}
 
-	resolveSymbol = () => null
+	resolveSymbol() {
+		return null
+	}
 
-	print = (options?: PrintOptions) => {
+	print(options?: PrintOptions) {
 		const expr = this.value.toExpr()
 		if (expr.type !== this.type) return expr.print(options)
 		return `<value container of ${this.value.type}>`
 	}
 
-	isSameTo = (expr: AnyExpr) =>
-		this.type === expr.type && this.value === expr.value
+	isSameTo(expr: AnyExpr) {
+		return this.type === expr.type && this.value === expr.value
+	}
 
-	clone = () => new ValueContainer(this.value)
+	clone() {
+		return new ValueContainer(this.value)
+	}
 }
 
 export const valueContainer = <V extends Value = Value>(value: V) =>
@@ -353,16 +367,21 @@ export class Literal extends BaseExpr {
 		super()
 	}
 
-	protected forceEval = () =>
-		withLog(
+	forceEval() {
+		return withLog(
 			typeof this.value === 'number' ? number(this.value) : string(this.value)
 		)
+	}
 
-	protected forceInfer = () => this.forceEval().result
+	forceInfer() {
+		return this.forceEval().result
+	}
 
-	resolveSymbol = () => null
+	resolveSymbol() {
+		return null
+	}
 
-	print = () => {
+	print() {
 		if (!this.extras) {
 			this.extras = {raw: this.value.toString()}
 		}
@@ -374,7 +393,7 @@ export class Literal extends BaseExpr {
 		}
 	}
 
-	isSameTo = (expr: AnyExpr) => {
+	isSameTo(expr: AnyExpr) {
 		if (this.type !== expr.type) return false
 		if (typeof this.value === 'number' && typeof expr.value === 'number') {
 			return (
@@ -384,7 +403,9 @@ export class Literal extends BaseExpr {
 		return this.value === expr.value
 	}
 
-	clone = () => new Literal(this.value)
+	clone() {
+		return new Literal(this.value)
+	}
 
 	extras?: {raw: string}
 }
@@ -437,7 +458,7 @@ export class FnDef extends BaseExpr {
 		if (this.body) this.body.parent = this
 	}
 
-	protected forceEval = (env: Env): WithLog<FnType | Fn> => {
+	forceEval(env: Env): WithLog<FnType | Fn> {
 		// In either case, params need to be evaluated
 		const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
 		const {optionalPos} = this.params
@@ -531,7 +552,7 @@ export class FnDef extends BaseExpr {
 		}
 	}
 
-	protected forceInfer = (env: Env): FnType | All => {
+	forceInfer(env: Env): FnType | All {
 		// To be honest, I wanted to infer the function type
 		// without evaluating it, but it works anyway and should be less buggy.
 		const fn = this.eval(env).result
@@ -543,7 +564,7 @@ export class FnDef extends BaseExpr {
 			  all
 	}
 
-	resolveSymbol = (path: number | string): Expr | null => {
+	resolveSymbol(path: number | string): Expr | null {
 		if (typeof path === 'number') return null
 
 		const typeVar = this.typeVars?.get(path)
@@ -565,7 +586,7 @@ export class FnDef extends BaseExpr {
 		// }
 	}
 
-	print = (options?: PrintOptions): string => {
+	print(options?: PrintOptions): string {
 		if (!this.extras) {
 			const delimiters = ['', ' ']
 			if (this.typeVars) delimiters.push(' ')
@@ -591,14 +612,17 @@ export class FnDef extends BaseExpr {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (expr: AnyExpr) =>
-		this.type === expr.type &&
-		nullishEqual(this.typeVars, expr.typeVars, TypeVarsDef.isSame) &&
-		this.params.isSameTo(expr.params) &&
-		nullishEqual(this.returnType, expr.returnType, isSame) &&
-		nullishEqual(this.body, expr.body, isSame)
+	isSameTo(expr: AnyExpr) {
+		return (
+			this.type === expr.type &&
+			nullishEqual(this.typeVars, expr.typeVars, TypeVarsDef.isSame) &&
+			this.params.isSameTo(expr.params) &&
+			nullishEqual(this.returnType, expr.returnType, isSame) &&
+			nullishEqual(this.body, expr.body, isSame)
+		)
+	}
 
-	clone = (): FnDef => {
+	clone(): FnDef {
 		return new FnDef(
 			this.typeVars?.clone(),
 			this.params.clone(),
@@ -640,7 +664,7 @@ export class ParamsDef {
 		if (this.rest) this.rest.expr.parent = this
 	}
 
-	eval = (env: Env) => {
+	eval(env: Env) {
 		// Infer parameter types by simply evaluating 'em
 		const [params, lp] = Writer.mapValues(this.items, p => p.eval(env)).asTuple
 
@@ -656,13 +680,13 @@ export class ParamsDef {
 		return Writer.of({params, rest}, ...lp, ...lr)
 	}
 
-	resolveSymbol = (path: number | string): Expr | null => {
+	resolveSymbol(path: number | string): Expr | null {
 		if (typeof path !== 'string') return null
 
 		return this.items[path] ?? null
 	}
 
-	print = (options?: PrintOptions) => {
+	print(options?: PrintOptions) {
 		const params = entries(this.items)
 		const {optionalPos, rest} = this
 
@@ -688,7 +712,7 @@ export class ParamsDef {
 
 	extras?: {delimiters: string[]}
 
-	clone = () => {
+	clone() {
 		return new ParamsDef(
 			mapValues(this.items, clone),
 			this.optionalPos,
@@ -698,14 +722,14 @@ export class ParamsDef {
 		)
 	}
 
-	getNames = () => {
+	getNames() {
 		return {
 			names: keys(this.items),
 			restName: this.rest?.name,
 		}
 	}
 
-	get = (name: string, env: Env) => {
+	get(name: string, env: Env) {
 		if (name in this.items) {
 			return Writer.of<Expr, Log>(this.items[name])
 		}
@@ -716,7 +740,7 @@ export class ParamsDef {
 		}
 	}
 
-	isSameTo = (expr: AnyExpr): boolean => {
+	isSameTo(expr: AnyExpr): boolean {
 		return (
 			this.type === expr.type &&
 			isEqualDict(this.items, expr.items, isSame) &&
@@ -743,9 +767,11 @@ export class TypeVarsDef {
 		this.typeVars = fromPairs(names.map(name => [name, typeVar(name)]))
 	}
 
-	get = (name: string): TypeVar | undefined => this.typeVars[name]
+	get(name: string): TypeVar | undefined {
+		return this.typeVars[name]
+	}
 
-	print = () => {
+	print() {
 		if (!this.extras) {
 			const delimiters = createListDelimiters(this.names.length)
 			this.extras = {delimiters}
@@ -756,7 +782,9 @@ export class TypeVarsDef {
 
 	extras?: {delimiters: string[]}
 
-	clone = () => new TypeVarsDef(this.names)
+	clone() {
+		return new TypeVarsDef(this.names)
+	}
 
 	static isSame(a: TypeVarsDef, b: TypeVarsDef) {
 		return isEqualArray(a.names, b.names)
@@ -797,13 +825,13 @@ export class VecLiteral extends BaseExpr {
 			throw new Error('Invalid optionalPos: ' + optionalPos)
 	}
 
-	protected forceEval = (env: Env): WithLog => {
+	forceEval(env: Env): WithLog {
 		const [items, li] = Writer.map(this.items, i => i.eval(env)).asTuple
 		const [rest, lr] = this.rest?.eval(env).asTuple ?? [undefined, []]
 		return withLog(vec(items, this.optionalPos, rest), ...li, ...lr)
 	}
 
-	protected forceInfer = (env: Env): Value => {
+	forceInfer(env: Env): Value {
 		if (this.rest || this.items.length < this.optionalPos) {
 			return all
 		}
@@ -811,13 +839,13 @@ export class VecLiteral extends BaseExpr {
 		return vec(items)
 	}
 
-	resolveSymbol = (path: number | string): Expr | null => {
+	resolveSymbol(path: number | string): Expr | null {
 		if (typeof path === 'string') return null
 
 		return this.items[path] ?? null
 	}
 
-	print = (options?: PrintOptions): string => {
+	print(options?: PrintOptions): string {
 		if (!this.extras) {
 			const elementsCount = this.items.length + (this.rest ? 1 : 0)
 			const delimiters = createListDelimiters(elementsCount)
@@ -837,14 +865,22 @@ export class VecLiteral extends BaseExpr {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (expr: AnyExpr): boolean =>
-		this.type === expr.type &&
-		isEqualArray(this.items, expr.items, isSame) &&
-		this.optionalPos === expr.optionalPos &&
-		nullishEqual(this.rest, this.rest, isSame)
+	isSameTo(expr: AnyExpr): boolean {
+		return (
+			this.type === expr.type &&
+			isEqualArray(this.items, expr.items, isSame) &&
+			this.optionalPos === expr.optionalPos &&
+			nullishEqual(this.rest, this.rest, isSame)
+		)
+	}
 
-	clone = (): VecLiteral =>
-		new VecLiteral(this.items.map(clone), this.optionalPos, this.rest?.clone())
+	clone(): VecLiteral {
+		return new VecLiteral(
+			this.items.map(clone),
+			this.optionalPos,
+			this.rest?.clone()
+		)
+	}
 }
 
 export const vecLiteral = (
@@ -883,7 +919,7 @@ export class DictLiteral extends BaseExpr {
 		return this.optionalKeys.has(key)
 	}
 
-	protected forceEval = (env: Env): WithLog => {
+	forceEval(env: Env): WithLog {
 		const [items, li] = Writer.mapValues(this.items, it => it.eval(env)).asTuple
 		const [rest, lr] = this.rest ? this.rest.eval(env).asTuple : [undefined, []]
 		return withLog(dict(items, this.optionalKeys, rest), ...li, ...lr)
@@ -891,7 +927,7 @@ export class DictLiteral extends BaseExpr {
 
 	eval!: (env?: Env) => WithLog<Dict>
 
-	protected forceInfer = (env: Env): Value => {
+	forceInfer(env: Env): Value {
 		if (this.optionalKeys.size > 0 || this.rest) return all
 
 		const items = mapValues(this.items, it => it.infer(env))
@@ -904,7 +940,7 @@ export class DictLiteral extends BaseExpr {
 		return this.items[path] ?? null
 	}
 
-	print = (options?: PrintOptions): string => {
+	print(options?: PrintOptions): string {
 		const itemEntries = entries(this.items)
 
 		if (!this.extras) {
@@ -930,18 +966,22 @@ export class DictLiteral extends BaseExpr {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (expr: AnyExpr): boolean =>
-		this.type === expr.type &&
-		isEqualDict(this.items, expr.items, isSame) &&
-		isEqualSet(this.optionalKeys, expr.optionalKeys) &&
-		nullishEqual(this.rest, expr.rest, isSame)
+	isSameTo(expr: AnyExpr): boolean {
+		return (
+			this.type === expr.type &&
+			isEqualDict(this.items, expr.items, isSame) &&
+			isEqualSet(this.optionalKeys, expr.optionalKeys) &&
+			nullishEqual(this.rest, expr.rest, isSame)
+		)
+	}
 
-	clone = (): DictLiteral =>
-		new DictLiteral(
+	clone(): DictLiteral {
+		return new DictLiteral(
 			mapValues(this.items, clone),
 			this.optionalKeys,
 			this.rest?.clone()
 		)
+	}
 }
 
 export const dictLiteral = (
@@ -997,7 +1037,7 @@ export class App extends BaseExpr {
 		return [unifier, shadowedArgs]
 	}
 
-	protected forceEval = (env: Env): WithLog => {
+	forceEval(env: Env): WithLog {
 		if (!this.fn) return withLog(unit)
 
 		// Evaluate the function itself at first
@@ -1125,7 +1165,7 @@ export class App extends BaseExpr {
 		return withLog(unifiedResult, ...fnLog, ...argLog, ...callLogWithRef)
 	}
 
-	protected forceInfer = (env: Env): Value => {
+	forceInfer(env: Env): Value {
 		if (!this.fn) return unit
 
 		const ty = this.fn.infer(env)
@@ -1144,7 +1184,7 @@ export class App extends BaseExpr {
 		return unifier.substitute(ty.fnType.out, true)
 	}
 
-	resolveSymbol = (path: string | number): Expr | null => {
+	resolveSymbol(path: string | number): Expr | null {
 		if (!this.fn) return null
 		let index
 
@@ -1165,7 +1205,7 @@ export class App extends BaseExpr {
 		return (index == 0 ? this.fn : this.args[index - 1]) ?? null
 	}
 
-	print = (options?: PrintOptions): string => {
+	print(options?: PrintOptions): string {
 		if (!this.extras) {
 			if (!this.fn) {
 				this.extras = {delimiters: ['']}
@@ -1192,10 +1232,13 @@ export class App extends BaseExpr {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (expr: AnyExpr) =>
-		this.type === expr.type && isEqualArray(this.args, expr.args, isSame)
+	isSameTo(expr: AnyExpr) {
+		return this.type === expr.type && isEqualArray(this.args, expr.args, isSame)
+	}
 
-	clone = (): App => new App(this.fn, ...this.args.map(clone))
+	clone(): App {
+		return new App(this.fn, ...this.args.map(clone))
+	}
 }
 
 export const app = (fn?: Expr, ...args: Expr[]) => new App(fn, ...args)
@@ -1220,21 +1263,21 @@ export class Scope extends BaseExpr {
 		this.out = out
 	}
 
-	protected forceInfer = (env: Env): Value => {
+	forceInfer(env: Env): Value {
 		return this.out?.infer(env) ?? unit
 	}
 
-	protected forceEval = (env: Env) => {
+	forceEval(env: Env) {
 		return this.out?.eval(env) ?? Writer.of(unit)
 	}
 
-	resolveSymbol = (path: string | number): Expr | null => {
+	resolveSymbol(path: string | number): Expr | null {
 		if (typeof path === 'number') return null
 
 		return this.items[path] ?? null
 	}
 
-	print = (options?: PrintOptions): string => {
+	print(options?: PrintOptions): string {
 		const varEntries = entries(this.items)
 
 		if (!this.extras) {
@@ -1254,13 +1297,17 @@ export class Scope extends BaseExpr {
 
 	extras?: {delimiters: string[]}
 
-	isSameTo = (expr: AnyExpr) =>
-		this.type === expr.type &&
-		nullishEqual(this.out, expr.out, isSame) &&
-		isEqualDict(this.items, expr.items, isSame)
+	isSameTo(expr: AnyExpr) {
+		return (
+			this.type === expr.type &&
+			nullishEqual(this.out, expr.out, isSame) &&
+			isEqualDict(this.items, expr.items, isSame)
+		)
+	}
 
-	clone = (): Scope =>
-		new Scope(mapValues(this.items, clone), this.out?.clone())
+	clone(): Scope {
+		return new Scope(mapValues(this.items, clone), this.out?.clone())
+	}
 
 	extend(items: Record<string, Expr>, out?: Expr): Scope {
 		const scope = new Scope(items, out)
@@ -1300,7 +1347,7 @@ export class ValueMeta extends BaseExpr {
 		expr.parent = this
 	}
 
-	protected forceEval = (env: Env): WithLog<Value> => {
+	forceEval(env: Env): WithLog<Value> {
 		const [_fields, fieldLog] = this.fields.eval(env).asTuple
 		const [_expr, exprLog] = this.expr.eval(env).asTuple
 
@@ -1349,17 +1396,19 @@ export class ValueMeta extends BaseExpr {
 		return withLog(expr, ...fieldLog, ...exprLog, ...metaLog)
 	}
 
-	protected forceInfer = (env: Env) => {
+	forceInfer(env: Env) {
 		return this.expr.infer(env)
 	}
 
-	resolveSymbol = () => {
+	resolveSymbol(): null {
 		throw new Error('Cannot resolve any symbol in withMeta expression')
 	}
 
-	clone = (): ValueMeta => new ValueMeta(this.fields.clone(), this.expr.clone())
+	clone(): ValueMeta {
+		return new ValueMeta(this.fields.clone(), this.expr.clone())
+	}
 
-	isSameTo = (expr: AnyExpr): boolean => {
+	isSameTo(expr: AnyExpr): boolean {
 		return (
 			this.type === expr.type &&
 			this.fields.isSameTo(expr.fields) &&
@@ -1367,7 +1416,7 @@ export class ValueMeta extends BaseExpr {
 		)
 	}
 
-	print = (options?: PrintOptions): string => {
+	print(options?: PrintOptions): string {
 		if (!this.extras) {
 			this.extras = {delimiters: ['', '']}
 		}
@@ -1398,7 +1447,7 @@ export class NodeMeta {
 
 	eval = this.fields.eval
 
-	print = (options?: PrintOptions) => {
+	print(options?: PrintOptions) {
 		if (!this.extras) {
 			this.extras = {delimiter: ''}
 		}
