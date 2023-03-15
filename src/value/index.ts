@@ -21,7 +21,7 @@ import {
 	Vec,
 } from './value'
 
-export {IFn, Value}
+export type {IFn, Value}
 
 // Value
 export {

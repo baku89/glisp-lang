@@ -1291,7 +1291,9 @@ export class ValueMeta extends BaseExpr {
 		return withLog(expr, ...fieldLog, ...exprLog, ...metaLog)
 	}
 
-	protected forceInfer = this.expr.infer
+	protected forceInfer = (env: Env) => {
+		return this.expr.infer(env)
+	}
 
 	resolveSymbol = () => {
 		throw new Error('Cannot resolve any symbol in withMeta expression')

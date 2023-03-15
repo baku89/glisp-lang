@@ -654,7 +654,7 @@ export class FnType extends BaseValue implements IFnType {
 		return valueParam.isSubtypeOf(thisParam) && this.out.isSubtypeOf(value.out)
 	}
 
-	isTypeFor!: (value: Value) => value is Fn
+	declare isTypeFor: (value: Value) => value is Fn
 
 	withDefault = (defaultValue: Atomic): Value => {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
@@ -780,7 +780,7 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 		}
 	}
 
-	isTypeFor!: (value: Value) => value is Vec
+	declare isTypeFor: (value: Value) => value is Vec
 
 	withDefault = (defaultValue: Atomic): Value => {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
@@ -835,7 +835,7 @@ export class Dict<
 		return dictLiteral(items, this.optionalKeys, this.rest?.toExpr())
 	}
 
-	toExpr!: () => DictLiteral
+	declare toExpr: () => DictLiteral
 
 	isEqualTo = (value: Value) =>
 		this.type === value.type &&
@@ -873,7 +873,7 @@ export class Dict<
 		return true
 	}
 
-	isTypeFor!: (value: Value) => value is Dict
+	declare isTypeFor: (value: Value) => value is Dict
 
 	withDefault = (defaultValue: Atomic): Value => {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
@@ -912,7 +912,10 @@ export class UnionType extends BaseValue {
 	get defaultValue() {
 		return (this.#defaultValue ??= this.initialDefaultValue)
 	}
-	initialDefaultValue: Atomic = this.types[0].defaultValue
+
+	get initialDefaultValue(): Atomic {
+		return this.types[0].defaultValue
+	}
 
 	protected toExprExceptMeta = (): App => {
 		const types = this.types.map(ty => ty.toExpr())
