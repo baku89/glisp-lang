@@ -607,9 +607,14 @@ export class ParamsDef {
 		const params = entries(this.items)
 		const {optionalPos, rest} = this
 
-		const paramStrings = params.map(printNamedNode)
+		const paramStrings = params
+			.map(([name, value], i) => [
+				name + (i < optionalPos ? '' : '?') + ':',
+				value.print(options),
+			])
+			.flat()
 		const restStrings = rest
-			? ['...' + (rest.name ? rest.name + ':' : '') + rest.expr.print(options)]
+			? ['...' + rest.name, rest.expr.print(options)]
 			: []
 
 		if (!this.extras) {
@@ -625,11 +630,6 @@ export class ParamsDef {
 			insertDelimiters([...paramStrings, ...restStrings], delimiters) +
 			']'
 		)
-
-		function printNamedNode([name, ty]: [string, Expr], index: number) {
-			const optionalMark = optionalPos <= index ? '?' : ''
-			return name + optionalMark + ':' + ty.print(options)
-		}
 	}
 
 	extras?: {delimiters: string[]}
