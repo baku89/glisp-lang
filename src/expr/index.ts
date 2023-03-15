@@ -268,7 +268,7 @@ export class Symbol extends BaseExpr {
 			return withLog(unit, {
 				level: 'error',
 				ref: this,
-				reason: 'Symbol not bound: ' + this.print(),
+				reason: `Symbol \`${this.print()}\` cannot be resolved`,
 			})
 		}
 
@@ -1010,7 +1010,7 @@ export class App extends BaseExpr {
 			return withLog(fn, ...fnLog, {
 				level: 'warn',
 				ref: this,
-				reason: 'Not a function',
+				reason: `\`${fn.print()}\` is a function`,
 			})
 		}
 
@@ -1033,7 +1033,7 @@ export class App extends BaseExpr {
 			argLog.add({
 				level: 'error',
 				ref: this,
-				reason: `Expected ${lenRequiredParams} arguments, but got ${lenArgs}.`,
+				reason: `Expected \`${lenRequiredParams}\` arguments, but got \`${lenArgs}\``,
 			})
 		}
 
@@ -1093,9 +1093,9 @@ export class App extends BaseExpr {
 							level: 'error',
 							ref: this,
 							reason:
-								`Rest argument '${name}' expects type: ${p}, ` +
-								`but got: ${a}. ` +
-								`Uses a default value ${d} instead.`,
+								`Rest argument \`${name}\` expects type: \`${p}\`, ` +
+								`but got \`${a}\`. ` +
+								`Uses a default value \`${d}\` instead.`,
 						})
 					}
 					args.push(() => pType.defaultValue)
@@ -1315,7 +1315,9 @@ export class ValueMeta extends BaseExpr {
 			metaLog.add({
 				level: 'warn',
 				ref: this,
-				reason: `Type metadata should be dictionary, but got ${fields.type}`,
+				reason:
+					'Type metadata should be a dictionary, ' +
+					`but got \`${fields.type}\``,
 			})
 
 			// Just returns a value with logs
