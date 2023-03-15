@@ -8,6 +8,7 @@ import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
 import {isEqualSet} from '../util/isEqualSet'
 import {nullishEqual} from '../util/nullishEqual'
+import {union} from '../util/SetOperation'
 import {Writer} from '../util/Writer'
 import {
 	All,
@@ -15,9 +16,7 @@ import {
 	Dict,
 	dict,
 	Fn,
-	fn,
 	FnType,
-	fnType,
 	IFn,
 	number,
 	string,
@@ -380,64 +379,96 @@ export class FnDef extends BaseExpr {
 	}
 
 	protected forceEval = (env: Env): WithLog<FnType | Fn> => {
+		// In either case, params need to be evaluated
+		const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
+		const {optionalPos} = this.params
+
+		let log = new Set<Log>()
+
 		if (this.body) {
 			// Returns function
 			const {body} = this
-			const {names, restName} = this.params.getNames()
 
-			const fnObj: IFn = (...args: Arg[]) => {
-				const argDict = fromKeysValues(names, args)
-				if (restName) {
-					const restArgs = args.slice(names.length)
-
-					let rest: Vec | null = null
-
-					argDict[restName] = () => {
-						return (rest ??= vec(restArgs.map(a => a())))
-					}
-				}
-
-				const innerEnv = env.extend(argDict)
-
-				return body.eval(innerEnv)
-			}
-
-			const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
-
-			// Then, infer the function body
+			// Infer the return type of function body
 			const arg = mapValues(params, p => () => p)
 			if (rest) {
 				arg[rest.name] = () => vec([], undefined, rest.value)
 			}
 
 			const innerEnv = env.extend(arg)
-			const out = this.body.infer(innerEnv)
+			let returnType = body.infer(innerEnv)
 
-			const _fnType = fnType(params, this.params.optionalPos, rest, out)
-
-			const _fn = fn(_fnType, fnObj, this.body)
-
-			return withLog(_fn, ...paramsLog)
-		} else {
-			// Returns a function type if there's no function body
-			const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
-
-			// Evaluates return type. Uses All type when no return type is defined.
-			let returnType: Value = all,
-				returnTypeLog: Iterable<Log> = []
+			// When there's explicit notation for return type,
+			// check if inferredReturnType <: returnType is true.
+			// Otherwise, the function ignores all arguments and always returns
+			// the default value of returnType
+			let shouldReturnDefaultValue = false
 
 			if (this.returnType) {
-				;[returnType, returnTypeLog] = this.returnType.eval(env).asTuple
+				const [annotatedReturnType, returnTypeLog] =
+					this.returnType.eval(env).asTuple
+
+				log = union(returnTypeLog)
+
+				if (!returnType.isSubtypeOf(annotatedReturnType)) {
+					shouldReturnDefaultValue = true
+					log.add({
+						level: 'error',
+						ref: this,
+						reason:
+							`The return type of function body '${returnType}' ` +
+							`is not a subtype of '${annotatedReturnType}'.`,
+					})
+				}
+
+				returnType = annotatedReturnType
 			}
 
-			const fnType = new FnType(
-				params,
-				this.params.optionalPos,
-				rest,
-				returnType
-			)
+			// Defines a function object in JS
+			let fnObj: IFn
 
-			return withLog(fnType, ...paramsLog, ...returnTypeLog)
+			if (shouldReturnDefaultValue) {
+				fnObj = () => withLog(returnType.defaultValue)
+			} else {
+				const {names, restName} = this.params.getNames()
+
+				fnObj = (...args: Arg[]) => {
+					const argDict = fromKeysValues(names, args)
+					if (restName) {
+						const restArgs = args.slice(names.length)
+
+						let rest: Vec | null = null
+
+						argDict[restName] = () => {
+							return (rest ??= vec(restArgs.map(a => a())))
+						}
+					}
+
+					const innerEnv = env.extend(argDict)
+
+					return body.eval(innerEnv)
+				}
+			}
+
+			const fnType = new FnType(params, optionalPos, rest, returnType)
+
+			const fn = new Fn(fnType, fnObj, body)
+
+			return withLog(fn, ...paramsLog)
+		} else {
+			// Returns a function type if there's no function body
+
+			// Evaluates return type. Uses All type when no return type is defined.
+			let returnType: Value = all
+			if (this.returnType) {
+				const [_returnType, returnTypeLog] = this.returnType.eval(env).asTuple
+				returnType = _returnType
+				log = union(log, returnTypeLog)
+			}
+
+			const fnType = new FnType(params, optionalPos, rest, returnType)
+
+			return withLog(fnType, ...paramsLog, ...log)
 		}
 	}
 

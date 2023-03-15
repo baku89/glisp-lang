@@ -102,6 +102,7 @@ describe('inferring expression type', () => {
 	test('[(+ 1 2)]', '[Number]')
 
 	test('(=> [] 5)', '(=> []: 5)')
+	test('(=> []: Number 5)', '(=> []: Number)')
 	test('(=> [x:Number] "foo")', '(=> [x:Number]: "foo")')
 	test('(=> [x:Number] x)', '(=> [x:Number]: Number)')
 	test('(=> [x:(+ 1 2)] (+ x 4))', '(=> [x:3]: Number)')
