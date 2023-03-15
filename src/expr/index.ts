@@ -1062,9 +1062,9 @@ export class App extends BaseExpr {
 						level: 'error',
 						ref: this,
 						reason:
-							`${ord} argument '${name}' expects type: ${p}, ` +
+							`${ord} argument '${name}' expects type ${p}, ` +
 							`but got: ${a}. ` +
-							`Uses a default value ${d} instead.`,
+							`Uses a default value ${d} instead`,
 					})
 				}
 				return () => pType.defaultValue
@@ -1095,9 +1095,9 @@ export class App extends BaseExpr {
 							level: 'error',
 							ref: this,
 							reason:
-								`Rest argument \`${name}\` expects type: \`${p}\`, ` +
+								`Rest argument \`${name}\` expects type \`${p}\`, ` +
 								`but got \`${a}\`. ` +
-								`Uses a default value \`${d}\` instead.`,
+								`Uses a default value \`${d}\` instead`,
 						})
 					}
 					args.push(() => pType.defaultValue)

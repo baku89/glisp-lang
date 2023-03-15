@@ -82,6 +82,8 @@ function evaluate() {
 		input: expr.print(),
 		evaluated: printed,
 		log: Array.from(log).map(({level, reason, ref}) => {
+			reason = reason.replaceAll(/`(.+?)`/g, '<code>$1</code>')
+
 			return {
 				icon: level === 'warn' ? 'warning' : level,
 				reason,
@@ -117,8 +119,10 @@ function clear() {
 						<span class="log__icon material-symbols-rounded" :class="icon">
 							{{ icon }}
 						</span>
-						<div class="log__reason">{{ reason }}</div>
-						<div class="log__ref" v-if="ref">at {{ ref }}</div>
+						<div class="log__reason" v-html="reason" />
+						<div class="log__ref" v-if="ref">
+							at <code>{{ ref }}</code>
+						</div>
 					</li>
 				</ul>
 				<div class="evaluated" v-if="evaluated">{{ evaluated }}</div>
@@ -208,8 +212,17 @@ $indent = 2rem
 	&__reason
 		font-family var(--font-ui)
 
+		code
+			padding 0 0.2rem
+			border-radius .3em
+			font-size 1rem
+			background #eee
+			color var(--color-on-surface)
+
+
 	&__ref
 		color #bbb
+		font-family var(--font-ui)
 		text-indent 2em
 
 .input-form
