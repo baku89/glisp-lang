@@ -3,12 +3,12 @@ import ordinal from 'ordinal'
 
 import {GlispError} from '../GlispError'
 import {Log, WithLog, withLog} from '../log'
+import {fromKeysValues} from '../util/fromKeysValues'
 import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
 import {isEqualSet} from '../util/isEqualSet'
 import {nullishEqual} from '../util/nullishEqual'
 import {Writer} from '../util/Writer'
-import {zip} from '../util/zip'
 import {
 	All,
 	all,
@@ -26,6 +26,7 @@ import {
 	Unit,
 	unit,
 	Value,
+	Vec,
 	vec,
 } from '../value'
 import {Env} from './env'
@@ -385,11 +386,17 @@ export class FnDef extends BaseExpr {
 			const {names, restName} = this.params.getNames()
 
 			const fnObj: IFn = (...args: Arg[]) => {
-				const argDict = fromPairs(zip(names, args))
+				const argDict = fromKeysValues(names, args)
 				if (restName) {
 					const restArgs = args.slice(names.length)
-					argDict[restName] = () => vec(restArgs.map(a => a()))
+
+					let rest: Vec | null = null
+
+					argDict[restName] = () => {
+						return (rest ??= vec(restArgs.map(a => a())))
+					}
 				}
+
 				const innerEnv = env.extend(argDict)
 
 				return body.eval(innerEnv)
