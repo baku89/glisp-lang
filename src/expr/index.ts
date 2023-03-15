@@ -32,9 +32,15 @@ import {Env} from './env'
 import {createListDelimiters, insertDelimiters} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
 
-export type Expr = AtomExpr | InnerNode
+/**
+ * ASTs that have eval, infer as normal
+ */
+export type Expr = Exclude<AnyExpr, ParamsDef>
 
-export type AnyExpr = Expr | ParamsDef | Program
+/**
+ * Presenting any ASTs
+ */
+export type AnyExpr = AtomExpr | ParentExpr
 
 /**
  * ASTs that cannot have child elements
@@ -42,23 +48,16 @@ export type AnyExpr = Expr | ParamsDef | Program
 export type AtomExpr = Symbol | ValueContainer | Literal
 
 /**
- * ASTs that can have child elements
+ * expressions that can contain other experssions
  */
-export type InnerNode =
+export type ParentExpr =
 	| App
 	| Scope
 	| FnDef
 	| VecLiteral
 	| DictLiteral
 	| ValueMeta
-
-/**
- * expressions that can contain other experssions
- */
-export type ParentNode =
-	| InnerNode
-	| ValueMeta /*| NodeMeta*/
-	| ParamsDef
+	| ParamsDef // No infer
 	| Program
 
 export type Arg<T extends Value = Value> = () => T
@@ -73,7 +72,7 @@ export interface PrintOptions {
 export abstract class BaseExpr {
 	abstract readonly type: string
 
-	parent: ParentNode | null = null
+	parent: ParentExpr | null = null
 
 	abstract print(options?: PrintOptions): string
 
@@ -143,7 +142,7 @@ export class Program extends BaseExpr {
 		return null
 	}
 
-	print = (options?: PrintOptions) => {
+	print = (options?: PrintOptions): string => {
 		if (this.expr) {
 			return this.before + this.expr.print(options) + this.after
 		} else {
@@ -151,7 +150,7 @@ export class Program extends BaseExpr {
 		}
 	}
 
-	clone = () => {
+	clone = (): Program => {
 		return new Program(this.before, this.expr?.clone(), this.after)
 	}
 
