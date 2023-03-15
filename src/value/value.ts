@@ -157,6 +157,8 @@ export class Unit extends BaseValue {
 	static instance = new Unit()
 }
 
+export const unit = Unit.instance
+
 export class All extends BaseValue {
 	readonly type = 'All' as const
 
@@ -196,6 +198,9 @@ export class All extends BaseValue {
 	static instance = new All()
 }
 
+export const all = All.instance
+
+// Set the supertype
 ;(Unit.prototype.superType as Unit['superType']) = All.instance
 
 export class Never extends BaseValue {
@@ -225,6 +230,8 @@ export class Never extends BaseValue {
 
 	static instance = new Never()
 }
+
+export const never = Never.instance
 
 export class Prim<T = any> extends BaseValue {
 	readonly type = 'Prim' as const
@@ -265,6 +272,8 @@ export class Number extends Prim<number> {
 	}
 }
 
+export const number = (value: number) => new Number(value)
+
 export class String extends Prim<string> {
 	protected toExprExceptMeta = () => literal(this.value)
 
@@ -276,6 +285,8 @@ export class String extends Prim<string> {
 		return this.value
 	}
 }
+
+export const string = (value: string) => new String(value)
 
 export class PrimType<T = any> extends BaseValue {
 	readonly type = 'PrimType' as const
@@ -335,6 +346,9 @@ export class PrimType<T = any> extends BaseValue {
 	isTypeFor = (value: Value): value is Prim<T> =>
 		value.type === 'Prim' && value.isSubtypeOf(this)
 }
+
+export const primType = <T>(name: string, initialDefaultValue: T) =>
+	new PrimType(name, initialDefaultValue)
 
 export const NumberType = new PrimType('Number', new Number(0))
 ;(Number.prototype.superType as Number['superType']) = NumberType
@@ -434,6 +448,14 @@ export class EnumType extends BaseValue {
 	}
 }
 
+export const enumType = (name: string, labels: string[]) =>
+	new EnumType(name, labels)
+
+export const BooleanType = new EnumType('Boolean', ['false', 'true'])
+export const True = BooleanType.getEnum('true')
+export const False = BooleanType.getEnum('false')
+export const boolean = (value: boolean) => (value ? True : False)
+
 export class TypeVar extends BaseValue {
 	readonly type = 'TypeVar' as const
 	readonly superType = All.instance
@@ -467,6 +489,8 @@ export class TypeVar extends BaseValue {
 		return this.original ?? this
 	}
 }
+
+export const typeVar = (name: string) => new TypeVar(name)
 
 export class Fn extends BaseValue implements IFnLike {
 	readonly type = 'Fn' as const
@@ -518,6 +542,9 @@ export class Fn extends BaseValue implements IFnLike {
 		return value
 	}
 }
+
+export const fn = (fnType: FnType, fnObj: IFn, body?: Expr) =>
+	new Fn(fnType, fnObj, body)
 
 export class FnType extends BaseValue implements IFnType {
 	readonly type = 'FnType' as const
@@ -676,6 +703,29 @@ export class FnType extends BaseValue implements IFnType {
 	}
 }
 
+interface IFnTypeConstructor {
+	(params: FnType['params'], out: Value): FnType
+	(
+		params: FnType['params'],
+		optionalPos: number | null,
+		rest: FnType['rest'],
+		out: Value
+	): FnType
+	(
+		params: FnType['params'],
+		outOrOptionalPos: number | Value | null,
+		rest?: FnType['rest'],
+		out?: Value
+	): FnType
+}
+
+export const fnType: IFnTypeConstructor = (
+	params,
+	outOrOptionalPos,
+	rest?,
+	out?
+) => new FnType(params, outOrOptionalPos as any, rest as any, out as any)
+
 export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 	readonly type = 'Vec' as const
 	readonly superType = All.instance
@@ -800,6 +850,12 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 	}
 }
 
+export const vec = <V extends Value = Value>(
+	items?: V[],
+	optionalPos?: number,
+	rest?: Value
+) => new Vec(items, optionalPos, rest)
+
 export class Dict<
 	TItems extends Record<string, Value> = Record<string, Value>
 > extends BaseValue {
@@ -900,6 +956,8 @@ export class Dict<
 		return new Dict<TItems>(items, new Set(optionalKeys), rest)
 	}
 }
+
+export const dict = Dict.of
 
 export class UnionType extends BaseValue {
 	readonly type = 'UnionType' as const
