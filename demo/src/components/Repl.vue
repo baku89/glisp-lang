@@ -170,6 +170,7 @@ $indent = 2rem
 		border-top 1px solid black
 
 .input, .evaluated
+	white-space pre-wrap
 	position relative
 	padding 0 $padding-right 0 $indent
 
@@ -204,6 +205,8 @@ $indent = 2rem
 		&.warning
 			color var(--color-warning)
 
+	&__reason
+		font-family var(--font-ui)
 
 	&__ref
 		color #bbb
