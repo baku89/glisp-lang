@@ -129,7 +129,9 @@ export class Program extends BaseExpr {
 	}
 
 	protected forceEval = (env: Env) => {
-		if (!this.expr) return withLog(unit)
+		if (!this.expr) {
+			return withLog(unit, {level: 'error', reason: 'Empty program', ref: this})
+		}
 		return this.expr.eval(env)
 	}
 
