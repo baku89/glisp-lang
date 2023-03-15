@@ -1,19 +1,29 @@
 :root
+	// Typography
 	--font-ui Inter, system-ui, Avenir, Helvetica, Arial, sans-serif
-	--font-text Spectral, serif
+	--font-text Spectral, 'Shippori Mincho', yu-mincho-pr6n, YuMincho, '游明朝', Yu Mincho, YuMincho, Hiragino Mincho ProN, 'HGS明朝E', serif
 	--font-heading 'Gestures', serif
 	--font-code 'Fira Code', monospace
-	--color-text #000000
-	--color-bg #ffffff
+	// Color schemes
+	// Based on https://m3.material.io/styles/color/the-color-system/tokens
+	// and color builder: https://m3.material.io/theme-builder#/custom
+	--color-on-background #000000
+	--color-background #ffffff
+	--color-primary #833bf0
+	--color-on-primary #ffffff
+	--color-surface #f8f8f8
+	--color-on-surface #1a1b1f
+	--gradient #2638ff 0%, #f37ea5 16%, #f0a59b 28%, #f1caca 35%, #ccdce6 44%, #bef1ee 54%, #8ef6b7 63%, #6fc8d9 82%, #2638ff 100%
+	// Animation
 
 @media (prefers-color-scheme dark)
 	:root
-		--color-text #e1e1e1
-		--color-bg #242424
+		--color-on-background #e1e1e1
+		--color-background #242424
 
 :root
-	background-color var(--color-bg)
-	color var(--color-text)
+	background-color var(--color-background)
+	color var(--color-on-background)
 	font-family var(--font-text)
 	line-height 1.6
 	color-scheme light dark
@@ -24,39 +34,58 @@
 	-webkit-text-size-adjust 100%
 
 a
-	color #646cff
-	text-decoration inherit
+	background-image linear-gradient(transparent 50%, currentColor 50%)
+	background-position left bottom
+	background-size 10px 1px
+	background-repeat repeat-x
+	text-decoration none
 	font-weight 500
 
-a:hover
-	color #535bf2
+	&:hover
+		border-radius 0.4em
+		background var(--color-on-background)
+		color var(--color-background)
 
 html
 	width 100%
 	font-size 20px
 
 body
-	display flex
-	justify-content center
 	margin 0
 	min-height 100vh
 	width 100%
-	place-items center
 
 h1
-	margin 1rem 0
-	font-weight 600
-	font-size 2em
+	margin 2.5rem 0 1.8rem
+	font-weight 500
+	font-size 2.4em
 	font-family var(--font-heading)
 	line-height 1.1
 
-p
-	margin 2em 0
+	&:first-letter
+		font-feature-settings 'salt'
 
-h1:first-letter
-	font-feature-settings 'salt'
+hr
+	height 4px
+	border 0
+	border-radius 2px
+	background linear-gradient(to right, var(--gradient))
+
+p
+	margin 1.6em 0
+
+em
+	font-weight 500
+	font-family var(--font-heading)
 
 code
 	margin-top 2em
 	font-size 0.9em
 	font-family var(--font-code)
+
+#app
+	position relative
+	display flex
+	justify-content center
+	min-height 100vh
+	place-items center
