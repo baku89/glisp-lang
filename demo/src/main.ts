@@ -1,5 +1,5 @@
 import 'destyle.css'
-import './style.css'
+import './style.styl'
 
 import {createApp} from 'vue'
 

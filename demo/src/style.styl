@@ -1,0 +1,62 @@
+:root
+	--font-ui Inter, system-ui, Avenir, Helvetica, Arial, sans-serif
+	--font-text Spectral, serif
+	--font-heading 'Gestures', serif
+	--font-code 'Fira Code', monospace
+	--color-text #000000
+	--color-bg #ffffff
+
+@media (prefers-color-scheme dark)
+	:root
+		--color-text #e1e1e1
+		--color-bg #242424
+
+:root
+	background-color var(--color-bg)
+	color var(--color-text)
+	font-family var(--font-text)
+	line-height 1.6
+	color-scheme light dark
+	font-synthesis none
+	text-rendering optimizeLegibility
+	-webkit-font-smoothing antialiased
+	-moz-osx-font-smoothing grayscale
+	-webkit-text-size-adjust 100%
+
+a
+	color #646cff
+	text-decoration inherit
+	font-weight 500
+
+a:hover
+	color #535bf2
+
+html
+	width 100%
+	font-size 20px
+
+body
+	display flex
+	justify-content center
+	margin 0
+	min-height 100vh
+	width 100%
+	place-items center
+
+h1
+	margin 1rem 0
+	font-weight 600
+	font-size 2em
+	font-family var(--font-heading)
+	line-height 1.1
+
+p
+	margin 2em 0
+
+h1:first-letter
+	font-feature-settings 'salt'
+
+code
+	margin-top 2em
+	font-size 0.9em
+	font-family var(--font-code)
