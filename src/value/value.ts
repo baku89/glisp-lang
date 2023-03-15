@@ -270,13 +270,24 @@ export class String extends Prim<string> {
 export class PrimType<T = any> extends BaseValue {
 	readonly type = 'PrimType' as const
 
-	constructor(private readonly name: string) {
+	constructor(private readonly name: string, initialDefaultValue: T) {
 		super()
+
+		if (
+			initialDefaultValue instanceof Number ||
+			initialDefaultValue instanceof String
+		) {
+			this.#initialDefaultValue = initialDefaultValue
+		} else {
+			this.#initialDefaultValue = new Prim(this, initialDefaultValue)
+		}
+
+		return this
 	}
 
 	readonly superType = All.instance
 
-	#defaultValue!: Number | String | Prim
+	#defaultValue?: Number | String | Prim
 	get defaultValue() {
 		return (this.#defaultValue ??= this.#initialDefaultValue)
 	}
@@ -305,39 +316,20 @@ export class PrimType<T = any> extends BaseValue {
 	}
 
 	clone = () => {
-		const value = new PrimType(this.name)
-		value.#defaultValue = this.defaultValue
-		value.#initialDefaultValue = this.#initialDefaultValue
+		const value = new PrimType(this.name, this.#initialDefaultValue)
+		value.#defaultValue = this.#defaultValue
 		value.meta = this.meta
 		return value
 	}
 
 	isTypeFor = (value: Value): value is Prim<T> =>
 		value.type === 'Prim' && value.isSubtypeOf(this)
-
-	static ofLiteral(name: string, defaultValue: Prim) {
-		const primType = new PrimType(name)
-
-		primType.#defaultValue = primType.#initialDefaultValue = defaultValue
-		;(defaultValue.superType as Prim['superType']) = primType
-
-		return primType
-	}
-
-	static of<T>(name: string, defaultValue: T) {
-		const primType = new PrimType<T>(name)
-		const d = new Prim(primType, defaultValue)
-
-		primType.#defaultValue = primType.#initialDefaultValue = d
-
-		return primType
-	}
 }
 
-export const NumberType = PrimType.ofLiteral('Number', new Number(0))
+export const NumberType = new PrimType('Number', new Number(0))
 ;(Number.prototype.superType as Number['superType']) = NumberType
 
-export const StringType = PrimType.ofLiteral('String', new String(''))
+export const StringType = new PrimType('String', new String(''))
 ;(String.prototype.superType as String['superType']) = StringType
 
 export class Enum extends BaseValue {

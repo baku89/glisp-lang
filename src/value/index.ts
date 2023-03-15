@@ -56,7 +56,8 @@ export const number = (value: number) => new Number(value)
 export const string = (value: string) => new String(value)
 export const boolean = (value: boolean) => (value ? True : False)
 
-export const primType = PrimType.of
+export const primType = <T>(name: string, initialDefaultValue: T) =>
+	new PrimType(name, initialDefaultValue)
 
 export const enumType = (name: string, labels: string[]) =>
 	new EnumType(name, labels)
