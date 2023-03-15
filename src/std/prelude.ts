@@ -226,9 +226,9 @@ PreludeScope.defs({
 		boolean(x.isSubtypeOf(y))
 	),
 	show: defn('(=> [value:_]: String)', (value: Value) => string(value.print())),
-	'++': defn('(=> [a:String b:String]: String)', (a: String, b: String) =>
-		string(a.value + b.value)
-	),
+	'++': defn('(=> [...xs:String]: String)', (...xs: String[]) => {
+		return string(xs.reduce((a, b) => a + b, ''))
+	}),
 	try: defn(
 		'(=> (T) [block: T handler: T]: T)',
 		(block: Arg, handler: Arg) => {

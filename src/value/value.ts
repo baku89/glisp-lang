@@ -272,6 +272,10 @@ export class String extends Prim<string> {
 	constructor(value: string) {
 		super(undefined as any, value)
 	}
+
+	toString() {
+		return this.value
+	}
 }
 
 export class PrimType<T = any> extends BaseValue {
