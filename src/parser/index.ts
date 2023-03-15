@@ -5,9 +5,9 @@ import {
 	DictLiteral,
 	Expr,
 	FnDef,
-	InnerNode,
 	Literal,
 	ParamsDef,
+	ParentExpr,
 	Program,
 	Scope,
 	Symbol,
@@ -441,7 +441,7 @@ export const Parser = P.createLanguage<IParser>({
 	},
 })
 
-export function parse(str: string, parent: InnerNode | null = null): Program {
+export function parse(str: string, parent: ParentExpr | null = null): Program {
 	const expr = Parser.Program.tryParse(str)
 	expr.parent = parent
 	return expr

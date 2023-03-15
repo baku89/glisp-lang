@@ -1,4 +1,4 @@
-import {Expr} from '../expr'
+import type {Expr} from '../expr'
 import {
 	All,
 	Dict,
