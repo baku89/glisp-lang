@@ -130,7 +130,7 @@ export class Program extends BaseExpr {
 
 	protected forceEval = (env: Env) => {
 		if (!this.expr) {
-			return withLog(unit, {level: 'error', reason: 'Empty program', ref: this})
+			return withLog(unit, {level: 'error', reason: 'Empty program'})
 		}
 		return this.expr.eval(env)
 	}
@@ -1104,7 +1104,7 @@ export class App extends BaseExpr {
 		}
 
 		// Call the function
-		let result: Value, appLog: Set<Log | Omit<Log, 'ref'>>
+		let result: Value, appLog: Set<Log>
 		try {
 			;[result, appLog] = fn.fn(...args).asTuple
 		} catch (e) {

@@ -26,14 +26,13 @@ import {
 	vecLiteral,
 } from '../expr'
 import {getTypeVars} from '../expr/unify'
-import {Log, withLog} from '../log'
+import {WithLog, withLog} from '../log'
 import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
 import {isEqualSet} from '../util/isEqualSet'
 import {createUniqueName} from '../util/NameCollision'
 import {nullishEqual} from '../util/nullishEqual'
 import {union} from '../util/SetOperation'
-import {Writer} from '../util/Writer'
 import {unionType} from './TypeOperation'
 import {createFoldFn} from './walk'
 
@@ -127,7 +126,7 @@ abstract class BaseValue {
 	abstract clone(): Value
 }
 
-export type IFn = (...params: Arg<any>[]) => Writer<Value, Omit<Log, 'ref'>>
+export type IFn = (...params: Arg<any>[]) => WithLog
 
 interface IFnType {
 	fnType: FnType

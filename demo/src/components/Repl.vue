@@ -26,7 +26,7 @@ interface Result {
 	log: {
 		icon: string
 		reason: G.Log['reason']
-		ref: string
+		ref?: string
 	}[]
 }
 
@@ -85,7 +85,7 @@ function evaluate() {
 			return {
 				icon: level === 'warn' ? 'warning' : level,
 				reason,
-				ref: ref.print(),
+				ref: ref?.print(),
 			}
 		}),
 	})
@@ -118,7 +118,7 @@ function clear() {
 							{{ icon }}
 						</span>
 						<div class="log__reason">{{ reason }}</div>
-						<div class="log__ref">at {{ ref }}</div>
+						<div class="log__ref" v-if="ref">at {{ ref }}</div>
 					</li>
 				</ul>
 				<div class="evaluated" v-if="evaluated">{{ evaluated }}</div>

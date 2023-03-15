@@ -39,10 +39,13 @@ function printLog({level, reason, ref}: Log) {
 			break
 	}
 
-	const content = header + ' ' + reason
-	const loc = ref !== defaultExpr ? chalk.gray('\n    at ' + ref.print()) : ''
+	let content = header + ' ' + reason
 
-	return content + loc
+	if (ref) {
+		content += chalk.gray('\n    at ' + ref.print())
+	}
+
+	return content
 }
 
 const replScope = PreludeScope.extend({
@@ -84,7 +87,6 @@ function startRepl() {
 				const r = withLog(unit, {
 					level: 'error',
 					reason,
-					ref: expr,
 				})
 				cb(null, r)
 			}
