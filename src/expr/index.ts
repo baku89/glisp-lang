@@ -108,8 +108,6 @@ export abstract class BaseExpr {
 	infer(env = Env.global) {
 		return env.memoizeInfer(this, this.forceInfer)
 	}
-
-	getLog = () => this.eval(Env.global).log
 }
 
 /**
