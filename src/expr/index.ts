@@ -34,7 +34,7 @@ import {shadowTypeVars, Unifier} from './unify'
 
 export type Expr = AtomExpr | InnerNode
 
-export type AnyExpr = Expr | ParamsDef
+export type AnyExpr = Expr | ParamsDef | Program
 
 /**
  * ASTs that cannot have child elements
@@ -55,7 +55,11 @@ export type InnerNode =
 /**
  * expressions that can contain other experssions
  */
-export type ParentNode = InnerNode | ValueMeta /*| NodeMeta*/ | ParamsDef
+export type ParentNode =
+	| InnerNode
+	| ValueMeta /*| NodeMeta*/
+	| ParamsDef
+	| Program
 
 export type Arg<T extends Value = Value> = () => T
 
@@ -86,7 +90,7 @@ export abstract class BaseExpr {
 	 */
 	abstract isSameTo(expr: AnyExpr): boolean
 
-	abstract clone(): Expr
+	abstract clone(): AnyExpr
 
 	// #nodeMeta?: NodeMeta
 
@@ -107,6 +111,54 @@ export abstract class BaseExpr {
 	}
 
 	getLog = () => this.eval(Env.global).log
+}
+
+/**
+ * AST representing parsed expression with preserving spaces around it.
+ * Also used to represent empty input (only whitespaces, delimiters, comments)
+ */
+export class Program extends BaseExpr {
+	type = 'Program' as const
+
+	constructor(
+		public before: string,
+		public expr?: Expr,
+		public after: string = ''
+	) {
+		super()
+		if (this.expr) this.expr.parent = this
+	}
+
+	protected forceEval = (env: Env) => {
+		if (!this.expr) return withLog(unit)
+		return this.expr.eval(env)
+	}
+
+	protected forceInfer = (env: Env) => {
+		if (!this.expr) return unit
+		return this.expr.infer(env)
+	}
+
+	resolveSymbol() {
+		return null
+	}
+
+	print = (options?: PrintOptions) => {
+		if (this.expr) {
+			return this.before + this.expr.print(options) + this.after
+		} else {
+			return this.before + this.after
+		}
+	}
+
+	clone = () => {
+		return new Program(this.before, this.expr?.clone(), this.after)
+	}
+
+	isSameTo = (expr: AnyExpr): boolean => {
+		if (this.type !== expr.type) return false
+		return nullishEqual(this.expr, expr.expr, isSame)
+	}
 }
 
 export const UpPath = '..' as const
@@ -138,12 +190,16 @@ export class Symbol extends BaseExpr {
 	// }
 
 	resolve(env: Env = Env.global): {expr: Expr; mode?: 'param' | 'arg'} | null {
-		let expr: Expr | ParamsDef | null = this.parent
+		let expr: Expr | ParamsDef | Program | null = this.parent
 
 		let isFirstPath = true
 		let mode: 'param' | 'arg' | undefined
 
 		for (const path of this.paths) {
+			while (expr && expr.type === 'Program') {
+				expr = expr.parent
+			}
+
 			if (!expr) {
 				return null
 			}
@@ -191,6 +247,10 @@ export class Symbol extends BaseExpr {
 			}
 
 			isFirstPath = false
+		}
+
+		while (expr && expr.type === 'Program') {
+			expr = expr.parent
 		}
 
 		if (!expr || expr.type === 'ParamsDef') {

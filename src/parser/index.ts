@@ -8,6 +8,7 @@ import {
 	InnerNode,
 	Literal,
 	ParamsDef,
+	Program,
 	Scope,
 	Symbol,
 	ValueMeta,
@@ -124,7 +125,7 @@ const TypeVars = P.seq(Delimiter, P.seq(SymbolParser, Delimiter).many())
 
 // Main parser
 interface IParser {
-	Program: Expr
+	Program: Program
 	Expr: Expr
 	NumberLiteral: Literal
 	StringLiteral: Literal
@@ -142,9 +143,16 @@ interface IParser {
 
 export const Parser = P.createLanguage<IParser>({
 	Program(r) {
-		return P.seqMap(Delimiter, r.Expr, Delimiter, (_, expr) => {
-			return expr
-		}).desc('program')
+		return P.alt(
+			P.seqMap(
+				Delimiter,
+				r.Expr,
+				Delimiter,
+				(before, expr, after) => new Program(before, expr, after)
+			),
+			// Empty program
+			Delimiter.map(s => new Program(s))
+		).desc('program')
 	},
 	Expr(r) {
 		return P.alt(
@@ -433,7 +441,7 @@ export const Parser = P.createLanguage<IParser>({
 	},
 })
 
-export function parse(str: string, parent: InnerNode | null = null): Expr {
+export function parse(str: string, parent: InnerNode | null = null): Program {
 	const expr = Parser.Program.tryParse(str)
 	expr.parent = parent
 	return expr
