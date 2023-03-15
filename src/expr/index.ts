@@ -607,29 +607,24 @@ export class ParamsDef {
 		const params = entries(this.items)
 		const {optionalPos, rest} = this
 
-		const paramStrings = params
+		const paramsTokens = params
 			.map(([name, value], i) => [
 				name + (i < optionalPos ? '' : '?') + ':',
 				value.print(options),
 			])
 			.flat()
-		const restStrings = rest
-			? ['...' + rest.name, rest.expr.print(options)]
-			: []
+		const restTokens = rest ? ['...' + rest.name, rest.expr.print(options)] : []
+
+		const tokens = [...paramsTokens, ...restTokens]
 
 		if (!this.extras) {
-			const tokensCount = params.length + (rest ? 1 : 0)
-			const delimiters = createListDelimiters(tokensCount)
+			const delimiters = createListDelimiters(tokens.length)
 			this.extras = {delimiters}
 		}
 
 		const {delimiters} = this.extras
 
-		return (
-			'[' +
-			insertDelimiters([...paramStrings, ...restStrings], delimiters) +
-			']'
-		)
+		return '[' + insertDelimiters(tokens, delimiters) + ']'
 	}
 
 	extras?: {delimiters: string[]}
