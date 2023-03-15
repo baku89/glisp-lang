@@ -971,12 +971,12 @@ export class App extends BaseExpr {
 		args.forEach(a => (a.parent = this))
 	}
 
-	#unify(env: Env): [Unifier, Value[], Set<Log>] {
+	#unify(env: Env): [Unifier, Value[]] {
 		if (!this.fn) throw new Error('Cannot unify unit literal')
 
-		const [fn, fnLog] = this.fn.eval(env).asTuple
+		const fn = this.fn.eval(env).result
 
-		if (!('fnType' in fn)) return [new Unifier(), [], fnLog]
+		if (!('fnType' in fn)) return [new Unifier(), []]
 
 		const fnType = fn.fnType
 
@@ -996,7 +996,7 @@ export class App extends BaseExpr {
 
 		const unifier = new Unifier([paramsType, '>=', argsType])
 
-		return [unifier, shadowedArgs, fnLog]
+		return [unifier, shadowedArgs]
 	}
 
 	protected forceEval = (env: Env): WithLog => {
@@ -1021,13 +1021,15 @@ export class App extends BaseExpr {
 		const params = values(fnType.params)
 
 		// Unify FnType and args
-		const [unifier, shadowedArgs, argLog] = this.#unify(env)
+		const [unifier, shadowedArgs] = this.#unify(env)
 		const unifiedParams = params.map(p => unifier.substitute(p))
 		const unifiedArgs = shadowedArgs.map(a => unifier.substitute(a))
 
 		// Length-check of arguments
 		const lenArgs = this.args.length
 		const lenRequiredParams = fn.fnType.optionalPos
+
+		const argLog = new Set<Log>()
 
 		if (lenArgs < lenRequiredParams) {
 			argLog.add({
