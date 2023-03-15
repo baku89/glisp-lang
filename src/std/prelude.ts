@@ -191,6 +191,15 @@ PreludeScope.defs({
 			return vec(items)
 		}
 	),
+	filter: defn(
+		'(=> (T) [pred: (=> [x: T]: Boolean) coll: [...T]]: [...T])',
+		(f: Fn, coll: Vec) => {
+			const items = coll.items.filter(it => {
+				return f.fn(() => it).result.isEqualTo(True)
+			})
+			return vec(items)
+		}
+	),
 	reduce: defn(
 		'(=> (T U) [f: (=> [u:U t:T]: U) coll: [...T] initial: U]: U)',
 		(f: Fn, coll: Vec, initial: Value) => {

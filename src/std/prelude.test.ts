@@ -25,4 +25,5 @@ describe('functions in the prelude module', () => {
 	testEval('((compose inc isEven) 1)', 'true')
 	testEval('((compose inc isEven) 2)', 'false')
 	testEval('((compose id id) 1)', '1')
+	testEval('(filter isEven [0 1 2 3 4 5 6])', '[0 2 4 6]')
 })
