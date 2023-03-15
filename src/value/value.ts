@@ -230,8 +230,15 @@ export class Never extends BaseValue {
 export class Prim<T = any> extends BaseValue {
 	readonly type = 'Prim' as const
 
-	constructor(public readonly superType: PrimType, public readonly value: T) {
+	public readonly superType!: PrimType
+	public readonly value: T
+
+	constructor(superType: PrimType, value: T) {
 		super()
+		if (superType !== undefined) {
+			this.superType = superType
+		}
+		this.value = value
 	}
 
 	readonly defaultValue = this
@@ -255,7 +262,7 @@ export class Number extends Prim<number> {
 	protected toExprExceptMeta = () => literal(this.value)
 
 	constructor(value: number) {
-		super(NumberType, value)
+		super(undefined as any, value)
 	}
 }
 
@@ -263,7 +270,7 @@ export class String extends Prim<string> {
 	protected toExprExceptMeta = () => literal(this.value)
 
 	constructor(value: string) {
-		super(StringType, value)
+		super(undefined as any, value)
 	}
 }
 
