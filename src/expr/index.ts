@@ -442,9 +442,15 @@ export class FnDef extends BaseExpr {
 	}
 
 	protected forceInfer = (env: Env): FnType | All => {
-		const fn = this.forceEval(env).result
+		// To be honest, I wanted to infer the function type
+		// without evaluating it, but it works anyway and should be less buggy.
+		const fn = this.eval(env).result
 
-		return fn.type === 'Fn' ? fn.fnType : all
+		return fn.type === 'Fn'
+			? // When the expression is function definition
+			  fn.fnType
+			: // Otherwise, the expression means function type definition
+			  all
 	}
 
 	resolveSymbol = (path: number | string): Expr | null => {
