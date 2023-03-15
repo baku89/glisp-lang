@@ -1,7 +1,7 @@
 import {mapValues, values} from 'lodash'
 
 import {union} from '../util/SetOperation'
-import {zip} from '../util/zip'
+import {zipShorter} from '../util/zipShorter'
 import {
 	all,
 	dict,
@@ -195,7 +195,7 @@ export class Unifier {
 		if (t.type === 'Vec' && u.type === 'Vec') {
 			const uItems = u.items
 
-			const cItems = zip(t.items, u.items).map(
+			const cItems = zipShorter(t.items, u.items).map(
 				([ti, ui]) => [ti, R, ui] as Const
 			)
 
