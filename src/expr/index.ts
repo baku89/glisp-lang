@@ -688,7 +688,9 @@ export class ParamsDef {
 				value.print(options),
 			])
 			.flat()
-		const restTokens = rest ? ['...' + rest.name, rest.expr.print(options)] : []
+		const restTokens = rest
+			? [`...${rest.name}:`, rest.expr.print(options)]
+			: []
 
 		const tokens = [...paramsTokens, ...restTokens]
 

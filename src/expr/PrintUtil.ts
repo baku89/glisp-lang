@@ -16,7 +16,12 @@ export function insertDelimiters(elements: string[], delimiters: string[]) {
 		elements.length + 1 !== delimiters.length &&
 		elements.length !== delimiters.length
 	) {
-		throw new Error('Invalid length of delimiters')
+		throw new Error(
+			'Invalid length of delimiters. elements=' +
+				JSON.stringify(elements) +
+				' delimiters=' +
+				JSON.stringify(delimiters)
+		)
 	}
 
 	let str = delimiters[0]

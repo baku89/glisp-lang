@@ -344,9 +344,10 @@ function testParsing(input: string, expected: Expr) {
 					expr.type
 			)
 		}
-		// if (result.print() !== input) {
-		// 	throw new Error(`Doesn't store CST properly, got='${result.print()}'`)
-		// }
+
+		if (result.print() !== input) {
+			throw new Error(`Doesn't store CST properly, got='${result.print()}'`)
+		}
 	})
 }
 

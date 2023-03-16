@@ -11,6 +11,7 @@ import {
 	Program,
 	Scope,
 	Symbol,
+	TypeVarsDef,
 	ValueMeta,
 	VecLiteral,
 } from '../expr'
@@ -26,8 +27,8 @@ function zip<T1, T2, T3, T4>(
 	for (const [a, b, c, d] of coll) {
 		as.push(a)
 		bs.push(b)
-		if (c) cs.push(c)
-		if (d) ds.push(d)
+		if (c !== undefined) cs.push(c)
+		if (d !== undefined) ds.push(d)
 	}
 
 	return [as, bs, cs, ds]
@@ -116,13 +117,6 @@ const SymbolParser = seq(
 	many(P.alt(P.digit, AllowedCharForSymbol))
 ).assert(name => !Reserved.has(name), 'cannot use reserved keyword as a symbol')
 
-const TypeVars = P.seq(Delimiter, P.seq(SymbolParser, Delimiter).many())
-	.wrap(P.string('('), P.string(')'))
-	.map(([d0, ItemsPart]) => {
-		const [items, ds] = zip(ItemsPart)
-		return [items, [d0, ...ds]] as [string[], string[]]
-	})
-
 // Main parser
 interface IParser {
 	Program: Program
@@ -131,6 +125,7 @@ interface IParser {
 	StringLiteral: Literal
 	ScopeEntry: [string, Expr, [string, string]]
 	Scope: Scope
+	TypeVarsDef: TypeVarsDef
 	ParamsDef: ParamsDef
 	FnDef: FnDef
 	App: App
@@ -194,6 +189,20 @@ export const Parser = P.createLanguage<IParser>({
 			.map(raw => new Literal(raw))
 			.desc('string literal')
 	},
+	TypeVarsDef() {
+		return P.seq(Delimiter, P.seq(SymbolParser, Delimiter).many())
+			.wrap(P.string('('), P.string(')'))
+			.map(([d0, ItemsPart]) => {
+				const [items, ds] = zip(ItemsPart)
+				const expr = new TypeVarsDef(items)
+
+				expr.extras = {
+					delimiters: [d0, ...ds],
+				}
+
+				return expr
+			})
+	},
 	ParamsDef(r) {
 		return P.seq(
 			Delimiter,
@@ -246,7 +255,7 @@ export const Parser = P.createLanguage<IParser>({
 			P.string('=>'),
 			Delimiter,
 			// Type variables part
-			opt(P.seq(TypeVars, Delimiter)),
+			opt(P.seq(r.TypeVarsDef, Delimiter)),
 			// Parameters part
 			r.ParamsDef,
 			Delimiter,
@@ -254,30 +263,31 @@ export const Parser = P.createLanguage<IParser>({
 			opt(P.seq(P.string(':'), Delimiter, r.Expr, Delimiter)),
 			// Body part
 			opt(P.seq(r.Expr, Delimiter)),
-			(d0, _, d1, typeVarsPart, paramsDef, d4, returnTypePart, bodyPart) => {
+			//(d0=> d1 (   ...  ) d2  [       ]  d3  : d4 RetTy d5   body  d6)
+			(d0, _, d1, typeVarsPart, paramsDef, d3, returnTypePart, bodyPart) => {
 				const delimiters = [d0, d1]
 
-				let typeVars: string[] | null = null
+				let typeVars: TypeVarsDef | null = null
 				if (typeVarsPart) {
-					const [[_typeVars, d2s], d3] = typeVarsPart
+					const [_typeVars, d2] = typeVarsPart
 					typeVars = _typeVars
-					delimiters.push(...d2s, d3)
+					delimiters.push(d2)
 				}
 
-				delimiters.push(d4)
+				delimiters.push(d3)
 
 				let returnType: Expr | null = null
 				if (returnTypePart) {
-					const [, d5, _returnType, d6] = returnTypePart
+					const [, d4, _returnType, d5] = returnTypePart
 					returnType = _returnType
-					delimiters.push(d5, d6)
+					delimiters.push(d4, d5)
 				}
 
 				let body: Expr | null = null
 				if (bodyPart) {
-					const [_body, d7] = bodyPart
+					const [_body, d6] = bodyPart
 					body = _body
-					delimiters.push(d7)
+					delimiters.push(d6)
 				}
 
 				const expr = new FnDef(typeVars, paramsDef, returnType, body)
