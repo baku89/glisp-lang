@@ -126,6 +126,10 @@ describe('inferring expression type', () => {
 	)
 	test('(try 1 2)', '(union 1 2)')
 
+	test('(match x:3)', '()')
+	test('(match x:3 3:"three")', '"three"')
+	test('(match x: (+ 1 2) 3: "three")', '(union "three" ())')
+
 	function test(input: string, expected: string) {
 		it(`${input} is inferred to be ${expected}`, () => {
 			const i = tryParse(input).infer()
