@@ -17,6 +17,7 @@ import {
 	Fn,
 	FnType,
 	IFn,
+	Meta,
 	number,
 	string,
 	TypeVar,
@@ -1425,8 +1426,10 @@ export class ValueMeta extends BaseExpr {
 			return withLog(value)
 		}
 
+		const meta: Meta = {...fields.items}
+
 		// When the default key exists
-		const defaultValue = fields.items.default
+		const defaultValue = meta.default
 		if (defaultValue) {
 			// Check if the default value is valid
 			if (value.isTypeFor(defaultValue)) {
@@ -1440,11 +1443,9 @@ export class ValueMeta extends BaseExpr {
 						`as a default value of ${value.print()}`,
 				})
 			}
+			delete meta.default
 
-			fields = fields.clone()
-			delete fields.items.default
-
-			value = value.withMeta(fields)
+			value = value.withMeta(meta)
 		}
 
 		return withLog(value, ...log)

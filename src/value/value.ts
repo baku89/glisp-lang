@@ -39,6 +39,8 @@ export type Value = Type | Atomic
 
 type Type = All | PrimType | EnumType | FnType | UnionType | TypeVar
 
+export type Meta = Record<string, Value>
+
 /**
  * Value that can be a default value. Non-type values
  */
@@ -65,12 +67,17 @@ abstract class BaseValue {
 	abstract readonly defaultValue: Value
 	abstract readonly initialDefaultValue: Atomic
 
-	#meta?: Dict
-	get meta(): Dict | undefined {
+	#meta?: Meta
+	get meta(): Meta | undefined {
 		return this.#meta
 	}
-	set meta(meta: Dict | undefined) {
-		if (meta && values(meta.items).length === 0) return
+	set meta(meta: Meta | undefined) {
+		if (meta) {
+			if (values(meta).length === 0) return
+			if ('default' in meta) {
+				throw new Error('Meta cannot has a `default` field.')
+			}
+		}
 		this.#meta = meta
 	}
 
@@ -95,18 +102,17 @@ abstract class BaseValue {
 		)
 
 		if (hasDefaultValueChanged || this.meta) {
-			const defaultValue = hasDefaultValueChanged
+			const defaultExpr = hasDefaultValueChanged
 				? this.defaultValue.toExpr()
 				: undefined
 
-			let metaItems = {...(this.meta?.toExpr().items ?? {})}
+			const fields = mapValues(this.meta ?? {}, f => f.toExpr())
 
-			if (defaultValue) {
-				delete metaItems.default
-				metaItems = {default: defaultValue, ...metaItems}
+			if (defaultExpr) {
+				fields['default'] = defaultExpr
 			}
 
-			return valueMeta(dictLiteral(metaItems), expr)
+			return valueMeta(dictLiteral(fields), expr)
 		} else {
 			return expr
 		}
@@ -117,11 +123,11 @@ abstract class BaseValue {
 		return this as any
 	}
 
-	withMeta(meta: Dict) {
-		const thisMetaItems = this.meta?.items ?? {}
+	withMeta(meta: Meta) {
+		const thisMeta = this.meta ?? {}
 
 		const value = this.clone()
-		value.meta = Dict.of({...thisMetaItems, ...meta.items})
+		value.meta = {...thisMeta, ...meta}
 		return value
 	}
 
