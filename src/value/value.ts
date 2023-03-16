@@ -140,7 +140,9 @@ interface IFnLike extends IFnType {
 }
 
 export class Unit extends BaseValue {
-	readonly type = 'Unit' as const
+	get type() {
+		return 'Unit' as const
+	}
 
 	get superType() {
 		return All.instance
@@ -174,7 +176,9 @@ export class Unit extends BaseValue {
 export const unit = Unit.instance
 
 export class All extends BaseValue {
-	readonly type = 'All' as const
+	get type() {
+		return 'All' as const
+	}
 
 	private constructor() {
 		super()
@@ -225,7 +229,9 @@ export class All extends BaseValue {
 export const all = All.instance
 
 export class Never extends BaseValue {
-	readonly type = 'Never' as const
+	get type() {
+		return 'Never' as const
+	}
 
 	private constructor() {
 		super()
@@ -267,7 +273,9 @@ export class Never extends BaseValue {
 export const never = Never.instance
 
 export class Prim<T = any> extends BaseValue {
-	readonly type = 'Prim' as const
+	get type() {
+		return 'Prim' as const
+	}
 
 	public readonly superType!: PrimType
 	public readonly value: T
@@ -331,7 +339,9 @@ export class String extends Prim<string> {
 export const string = (value: string) => new String(value)
 
 export class PrimType<T = any> extends BaseValue {
-	readonly type = 'PrimType' as const
+	get type() {
+		return 'PrimType' as const
+	}
 
 	constructor(private readonly name: string, initialDefaultValue: T) {
 		super()
@@ -405,7 +415,9 @@ export const StringType = new PrimType('String', new String(''))
 ;(String.prototype.superType as String['superType']) = StringType
 
 export class Enum extends BaseValue {
-	readonly type = 'Enum' as const
+	get type() {
+		return 'Enum' as const
+	}
 
 	constructor(public readonly name: string) {
 		super()
@@ -413,8 +425,13 @@ export class Enum extends BaseValue {
 
 	readonly superType!: EnumType
 
-	readonly defaultValue = this
-	readonly initialDefaultValue = this
+	get defaultValue() {
+		return this
+	}
+
+	get initialDefaultValue() {
+		return this
+	}
 
 	// TODO: fix this
 	protected toExprExceptMeta = () => symbol(this.name)
@@ -439,7 +456,9 @@ export class Enum extends BaseValue {
 }
 
 export class EnumType extends BaseValue {
-	readonly type = 'EnumType' as const
+	get type() {
+		return 'EnumType' as const
+	}
 
 	public readonly name: string
 	public readonly types: Enum[]
@@ -514,7 +533,9 @@ export const False = BooleanType.getEnum('false')
 export const boolean = (value: boolean) => (value ? True : False)
 
 export class TypeVar extends BaseValue {
-	readonly type = 'TypeVar' as const
+	get type() {
+		return 'TypeVar' as const
+	}
 	readonly superType = All.instance
 
 	public readonly name: string
@@ -559,7 +580,9 @@ export class TypeVar extends BaseValue {
 export const typeVar = (name: string) => new TypeVar(name)
 
 export class Fn extends BaseValue implements IFnLike {
-	readonly type = 'Fn' as const
+	get type() {
+		return 'Fn' as const
+	}
 
 	constructor(
 		public readonly superType: FnType,
@@ -620,7 +643,9 @@ export const fn = (fnType: FnType, fnObj: IFn, body?: Expr) =>
 	new Fn(fnType, fnObj, body)
 
 export class FnType extends BaseValue implements IFnType {
-	readonly type = 'FnType' as const
+	get type() {
+		return 'FnType' as const
+	}
 
 	get superType() {
 		return All.instance
@@ -816,7 +841,9 @@ export const fnType: IFnTypeConstructor = (
 ) => new FnType(params, outOrOptionalPos as any, rest as any, out as any)
 
 export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
-	readonly type = 'Vec' as const
+	get type() {
+		return 'Vec' as const
+	}
 
 	get superType() {
 		return All.instance
@@ -954,7 +981,9 @@ export const vec = <V extends Value = Value>(
 export class Dict<
 	TItems extends Record<string, Value> = Record<string, Value>
 > extends BaseValue {
-	readonly type = 'Dict' as const
+	get type() {
+		return 'Dict' as const
+	}
 
 	constructor(
 		public readonly items: TItems,
@@ -1060,7 +1089,9 @@ export class Dict<
 export const dict = Dict.of
 
 export class UnionType extends BaseValue {
-	readonly type = 'UnionType' as const
+	get type() {
+		return 'UnionType' as const
+	}
 
 	get superType() {
 		return All.instance
