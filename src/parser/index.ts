@@ -110,7 +110,14 @@ const Delimiter = seq(
 
 const OptionalMark = zeroOrOne(P.string('?')).map(r => !!r)
 
-const Reserved = new Set(['=>', 'let', 'return'])
+const Reserved = new Set([
+	'=>',
+	'let',
+	'return',
+	'Infinity',
+	'-Infinity',
+	'NaN',
+])
 
 const SymbolParser = seq(
 	AllowedCharForSymbol,

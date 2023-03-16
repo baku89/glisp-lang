@@ -70,7 +70,11 @@ describe('parsing symbols', () => {
 	testErrorParsing('/')
 	testErrorParsing('@')
 	testErrorParsing('=>')
+	testErrorParsing('let')
 	testErrorParsing(';')
+	testErrorParsing('Infinity')
+	testErrorParsing('-Infinity')
+	testErrorParsing('NaN')
 
 	function testParsing(input: string, name: string) {
 		it(`parsing ${input} to be a symbol with name '${name}'`, () => {
