@@ -14,14 +14,17 @@ import {
 	all,
 	Dict,
 	dict,
+	differenceType,
 	Fn,
 	FnType,
 	IFn,
 	Meta,
+	never,
 	number,
 	string,
 	TypeVar,
 	typeVar,
+	unionType,
 	unit,
 	Value,
 	vec,
@@ -58,6 +61,7 @@ export type AtomExpr = Symbol | ValueContainer | Literal
 export type ParentExpr =
 	| App
 	| Scope
+	| Match
 	| FnDef
 	| VecLiteral
 	| DictLiteral
@@ -82,7 +86,7 @@ export abstract class BaseExpr {
 	abstract forceEval(env: Env, evaluate: IEvalDep): WithLog
 	abstract forceInfer(env: Env): Value
 
-	abstract resolveSymbol(path: string | number, env: Env): Expr | null
+	abstract resolveSymbol(path: string | number): Expr | null
 
 	/**
 	 * 式が全く同じ構造かどうかを比較する
@@ -255,8 +259,8 @@ export class Symbol extends BaseExpr {
 					expr = expr.resolveSymbol(path)
 				} else {
 					while (expr) {
-						if (expr.type === 'Scope') {
-							const e = expr.resolveSymbol(path)
+						if (expr.type === 'Scope' || expr.type === 'Match') {
+							const e: Expr | null = expr.resolveSymbol(path)
 							if (e) {
 								expr = e
 								break
@@ -1387,6 +1391,149 @@ export class Scope extends BaseExpr {
 }
 export const scope = (items?: Record<string, Expr>, ret?: Expr) =>
 	new Scope(items, ret)
+
+/**
+ * AST representing match expression
+ * (match captureName: expr ;; expr is omittable
+ *        case1: out1
+ *        case2: out22
+ *        default ;; omittable
+ */
+export class Match extends BaseExpr {
+	get type() {
+		return 'Match' as const
+	}
+
+	public readonly captureName: string
+	public readonly subject: Expr
+	public readonly cases: [Expr, Expr][]
+	public readonly otherwise?: Expr
+
+	constructor(
+		captureName: string,
+		subject: Expr,
+		cases?: [Expr, Expr][],
+		otherwise?: Expr
+	) {
+		super()
+
+		this.captureName = captureName
+
+		this.subject = subject
+		this.subject.parent = this
+
+		this.cases = cases ?? []
+		for (const [pattern, out] of this.cases) {
+			pattern.parent = this
+			out.parent = this
+		}
+
+		if (otherwise) {
+			this.otherwise = otherwise
+			this.otherwise.parent = this
+		}
+	}
+
+	forceEval(env: Env, evaluate: IEvalDep): WithLog {
+		// First, evaluate the capture expression
+		const subject = evaluate(this.subject)
+
+		// Try to match the pattern in order
+		// and evaluate ret expression if matched
+		for (const [pattern, out] of this.cases) {
+			if (subject.isSubtypeOf(evaluate(pattern))) {
+				return withLog(evaluate(out))
+			}
+		}
+
+		if (this.otherwise) {
+			return withLog(evaluate(this.otherwise))
+		}
+
+		return withLog(unit, {
+			level: 'error',
+			reason: 'No pattern has matched',
+			ref: this,
+		})
+	}
+
+	forceInfer(env: Env): Value {
+		let type: Value = never
+		let remainingSubjectType = this.subject.infer(env)
+
+		for (const [_pattern, _out] of this.cases ?? []) {
+			const pattern = _pattern.eval(env).result
+			const out = _out.infer(env)
+
+			type = unionType(type, out)
+			remainingSubjectType = differenceType(remainingSubjectType, pattern)
+		}
+
+		if (!remainingSubjectType.isEqualTo(never)) {
+			type = unionType(unit)
+		}
+
+		return type
+	}
+
+	resolveSymbol(path: string | number): Expr | null {
+		if (typeof path === 'string') {
+			if (path === this.captureName) {
+				return this.subject
+			}
+		}
+
+		return null
+	}
+
+	extras?: {delimiters: string[]}
+
+	print(options?: PrintOptions): string {
+		const tokens = [
+			'(',
+			'match',
+			this.captureName + ':',
+			this.subject.print(options),
+		]
+
+		// Cases part
+		for (const [pattern, ret] of this.cases) {
+			tokens.push(pattern.print(options) + ':', ret.print(options))
+		}
+
+		// Otherwise part
+		if (this.otherwise) {
+			tokens.push(this.otherwise.print(options))
+		}
+
+		tokens.push(')')
+
+		if (!this.extras) {
+			this.extras = {delimiters: createListDelimiters(tokens.length)}
+		}
+
+		return insertDelimiters(tokens, this.extras.delimiters)
+	}
+
+	clone(): Match {
+		return new Match(this.captureName, this.subject, this.cases, this.otherwise)
+	}
+
+	isSameTo(expr: AnyExpr | Match): boolean {
+		if (this.type !== expr.type) return false
+
+		return (
+			this.captureName === expr.captureName &&
+			this.subject.isSameTo(expr.subject) &&
+			isEqualArray(
+				this.cases,
+				expr.cases,
+				(a, b) => a[0].isSameTo(b[0]) && a[1].isSameTo(b[1])
+			) &&
+			nullishEqual(this.otherwise, expr.otherwise, isSame)
+		)
+	}
+}
 
 export class ValueMeta extends BaseExpr {
 	get type() {
