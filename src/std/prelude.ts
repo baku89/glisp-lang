@@ -129,11 +129,6 @@ PreludeScope.defs({
 	'==': defn('(=> [x:Number y:Number]: Boolean)', (x: Value, y: Value) =>
 		boolean(x.isEqualTo(y))
 	),
-	if: defn(
-		'(=> (T) [test:Boolean then:T else:T]: T)',
-		(test: Value, then: Value, _else: Value) =>
-			test.isEqualTo(True) ? then : _else
-	),
 	'&&': defn(
 		'(=> [...xs:^{default: true} Boolean]: Boolean)',
 		(...xs: Value[]) => {
@@ -223,6 +218,13 @@ PreludeScope.defs({
 
 PreludeScope.defs(
 	parseModule(`
+
+if: (=> (T) [test:Boolean then:T else:T]
+      (match _: test
+             true: then
+             false: else))
+	
+
 <=: (=> [x:Number y:Number] (|| (== x y) (< x y)))
 >: (=> [x:Number y:Number] (< y x))
 >=: (=> [x:Number y:Number] (<= y x))
@@ -241,9 +243,8 @@ first: (=> (T) [coll:[...T]] (coll 0))
 
 id: (=> (T) [x:T] x)
 
-sqrt: (=> [x:Number] (if (<= 0 x)
-											(** x 0.5)
-											0))
+sqrt: (=> [x:Number]
+        (if (<= 0 x) (** x 0.5) 0))
 
 square: (=> [x:Number] (** x 2))
 
