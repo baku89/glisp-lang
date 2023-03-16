@@ -1,7 +1,6 @@
 import {entries, forOwn, fromPairs, keys, mapValues, values} from 'lodash'
 import ordinal from 'ordinal'
 
-import {GlispError} from '../GlispError'
 import {Log, WithLog, withLog} from '../log'
 import {fromKeysValues} from '../util/fromKeysValues'
 import {isEqualArray} from '../util/isEqualArray'
@@ -1188,17 +1187,26 @@ export class App extends BaseExpr {
 		}
 
 		// Call the function
-		let result: Value, appLog: Set<Log>
+		let result: Value = unit
+		let appLog: Set<Log>
 		try {
 			;[result, appLog] = fn.fn(...args).asTuple
-		} catch (e) {
-			if (env.isGlobal) {
-				const message = e instanceof Error ? e.message : 'Run-time error'
-				const ref = e instanceof GlispError ? e.ref : this
-				throw new GlispError(ref, message)
-			} else {
-				throw e
+		} catch (error) {
+			// eslint-disable-next-line no-console
+			console.error(error)
+
+			let reason = 'Run-time error'
+
+			if (error instanceof Error) {
+				reason = error.message
 			}
+
+			appLog = new Set()
+			appLog.add({
+				level: 'error',
+				reason,
+				ref: this,
+			})
 		}
 
 		const unifiedResult = unifier.substitute(result, true)
