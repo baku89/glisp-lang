@@ -1533,6 +1533,13 @@ export class Match extends BaseExpr {
 	}
 }
 
+export const match = (
+	captureName: string,
+	subject: Expr,
+	cases?: [Expr, Expr][],
+	otherwise?: Expr
+) => new Match(captureName, subject, cases, otherwise)
+
 export class ValueMeta extends BaseExpr {
 	get type() {
 		return 'ValueMeta' as const
