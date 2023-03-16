@@ -8,7 +8,6 @@ import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
 import {isEqualSet} from '../util/isEqualSet'
 import {nullishEqual} from '../util/nullishEqual'
-import {union} from '../util/SetOperation'
 import {Writer} from '../util/Writer'
 import {
 	All,
@@ -30,6 +29,13 @@ import {
 import {Env} from './env'
 import {createListDelimiters, insertDelimiters} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
+
+/**
+ * forceEval内で、依存する他の式を評価する時に用いる。戻り値のうちLogはforceEvalの呼び出し側
+ * で責任をもって収集され、forceEvalのLogとガッチャンコになるので、forceEval内でLogを
+ * 掻き集める必要が無い
+ */
+type IEvalDep = (expr: Expr) => Value
 
 /**
  * ASTs that have eval, infer as normal
@@ -73,7 +79,7 @@ export abstract class BaseExpr {
 
 	abstract print(options?: PrintOptions): string
 
-	abstract forceEval(env: Env): WithLog
+	abstract forceEval(env: Env, evaluate: IEvalDep): WithLog
 	abstract forceInfer(env: Env): Value
 
 	abstract resolveSymbol(path: string | number, env: Env): Expr | null
@@ -260,7 +266,7 @@ export class Symbol extends BaseExpr {
 		return {expr, mode}
 	}
 
-	forceEval(env: Env): WithLog {
+	forceEval(env: Env, evaluate: IEvalDep): WithLog {
 		const resolved = this.resolve(env)
 
 		if (!resolved) {
@@ -277,7 +283,11 @@ export class Symbol extends BaseExpr {
 			mode === 'param' &&
 			!(expr.type === 'ValueContainer' && expr.value.type == 'TypeVar')
 
-		return expr.eval(env).fmap(v => (shouldUseDefault ? v.defaultValue : v))
+		if (shouldUseDefault) {
+			return withLog(evaluate(expr).defaultValue)
+		} else {
+			return withLog(evaluate(expr))
+		}
 	}
 
 	forceInfer(env: Env): Value {
@@ -465,7 +475,7 @@ export class FnDef extends BaseExpr {
 		if (this.body) this.body.parent = this
 	}
 
-	forceEval(env: Env): WithLog<FnType | Fn> {
+	forceEval(env: Env, evaluate: IEvalDep): WithLog<FnType | Fn> {
 		// In either case, params need to be evaluated
 		const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
 		const {optionalPos} = this.params
@@ -492,10 +502,7 @@ export class FnDef extends BaseExpr {
 			let shouldReturnDefaultValue = false
 
 			if (this.returnType) {
-				const [annotatedReturnType, returnTypeLog] =
-					this.returnType.eval(env).asTuple
-
-				log = union(returnTypeLog)
+				const annotatedReturnType = evaluate(this.returnType)
 
 				if (!returnType.isSubtypeOf(annotatedReturnType)) {
 					shouldReturnDefaultValue = true
@@ -543,9 +550,8 @@ export class FnDef extends BaseExpr {
 			// Evaluates return type. Uses All type when no return type is defined.
 			let returnType: Value = all
 			if (this.returnType) {
-				const [_returnType, returnTypeLog] = this.returnType.eval(env).asTuple
+				const _returnType = evaluate(this.returnType)
 				returnType = _returnType
-				log = union(log, returnTypeLog)
 			}
 
 			const fnType = new FnType(params, optionalPos, rest, returnType)
@@ -833,10 +839,11 @@ export class VecLiteral extends BaseExpr {
 			throw new Error('Invalid optionalPos: ' + optionalPos)
 	}
 
-	forceEval(env: Env): WithLog {
-		const [items, li] = Writer.map(this.items, i => i.eval(env)).asTuple
-		const [rest, lr] = this.rest?.eval(env).asTuple ?? [undefined, []]
-		return withLog(vec(items, this.optionalPos, rest), ...li, ...lr)
+	forceEval(env: Env, evaluate: IEvalDep): WithLog {
+		const items = this.items.map(i => evaluate(i))
+		const rest = this.rest ? evaluate(this.rest) : undefined
+
+		return withLog(vec(items, this.optionalPos, rest))
 	}
 
 	forceInfer(env: Env): Value {
@@ -929,10 +936,10 @@ export class DictLiteral extends BaseExpr {
 		return this.optionalKeys.has(key)
 	}
 
-	forceEval(env: Env): WithLog {
-		const [items, li] = Writer.mapValues(this.items, it => it.eval(env)).asTuple
-		const [rest, lr] = this.rest ? this.rest.eval(env).asTuple : [undefined, []]
-		return withLog(dict(items, this.optionalKeys, rest), ...li, ...lr)
+	forceEval(env: Env, evaluate: IEvalDep): WithLog {
+		const items = mapValues(this.items, i => evaluate(i))
+		const rest = this.rest ? evaluate(this.rest) : undefined
+		return withLog(dict(items, this.optionalKeys, rest))
 	}
 
 	eval!: (env?: Env) => WithLog<Dict>
@@ -1049,15 +1056,15 @@ export class App extends BaseExpr {
 		return [unifier, shadowedArgs]
 	}
 
-	forceEval(env: Env): WithLog {
+	forceEval(env: Env, evaluate: IEvalDep): WithLog {
 		if (!this.fn) return withLog(unit)
 
 		// Evaluate the function itself at first
-		const [fn, fnLog] = this.fn.eval(env).asTuple
+		const fn = evaluate(this.fn)
 
 		// Check if it's not a function
 		if (!('fn' in fn)) {
-			return withLog(fn, ...fnLog, {
+			return withLog(fn, {
 				level: 'warn',
 				ref: this,
 				reason: `\`${fn.print()}\` is a function`,
@@ -1096,9 +1103,7 @@ export class App extends BaseExpr {
 
 			if (aType.isSubtypeOf(pType)) {
 				// Type matched
-				const [a, la] = this.args[i].eval(env).asTuple
-				la.forEach(l => argLog.add(l))
-				return a
+				return evaluate(this.args[i])
 			} else {
 				// Type mismatched
 				if (aType.type !== 'Unit') {
@@ -1128,8 +1133,7 @@ export class App extends BaseExpr {
 
 				if (aType.isSubtypeOf(pType)) {
 					// Type matched
-					const [a, la] = this.args[i].eval(env).asTuple
-					la.forEach(l => argLog.add(l))
+					const a = evaluate(this.args[i])
 					args.push(a)
 				} else {
 					// Type mismatched
@@ -1170,7 +1174,7 @@ export class App extends BaseExpr {
 		// Set this as 'ref'
 		const callLogWithRef = [...appLog].map(log => ({...log, ref: this}))
 
-		return withLog(unifiedResult, ...fnLog, ...argLog, ...callLogWithRef)
+		return withLog(unifiedResult, ...argLog, ...callLogWithRef)
 	}
 
 	forceInfer(env: Env): Value {
@@ -1359,19 +1363,19 @@ export class ValueMeta extends BaseExpr {
 		expr.parent = this
 	}
 
-	forceEval(env: Env): WithLog<Value> {
-		const [_fields, fieldLog] = this.fields.eval(env).asTuple
-		const [_expr, exprLog] = this.expr.eval(env).asTuple
+	forceEval(env: Env, evaluate: IEvalDep): WithLog<Value> {
+		const _fields = evaluate(this.fields)
+		const _expr = evaluate(this.expr)
 
 		let fields = _fields,
 			expr = _expr
 
-		const metaLog = new Set<Log>()
+		const log = new Set<Log>()
 
 		// Check if the metadata is dictionary
 		if (fields.type !== 'Dict') {
 			// NOTE: これ、inferした時点でDictじゃなければ切る、でも良いのでは?
-			metaLog.add({
+			log.add({
 				level: 'warn',
 				ref: this,
 				reason:
@@ -1380,7 +1384,7 @@ export class ValueMeta extends BaseExpr {
 			})
 
 			// Just returns a value with logs
-			return withLog(expr, ...exprLog, ...metaLog)
+			return withLog(expr)
 		}
 
 		// When the default key exists
@@ -1395,7 +1399,7 @@ export class ValueMeta extends BaseExpr {
 			if (expr.isTypeFor(defaultValue)) {
 				expr = expr.withDefault(defaultValue)
 			} else {
-				metaLog.add({
+				log.add({
 					level: 'warn',
 					ref: this,
 					reason:
@@ -1405,7 +1409,7 @@ export class ValueMeta extends BaseExpr {
 			}
 		}
 
-		return withLog(expr, ...fieldLog, ...exprLog, ...metaLog)
+		return withLog(expr, ...log)
 	}
 
 	forceInfer(env: Env) {
