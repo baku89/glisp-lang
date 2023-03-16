@@ -21,7 +21,6 @@ import {
 	string,
 	TypeVar,
 	typeVar,
-	Unit,
 	unit,
 	Value,
 	vec,
@@ -1129,7 +1128,7 @@ export class App extends BaseExpr {
 
 		// Check types of args and set them to default if necessary
 		const args: Value[] = unifiedParams.map((pType, i) => {
-			const aType = unifiedArgs[i] ?? Unit
+			const aType = unifiedArgs[i] ?? unit
 			const name = names[i]
 
 			if (aType.isSubtypeOf(pType)) {
@@ -1160,7 +1159,7 @@ export class App extends BaseExpr {
 			const {name, value: pType} = fnType.rest
 
 			for (let i = unifiedParams.length; i < this.args.length; i++) {
-				const aType = unifiedArgs[i]
+				const aType = unifiedArgs[i] ?? unit
 
 				if (aType.isSubtypeOf(pType)) {
 					// Type matched
