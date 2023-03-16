@@ -1100,11 +1100,7 @@ export class App extends BaseExpr {
 
 		// Check if it's not a function
 		if (!('fn' in fn)) {
-			return withLog(fn, {
-				level: 'warn',
-				ref: this,
-				reason: `\`${fn.print()}\` is a function`,
-			})
+			return withLog(fn)
 		}
 
 		const {fnType} = fn
