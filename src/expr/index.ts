@@ -232,7 +232,7 @@ export class Symbol extends BaseExpr {
 								if (typeof path !== 'string') {
 									throw new Error('Invalid')
 								}
-								const arg = env.get(path)
+								const arg = env.getArg(path)
 								if (arg) {
 									expr = new ValueContainer(arg)
 									mode = 'arg'

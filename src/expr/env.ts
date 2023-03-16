@@ -31,7 +31,7 @@ export class Env {
 		return this.#outer ?? this
 	}
 
-	get(name: string): Value | undefined {
+	getArg(name: string): Value | undefined {
 		return this.#arg[name]
 	}
 
