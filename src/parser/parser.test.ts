@@ -357,11 +357,6 @@ function testParsing(input: string, expected: Expr) {
 
 function testErrorParsing(input: string) {
 	test(`parsing '${input}' throws an error`, () => {
-		try {
-			const result = parse(input)
-			throw new Error('Unexpectedly parsed as ' + result.print())
-		} catch {
-			return
-		}
+		expect(() => parse(input)).toThrow()
 	})
 }
