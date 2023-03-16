@@ -1472,6 +1472,10 @@ export class ValueMeta extends BaseExpr {
 	}
 
 	print(options?: PrintOptions): string {
+		if (options?.omitMeta) {
+			return this.expr.print(options)
+		}
+
 		if (!this.extras) {
 			this.extras = {delimiters: ['', '']}
 		}
