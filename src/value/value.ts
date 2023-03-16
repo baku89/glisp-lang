@@ -65,7 +65,14 @@ abstract class BaseValue {
 	abstract readonly defaultValue: Value
 	abstract readonly initialDefaultValue: Atomic
 
-	meta?: Dict
+	#meta?: Dict
+	get meta(): Dict | undefined {
+		return this.#meta
+	}
+	set meta(meta: Dict | undefined) {
+		if (meta && values(meta.items).length === 0) return
+		this.#meta = meta
+	}
 
 	abstract isEqualTo(value: Value): boolean
 

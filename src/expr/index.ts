@@ -1404,10 +1404,9 @@ export class ValueMeta extends BaseExpr {
 
 	forceEval(env: Env, evaluate: IEvalDep): WithLog<Value> {
 		const _fields = evaluate(this.fields)
-		const _expr = evaluate(this.expr)
+		let value = evaluate(this.expr)
 
-		let fields = _fields,
-			expr = _expr
+		let fields = _fields
 
 		const log = new Set<Log>()
 
@@ -1423,32 +1422,32 @@ export class ValueMeta extends BaseExpr {
 			})
 
 			// Just returns a value with logs
-			return withLog(expr)
+			return withLog(value)
 		}
 
 		// When the default key exists
 		const defaultValue = fields.items.default
 		if (defaultValue) {
-			fields = fields.clone()
-			delete fields.items.default
-
-			expr = expr.withMeta(fields)
-
 			// Check if the default value is valid
-			if (expr.isTypeFor(defaultValue)) {
-				expr = expr.withDefault(defaultValue)
+			if (value.isTypeFor(defaultValue)) {
+				value = value.withDefault(defaultValue)
 			} else {
 				log.add({
 					level: 'error',
 					ref: this,
 					reason:
 						`Cannot use ${defaultValue.print()} ` +
-						`as a default value of ${expr.print()}`,
+						`as a default value of ${value.print()}`,
 				})
 			}
+
+			fields = fields.clone()
+			delete fields.items.default
+
+			value = value.withMeta(fields)
 		}
 
-		return withLog(expr, ...log)
+		return withLog(value, ...log)
 	}
 
 	forceInfer(env: Env) {
