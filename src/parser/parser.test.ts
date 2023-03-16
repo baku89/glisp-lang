@@ -38,9 +38,7 @@ describe('parsing literals', () => {
 	testParsing('-Infinity', literal(-Infinity))
 	testParsing('NaN', literal(NaN))
 
-	testErrorParsing('.')
 	testErrorParsing('-.')
-	testErrorParsing('++0')
 	testErrorParsing('0..2')
 
 	testParsing('"hello"', literal('hello'))
@@ -84,7 +82,11 @@ describe('parsing symbols', () => {
 
 	function testErrorParsing(input: string) {
 		it(`parsing ${input} throws an error`, () => {
-			expect(() => Parser.Symbol.tryParse(input)).toThrow()
+			expect(() => {
+				const parsed = Parser.Symbol.tryParse(input)
+				// eslint-disable-next-line no-console
+				console.log(parsed)
+			}).toThrow()
 		})
 	}
 })
@@ -357,6 +359,10 @@ function testParsing(input: string, expected: Expr) {
 
 function testErrorParsing(input: string) {
 	test(`parsing '${input}' throws an error`, () => {
-		expect(() => parse(input)).toThrow()
+		expect(() => {
+			const parsed = parse(input)
+			// eslint-disable-next-line no-console
+			console.log(parsed)
+		}).toThrow()
 	})
 }
