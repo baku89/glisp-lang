@@ -23,7 +23,7 @@ export class Env {
 		return !this.#outer
 	}
 
-	extend(arg: Record<string, Value>) {
+	push(arg: Record<string, Value>) {
 		return new Env(this, arg)
 	}
 

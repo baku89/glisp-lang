@@ -514,7 +514,7 @@ export class FnDef extends BaseExpr {
 				arg[rest.name] = vec([], undefined, rest.value)
 			}
 
-			const innerEnv = env.extend(arg)
+			const innerEnv = env.push(arg)
 			let returnType = body.infer(innerEnv)
 
 			// When there's explicit notation for return type,
@@ -555,7 +555,7 @@ export class FnDef extends BaseExpr {
 						argDict[restName] = vec(restArgs)
 					}
 
-					const innerEnv = env.extend(argDict)
+					const innerEnv = env.push(argDict)
 
 					return body.eval(innerEnv)
 				}
