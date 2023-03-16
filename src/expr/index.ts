@@ -25,7 +25,6 @@ import {
 	Unit,
 	unit,
 	Value,
-	Vec,
 	vec,
 } from '../value'
 import {Env} from './env'
@@ -59,8 +58,6 @@ export type ParentExpr =
 	| ValueMeta
 	| ParamsDef // No infer
 	| Program
-
-export type Arg<T extends Value = Value> = () => T
 
 export interface PrintOptions {
 	omitMeta?: boolean
@@ -233,7 +230,7 @@ export class Symbol extends BaseExpr {
 								}
 								const arg = env.get(path)
 								if (arg) {
-									expr = new ValueContainer(arg())
+									expr = new ValueContainer(arg)
 									mode = 'arg'
 									break
 								}
@@ -470,9 +467,9 @@ export class FnDef extends BaseExpr {
 			const {body} = this
 
 			// Infer the return type of function body
-			const arg = mapValues(params, p => () => p)
+			const arg = {...params}
 			if (rest) {
-				arg[rest.name] = () => vec([], undefined, rest.value)
+				arg[rest.name] = vec([], undefined, rest.value)
 			}
 
 			const innerEnv = env.extend(arg)
@@ -512,16 +509,11 @@ export class FnDef extends BaseExpr {
 			} else {
 				const {names, restName} = this.params.getNames()
 
-				fnObj = (...args: Arg[]) => {
+				fnObj = (...args: Value[]) => {
 					const argDict = fromKeysValues(names, args)
 					if (restName) {
 						const restArgs = args.slice(names.length)
-
-						let rest: Vec | null = null
-
-						argDict[restName] = () => {
-							return (rest ??= vec(restArgs.map(a => a())))
-						}
+						argDict[restName] = vec(restArgs)
 					}
 
 					const innerEnv = env.extend(argDict)
@@ -1078,17 +1070,15 @@ export class App extends BaseExpr {
 		}
 
 		// Check types of args and set them to default if necessary
-		const args = unifiedParams.map((pType, i) => {
+		const args: Value[] = unifiedParams.map((pType, i) => {
 			const aType = unifiedArgs[i] ?? Unit
 			const name = names[i]
 
 			if (aType.isSubtypeOf(pType)) {
 				// Type matched
-				return () => {
-					const [a, la] = this.args[i].eval(env).asTuple
-					la.forEach(l => argLog.add(l))
-					return a
-				}
+				const [a, la] = this.args[i].eval(env).asTuple
+				la.forEach(l => argLog.add(l))
+				return a
 			} else {
 				// Type mismatched
 				if (aType.type !== 'Unit') {
@@ -1105,7 +1095,7 @@ export class App extends BaseExpr {
 							`Uses a default value ${d} instead`,
 					})
 				}
-				return () => pType.defaultValue
+				return pType.defaultValue
 			}
 		})
 
@@ -1118,11 +1108,9 @@ export class App extends BaseExpr {
 
 				if (aType.isSubtypeOf(pType)) {
 					// Type matched
-					args.push(() => {
-						const [a, la] = this.args[i].eval(env).asTuple
-						la.forEach(l => argLog.add(l))
-						return a
-					})
+					const [a, la] = this.args[i].eval(env).asTuple
+					la.forEach(l => argLog.add(l))
+					args.push(a)
 				} else {
 					// Type mismatched
 					if (aType.type !== 'Unit') {
@@ -1138,7 +1126,7 @@ export class App extends BaseExpr {
 								`Uses a default value \`${d}\` instead`,
 						})
 					}
-					args.push(() => pType.defaultValue)
+					args.push(pType.defaultValue)
 				}
 			}
 		}

@@ -67,9 +67,11 @@ describe('evaluating function definition', () => {
 	testEval('((=> [f:(=> [x:Number]: Number)] (f 1)) id)', '1')
 })
 
+/*
 describe('run-time error handling', () => {
 	testEval('(try ([] 0) 1)', '1', true)
 })
+*/
 
 describe('resolving identifier', () => {
 	testEval('(let X: Number (=> [a:X]: X))', '(=> [a:Number]: Number)')

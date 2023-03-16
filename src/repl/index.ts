@@ -3,7 +3,7 @@ import chalk from 'chalk'
 import * as os from 'os'
 import * as repl from 'repl'
 
-import {app, Arg, Expr, valueContainer} from '../expr'
+import {app, Expr, valueContainer} from '../expr'
 import {GlispError} from '../GlispError'
 import {Log, WithLog, withLog} from '../log'
 import {parse} from '../parser'
@@ -53,10 +53,10 @@ const replScope = PreludeScope.extend({
 	def: valueContainer(
 		fn(
 			fnType({name: StringType, value: all}, IO),
-			(name: Arg<String>, value: Arg<Value>) =>
+			(name: String, value: Value) =>
 				withLog(
 					IO.of(() => {
-						replScope.items[name().value] = valueContainer(value())
+						replScope.items[name.value] = valueContainer(value)
 					})
 				)
 		)

@@ -1,8 +1,6 @@
 import {WithLog} from '../log'
 import {Value} from '../value'
-import type {Arg, BaseExpr} from '.'
-
-type ArgDict = Record<string, Arg>
+import type {BaseExpr} from '.'
 
 /**
  * 関数のコールスタックのようなもの。引数名-引数のセットを保持する.
@@ -12,11 +10,11 @@ type ArgDict = Record<string, Arg>
  */
 export class Env {
 	#outer!: Env | undefined
-	#arg: ArgDict
+	#arg: Record<string, Value>
 	#evalCache: WeakMap<BaseExpr, WithLog> = new WeakMap()
 	#inferCache: WeakMap<BaseExpr, Value> = new WeakMap()
 
-	private constructor(original: Env | undefined, arg: ArgDict) {
+	private constructor(original: Env | undefined, arg: Record<string, Value>) {
 		this.#outer = original
 		this.#arg = arg
 	}
@@ -25,7 +23,7 @@ export class Env {
 		return !this.#outer
 	}
 
-	extend(arg: ArgDict) {
+	extend(arg: Record<string, Value>) {
 		return new Env(this, arg)
 	}
 
@@ -33,7 +31,7 @@ export class Env {
 		return this.#outer ?? this
 	}
 
-	get(name: string): Arg | undefined {
+	get(name: string): Value | undefined {
 		return this.#arg[name]
 	}
 

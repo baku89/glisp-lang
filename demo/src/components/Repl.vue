@@ -41,8 +41,8 @@ const replScope = G.PreludeScope.extend({
 	def: G.valueContainer(
 		G.fn(
 			G.fnType({name: G.StringType, value: G.all}, IO),
-			(name: G.Arg<G.String>, value: G.Arg<G.Value>) => {
-				const _name = name().value
+			(name: G.String, value: G.Value) => {
+				const _name = name.value
 
 				const symbol = G.Parser.Symbol.parse(_name)
 				if (!symbol.status) {
@@ -55,7 +55,7 @@ const replScope = G.PreludeScope.extend({
 
 				return G.withLog(
 					IO.of(() => {
-						replScope.items[_name] = G.valueContainer(value())
+						replScope.items[_name] = G.valueContainer(value)
 					})
 				)
 			}

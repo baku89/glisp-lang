@@ -1,6 +1,6 @@
 import {range} from 'lodash'
 
-import {Arg, scope, ValueContainer, valueContainer} from '../expr'
+import {scope, ValueContainer, valueContainer} from '../expr'
 import {Log, withLog} from '../log'
 import {parse, parseModule} from '../parser'
 import {Writer} from '../util/Writer'
@@ -31,18 +31,8 @@ import {
 interface Defn {
 	(
 		type: string,
-		f: (...args: Arg<any>[]) => Value,
-		options?: {lazy?: true; writeLog?: false}
-	): ValueContainer
-	(
-		type: string,
 		f: (...args: any[]) => Value,
 		options?: {lazy?: false; writeLog?: false}
-	): ValueContainer
-	(
-		type: string,
-		f: IFn,
-		options?: {lazy?: true; writeLog?: true}
 	): ValueContainer
 	(
 		type: string,
@@ -51,7 +41,7 @@ interface Defn {
 	): ValueContainer
 }
 
-const defn: Defn = (type, f, {lazy = false, writeLog = false} = {}) => {
+const defn: Defn = (type, f, {writeLog = false} = {}) => {
 	const fnType = parse(type, PreludeScope).eval().result
 
 	if (fnType.type !== 'FnType') throw new Error('Not a fnType:' + type)
@@ -59,13 +49,9 @@ const defn: Defn = (type, f, {lazy = false, writeLog = false} = {}) => {
 	let _f: IFn
 
 	if (writeLog) {
-		_f = lazy
-			? (f as IFn)
-			: (...args) => f(...args.map(a => a())) as ReturnType<IFn>
+		_f = (...args) => f(...args) as ReturnType<IFn>
 	} else {
-		_f = lazy
-			? (...args) => withLog(f(...args) as Value)
-			: (...args) => withLog(f(...args.map(a => a())) as Value)
+		_f = (...args) => withLog(f(...args) as Value)
 	}
 
 	const _fn = fn(fnType, _f)
@@ -145,30 +131,24 @@ PreludeScope.defs({
 	),
 	if: defn(
 		'(=> (T) [test:Boolean then:T else:T]: T)',
-		(test: Arg, then: Arg, _else: Arg) =>
-			test().isEqualTo(True) ? then() : _else(),
-		{lazy: true}
+		(test: Value, then: Value, _else: Value) =>
+			test.isEqualTo(True) ? then : _else
 	),
 	'&&': defn(
 		'(=> [...xs:^{default: true} Boolean]: Boolean)',
-		(...xs: Arg<Enum>[]) => {
+		(...xs: Value[]) => {
 			for (const x of xs) {
-				if (x().isEqualTo(False)) return boolean(false)
+				if (x.isEqualTo(False)) return False
 			}
-			return boolean(true)
-		},
-		{lazy: true}
+			return True
+		}
 	),
-	'||': defn(
-		'(=> [...xs:Boolean]: Boolean)',
-		(...xs: Arg<Enum>[]) => {
-			for (const x of xs) {
-				if (x().isEqualTo(True)) return boolean(true)
-			}
-			return boolean(false)
-		},
-		{lazy: true}
-	),
+	'||': defn('(=> [...xs:Boolean]: Boolean)', (...xs: Value[]) => {
+		for (const x of xs) {
+			if (x.isEqualTo(True)) return True
+		}
+		return False
+	}),
 	'!': defn('(=> [x:Boolean]: Boolean)', (x: Enum) =>
 		boolean(x.isEqualTo(False))
 	),
@@ -195,7 +175,7 @@ PreludeScope.defs({
 		'(=> (T) [pred: (=> [x: T]: Boolean) coll: [...T]]: [...T])',
 		(f: Fn, coll: Vec) => {
 			const items = coll.items.filter(it => {
-				return f.fn(() => it).result.isEqualTo(True)
+				return f.fn(it).result.isEqualTo(True)
 			})
 			return vec(items)
 		}
@@ -231,14 +211,13 @@ PreludeScope.defs({
 	}),
 	try: defn(
 		'(=> (T) [block: T handler: T]: T)',
-		(block: Arg, handler: Arg) => {
+		(block: Value, handler: Value) => {
 			try {
-				return block()
+				return block
 			} catch (e) {
-				return handler()
+				return handler
 			}
-		},
-		{lazy: true}
+		}
 	),
 })
 

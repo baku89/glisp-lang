@@ -11,7 +11,6 @@ import {
 import {
 	App,
 	app,
-	Arg,
 	DictLiteral,
 	dictLiteral,
 	Expr,
@@ -130,7 +129,7 @@ abstract class BaseValue {
 	abstract clone(): Value
 }
 
-export type IFn = (...params: Arg<any>[]) => WithLog
+export type IFn = (...params: any[]) => WithLog
 
 interface IFnType {
 	fnType: FnType
@@ -919,8 +918,8 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 	}
 
 	get fn(): IFn {
-		return (index: Arg<Number>) => {
-			const ret = this.items[index().value]
+		return (index: Number) => {
+			const ret = this.items[index.value]
 			if (ret === undefined) {
 				throw new Error('Index out of range')
 			}
