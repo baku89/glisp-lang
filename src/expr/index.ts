@@ -1506,13 +1506,11 @@ export class Match extends BaseExpr {
 			tokens.push(this.otherwise.print(options))
 		}
 
-		tokens.push(')')
-
 		if (!this.extras) {
 			this.extras = {delimiters: createListDelimiters(tokens.length)}
 		}
 
-		return insertDelimiters(tokens, this.extras.delimiters)
+		return '(' + insertDelimiters(tokens, this.extras.delimiters) + ')'
 	}
 
 	clone(): Match {
