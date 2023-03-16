@@ -1470,7 +1470,7 @@ export class Match extends BaseExpr {
 		}
 
 		if (!remainingSubjectType.isEqualTo(never)) {
-			type = unionType(unit)
+			type = unionType(type, unit)
 		}
 
 		return type
