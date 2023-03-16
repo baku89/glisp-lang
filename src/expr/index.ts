@@ -1479,10 +1479,6 @@ export function isSame(a: Expr, b: Expr): boolean {
 	return a.isSameTo(b)
 }
 
-export function print(expr: Expr, options?: PrintOptions) {
-	return expr.print(options)
-}
-
 export function clone(expr: Expr) {
 	return expr.clone()
 }
