@@ -126,7 +126,7 @@ PreludeScope.defs({
 	'<': defn('(=> [x:Number y:Number]: Boolean)', (x: Number, y: Number) =>
 		boolean(x.value < y.value)
 	),
-	'==': defn('(=> [...xs:_]: Boolean)', (x: Value, y: Value) =>
+	'==': defn('(=> [x:Number y:Number]: Boolean)', (x: Value, y: Value) =>
 		boolean(x.isEqualTo(y))
 	),
 	if: defn(
@@ -167,7 +167,7 @@ PreludeScope.defs({
 	map: defn(
 		'(=> (T U) [f: (=> [t:T]: U) coll:[...T]]: [...U])',
 		(f: Fn, coll: Vec) => {
-			const [items] = Writer.map(coll.items, i => f.fn(() => i)).asTuple
+			const [items] = Writer.map(coll.items, f.fn).asTuple
 			return vec(items)
 		}
 	),
