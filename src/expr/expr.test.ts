@@ -199,6 +199,24 @@ describe('resolving path symbols', () => {
 	}
 })
 
+describe('detecting circular reference', () => {
+	testEval('(let x: x x)', '()', true)
+	testEval('(let x: y y: x x)', '()', true)
+
+	testEval('[./0]', '()', true)
+	testEval('[./1 ./2 ./0]', '()', true)
+
+	testEval('{x: ./x}', '()', true)
+	testEval('{x: ./y y: ./x}', '()', true)
+	testEval('{x: ./y y: [../x]}', '()', true)
+	testEval('{x: ./y/0 y: [../x]}', '()', true)
+
+	// TODO: Let the below tests pass
+	// testEval('(+ ./1)', '()', true)
+	testEval('(if true ./else ./then)', '()', true)
+	// testEval('(inc (inc ../x))', '()', true)
+})
+
 describe('evaluating path symbols', () => {
 	testEval('(+ 7 ./1)', '14')
 	testEval('(if true ./else "else")', '"else"')

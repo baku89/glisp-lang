@@ -106,6 +106,15 @@ export abstract class BaseExpr {
 	*/
 
 	eval(env = Env.global) {
+		if (env.hasEvalDep(this)) {
+			return withLog(unit, {
+				level: 'error',
+				reason: 'Circular reference detected',
+				ref: this as any as Expr,
+			})
+		}
+		env = env.withEvalDep(this)
+
 		let cache = env.getEvalCache(this)
 
 		if (!cache) {
@@ -126,6 +135,11 @@ export abstract class BaseExpr {
 	}
 
 	infer(env = Env.global) {
+		if (env.hasInferDep(this)) {
+			return unit
+		}
+		env = env.withInferDep(this)
+
 		let cache = env.getInferCache(this)
 		if (!cache) {
 			cache = this.forceInfer(env)

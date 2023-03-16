@@ -11,12 +11,27 @@ import type {BaseExpr} from '.'
 export class Env {
 	#outer!: Env | undefined
 	#arg: Record<string, Value>
-	#evalCache: WeakMap<BaseExpr, WithLog> = new WeakMap()
-	#inferCache: WeakMap<BaseExpr, Value> = new WeakMap()
+	#evalCache: WeakMap<BaseExpr, WithLog>
+	#inferCache: WeakMap<BaseExpr, Value>
 
-	private constructor(original: Env | undefined, arg: Record<string, Value>) {
-		this.#outer = original
+	// 一連の評価/推論プロセスで、これまでに辿ってきた式を保持する。循環参照検出用に
+	#evalDeps: Set<BaseExpr>
+	#inferDeps: Set<BaseExpr>
+
+	private constructor(
+		outer: Env | undefined,
+		arg: Record<string, Value>,
+		evalCache: WeakMap<BaseExpr, WithLog>,
+		inferCache: WeakMap<BaseExpr, Value>,
+		evalDeps: Set<BaseExpr>,
+		inferDeps: Set<BaseExpr>
+	) {
+		this.#outer = outer
 		this.#arg = arg
+		this.#evalCache = evalCache
+		this.#inferCache = inferCache
+		this.#evalDeps = evalDeps
+		this.#inferDeps = inferDeps
 	}
 
 	get isGlobal() {
@@ -24,11 +39,50 @@ export class Env {
 	}
 
 	push(arg: Record<string, Value>) {
-		return new Env(this, arg)
+		return new Env(
+			this,
+			arg,
+			new WeakMap(),
+			new WeakMap(),
+			this.#evalDeps,
+			this.#inferDeps
+		)
 	}
 
 	pop() {
 		return this.#outer ?? this
+	}
+
+	withEvalDep(expr: BaseExpr): Env {
+		const evalDeps = new Set([expr, ...this.#evalDeps])
+		return new Env(
+			this.#outer,
+			this.#arg,
+			this.#evalCache,
+			this.#inferCache,
+			evalDeps,
+			this.#inferDeps
+		)
+	}
+
+	hasEvalDep(expr: BaseExpr): boolean {
+		return this.#evalDeps.has(expr)
+	}
+
+	withInferDep(expr: BaseExpr): Env {
+		const inferDeps = new Set([expr, ...this.#inferDeps])
+		return new Env(
+			this.#outer,
+			this.#arg,
+			this.#evalCache,
+			this.#inferCache,
+			this.#evalDeps,
+			inferDeps
+		)
+	}
+
+	hasInferDep(expr: BaseExpr): boolean {
+		return this.#inferDeps.has(expr)
 	}
 
 	getArg(name: string): Value | undefined {
@@ -51,5 +105,12 @@ export class Env {
 		return this.#inferCache.set(expr, type)
 	}
 
-	static global = new Env(undefined, {})
+	static global = new Env(
+		undefined,
+		{},
+		new WeakMap(),
+		new WeakMap(),
+		new Set(),
+		new Set()
+	)
 }
