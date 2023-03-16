@@ -6,6 +6,7 @@ import {
 	Expr,
 	FnDef,
 	Literal,
+	Match,
 	ParamsDef,
 	ParentExpr,
 	Program,
@@ -115,9 +116,14 @@ const __ = _.assert(
 
 const OptionalMark = zeroOrOne(P.string('?')).map(r => !!r)
 
+const followedByColon = <T>(parser: P.Parser<T>): P.Parser<T> => {
+	return P.seqMap(parser, P.string(':'), p => p)
+}
+
 const Reserved = new Set([
 	'=>',
 	'let',
+	'match',
 	'return',
 	'Infinity',
 	'-Infinity',
@@ -137,6 +143,7 @@ interface IParser {
 	StringLiteral: Literal
 	ScopeEntry: [string, string, Expr, string]
 	Scope: Scope
+	Match: Match
 	TypeVarsDef: TypeVarsDef
 	ParamsDef: ParamsDef
 	FnDef: FnDef
@@ -166,6 +173,7 @@ export const Parser = P.createLanguage<IParser>({
 			r.NumberLiteral,
 			r.StringLiteral,
 			r.Scope,
+			r.Match,
 			r.FnDef,
 			r.App,
 			r.VecLiteral,
@@ -221,7 +229,7 @@ export const Parser = P.createLanguage<IParser>({
 			// Items part
 			r.DictEntry.many(),
 			// Rest part
-			opt(P.seq(P.string('...'), SymbolParser, P.string(':'), _, r.Expr, _))
+			opt(P.seq(P.string('...'), followedByColon(SymbolParser), _, r.Expr, _))
 		)
 			.wrap(P.string('['), P.string(']'))
 			.map(([d0, pairs, restDs]) => {
@@ -242,7 +250,7 @@ export const Parser = P.createLanguage<IParser>({
 
 				let rest: ParamsDef['rest']
 				if (restDs) {
-					const [, name, , dr0, expr, dr1] = restDs
+					const [, name, dr0, expr, dr1] = restDs
 					rest = {name, expr}
 					delimiters.push(dr0, dr1)
 				}
@@ -315,8 +323,8 @@ export const Parser = P.createLanguage<IParser>({
 			.desc('function application')
 	},
 	ScopeEntry(r) {
-		return P.seq(SymbolParser, P.string(':'), _, r.Expr, _).map(
-			([name, , _0, expr, _1]) => [name, _0, expr, _1]
+		return P.seq(followedByColon(SymbolParser), _, r.Expr, _).map(
+			([name, _0, expr, _1]) => [name, _0, expr, _1]
 		)
 	},
 	Scope(r) {
@@ -360,6 +368,39 @@ export const Parser = P.createLanguage<IParser>({
 				return expr
 			})
 			.desc('scope')
+	},
+	Match(r) {
+		return P.seq(
+			_,
+			P.string('match'),
+			_,
+			P.seq(followedByColon(SymbolParser), _, r.Expr, _),
+			P.seq(followedByColon(r.Expr), _, r.Expr, _).many(),
+			opt(P.seq(r.Expr, _))
+		)
+			.wrap(P.string('('), P.string(')'))
+			.map(([d0, , d1, capture, casesPart, otherwisePart]) => {
+				const [captureName, d2, subject, d3] = capture
+
+				const delimiters = [d0, d1, d2, d3]
+
+				const cases: Match['cases'] = []
+
+				for (const [pattern, d4, out, d5] of casesPart) {
+					cases.push([pattern, out])
+					delimiters.push(d4, d5)
+				}
+
+				let otherwise: Match['otherwise']
+				if (otherwisePart) {
+					otherwise = otherwisePart[0]
+					delimiters.push(otherwisePart[1])
+				}
+
+				const expr = new Match(captureName, subject, cases, otherwise)
+				expr.extras = {delimiters}
+				return expr
+			})
 	},
 	VecLiteral(r) {
 		return P.seq(

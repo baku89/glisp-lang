@@ -4,6 +4,7 @@ import {
 	Expr,
 	fnDef,
 	literal,
+	match,
 	ParamsDef,
 	paramsDef,
 	scope,
@@ -142,6 +143,31 @@ describe('parsing scope', () => {
 	testParsing('(let+ 20)', app(symbol('let+'), literal(20)))
 
 	testErrorParsing('(let==: 10)')
+})
+
+describe('parsing match', () => {
+	testParsing('(match x: x)', match('x', symbol('x')))
+	testParsing(
+		'(match x: y 0: "a")',
+		match('x', symbol('y'), [[literal(0), literal('a')]])
+	)
+	testParsing(
+		'(match x: y 0: "a" _)',
+		match('x', symbol('y'), [[literal(0), literal('a')]], symbol('_'))
+	)
+	testParsing(
+		'(match x: y 0:"a" 1:"b"  _)',
+		match(
+			'x',
+			symbol('y'),
+			[
+				[literal(0), literal('a')],
+				[literal(1), literal('b')],
+			],
+			symbol('_')
+		)
+	)
+	testParsing('(match x: y "a")', match('x', symbol('y'), [], literal('a')))
 })
 
 describe('parsing vector', () => {

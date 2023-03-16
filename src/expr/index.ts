@@ -1490,7 +1490,6 @@ export class Match extends BaseExpr {
 
 	print(options?: PrintOptions): string {
 		const tokens = [
-			'(',
 			'match',
 			this.captureName + ':',
 			this.subject.print(options),
