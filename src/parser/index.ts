@@ -102,7 +102,7 @@ const Comment = seq(
 
 const Whitespace = P.alt(P.whitespace, P.string(',')).desc('whitespace')
 
-const Delimiter = seq(
+const _ = seq(
 	zeroOrOne(Whitespace),
 	many(seq(zeroOrOne(Comment), P.newline, many(Whitespace))),
 	zeroOrOne(Comment.skip(P.eof))
@@ -147,13 +147,13 @@ export const Parser = P.createLanguage<IParser>({
 	Program(r) {
 		return P.alt(
 			P.seqMap(
-				Delimiter,
+				_,
 				r.Expr,
-				Delimiter,
+				_,
 				(before, expr, after) => new Program(before, expr, after)
 			),
 			// Empty program
-			Delimiter.map(s => new Program(s))
+			_.map(s => new Program(s))
 		).desc('program')
 	},
 	Expr(r) {
@@ -197,7 +197,7 @@ export const Parser = P.createLanguage<IParser>({
 			.desc('string literal')
 	},
 	TypeVarsDef() {
-		return P.seq(Delimiter, P.seq(SymbolParser, Delimiter).many())
+		return P.seq(_, P.seq(SymbolParser, _).many())
 			.wrap(P.string('('), P.string(')'))
 			.map(([d0, ItemsPart]) => {
 				const [items, ds] = zip(ItemsPart)
@@ -212,20 +212,11 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	ParamsDef(r) {
 		return P.seq(
-			Delimiter,
+			_,
 			// Items part
 			r.DictEntry.many(),
 			// Rest part
-			opt(
-				P.seq(
-					P.string('...'),
-					SymbolParser,
-					P.string(':'),
-					Delimiter,
-					r.Expr,
-					Delimiter
-				)
-			)
+			opt(P.seq(P.string('...'), SymbolParser, P.string(':'), _, r.Expr, _))
 		)
 			.wrap(P.string('['), P.string(']'))
 			.map(([d0, pairs, restDs]) => {
@@ -258,18 +249,18 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	FnDef(r) {
 		return P.seqMap(
-			Delimiter,
+			_,
 			P.string('=>'),
-			Delimiter,
+			_,
 			// Type variables part
-			opt(P.seq(r.TypeVarsDef, Delimiter)),
+			opt(P.seq(r.TypeVarsDef, _)),
 			// Parameters part
 			r.ParamsDef,
-			Delimiter,
+			_,
 			// Return type part
-			opt(P.seq(P.string(':'), Delimiter, r.Expr, Delimiter)),
+			opt(P.seq(P.string(':'), _, r.Expr, _)),
 			// Body part
-			opt(P.seq(r.Expr, Delimiter)),
+			opt(P.seq(r.Expr, _)),
 			//(d0=> d1 (   ...  ) d2  [       ]  d3  : d4 RetTy d5   body  d6)
 			(d0, _, d1, typeVarsPart, paramsDef, d3, returnTypePart, bodyPart) => {
 				const delimiters = [d0, d1]
@@ -304,7 +295,7 @@ export const Parser = P.createLanguage<IParser>({
 		).wrap(P.string('('), P.string(')'))
 	},
 	App(r) {
-		return P.seq(Delimiter, P.seq(r.Expr, Delimiter).many())
+		return P.seq(_, P.seq(r.Expr, _).many())
 			.wrap(P.string('('), P.string(')'))
 			.map(([d0, itemDs]) => {
 				const [items, ds] = zip(itemDs)
@@ -322,19 +313,19 @@ export const Parser = P.createLanguage<IParser>({
 		return P.seqMap(
 			SymbolParser,
 			P.string(':'),
-			Delimiter,
+			_,
 			r.Expr,
-			Delimiter,
+			_,
 			(name, _, d0, expr, d1) => [name, expr, [d0, d1]]
 		)
 	},
 	Scope(r) {
 		return P.seq(
-			Delimiter,
+			_,
 			P.string('let'),
-			Delimiter,
+			_,
 			r.ScopeEntry.many(),
-			opt(P.seq(r.Expr, Delimiter))
+			opt(P.seq(r.Expr, _))
 		)
 			.wrap(P.string('('), P.string(')'))
 			.map(([d0, , d1, entries, outPart]) => {
@@ -366,11 +357,11 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	VecLiteral(r) {
 		return P.seq(
-			Delimiter,
+			_,
 			// Items part
-			P.seq(r.Expr, OptionalMark, Delimiter).many(),
+			P.seq(r.Expr, OptionalMark, _).many(),
 			// Rest part
-			opt(P.seq(P.string('...'), r.Expr, Delimiter))
+			opt(P.seq(P.string('...'), r.Expr, _))
 		)
 			.wrap(P.string('['), P.string(']'))
 			.map(([d0, ItemsPart, RestPart]) => {
@@ -387,22 +378,17 @@ export const Parser = P.createLanguage<IParser>({
 			})
 	},
 	DictEntry(r) {
-		return P.seq(
-			SymbolParser,
-			OptionalMark,
-			P.string(':'),
-			Delimiter,
-			r.Expr,
-			Delimiter
-		).map(([key, optional, , d0, expr, d1]) => [key, optional, expr, [d0, d1]])
+		return P.seq(SymbolParser, OptionalMark, P.string(':'), _, r.Expr, _).map(
+			([key, optional, , d0, expr, d1]) => [key, optional, expr, [d0, d1]]
+		)
 	},
 	DictLiteral(r) {
 		return P.seq(
-			Delimiter,
+			_,
 			// Pairs part
 			r.DictEntry.many(),
 			// Rest part
-			opt(P.seq(P.string('...'), r.Expr, Delimiter))
+			opt(P.seq(P.string('...'), r.Expr, _))
 		)
 			.wrap(P.string('{'), P.string('}'))
 			.map(([d0, pairsPart, restPart]) => {
@@ -448,7 +434,7 @@ export const Parser = P.createLanguage<IParser>({
 		)
 	},
 	ValueMeta(r) {
-		return P.seq(P.string('^'), Delimiter, r.Expr, Delimiter, r.Expr)
+		return P.seq(P.string('^'), _, r.Expr, _, r.Expr)
 			.map(([, d0, fields, d1, expr]) => {
 				const meta = new ValueMeta(fields, expr)
 				meta.extras = {delimiters: [d0, d1]}
