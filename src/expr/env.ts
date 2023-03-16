@@ -1,7 +1,6 @@
-import {Log, WithLog} from '../log'
-import {union} from '../util/SetOperation'
+import {WithLog} from '../log'
 import {Value} from '../value'
-import type {BaseExpr, Expr} from '.'
+import type {BaseExpr} from '.'
 
 /**
  * 関数のコールスタックのようなもの。引数名-引数のセットを保持する.
@@ -36,33 +35,20 @@ export class Env {
 		return this.#arg[name]
 	}
 
-	memoizeEval(expr: BaseExpr): WithLog {
-		let cache = this.#evalCache.get(expr)
-
-		if (!cache) {
-			let logs: Set<Log>[] = []
-
-			const evaluate = (e: Expr): Value => {
-				const [value, log] = e.eval(this).asTuple
-				logs.push(log)
-				return value
-			}
-
-			cache = expr.forceEval(this, evaluate)
-			cache.log = union(...logs, cache.log)
-
-			this.#evalCache.set(expr, cache)
-		}
-		return cache
+	getEvalCache(expr: BaseExpr): WithLog | null {
+		return this.#evalCache.get(expr) ?? null
 	}
 
-	memoizeInfer(expr: BaseExpr): Value {
-		let cache = this.#inferCache.get(expr)
-		if (!cache) {
-			cache = expr.forceInfer(this)
-			this.#inferCache.set(expr, cache)
-		}
-		return cache
+	setEvalCache(expr: BaseExpr, result: WithLog) {
+		return this.#evalCache.set(expr, result)
+	}
+
+	getInferCache(expr: BaseExpr): Value | null {
+		return this.#inferCache.get(expr) ?? null
+	}
+
+	setInferCache(expr: BaseExpr, type: Value) {
+		return this.#inferCache.set(expr, type)
 	}
 
 	static global = new Env(undefined, {})

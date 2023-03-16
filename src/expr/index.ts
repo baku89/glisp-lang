@@ -8,6 +8,7 @@ import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
 import {isEqualSet} from '../util/isEqualSet'
 import {nullishEqual} from '../util/nullishEqual'
+import {union} from '../util/SetOperation'
 import {Writer} from '../util/Writer'
 import {
 	All,
@@ -105,11 +106,32 @@ export abstract class BaseExpr {
 	*/
 
 	eval(env = Env.global) {
-		return env.memoizeEval(this)
+		let cache = env.getEvalCache(this)
+
+		if (!cache) {
+			let logs: Set<Log>[] = []
+
+			const evaluate = (e: Expr): Value => {
+				const [value, log] = e.eval(env).asTuple
+				logs.push(log)
+				return value
+			}
+
+			cache = this.forceEval(env, evaluate)
+			cache.log = union(...logs, cache.log)
+
+			env.setEvalCache(this, cache)
+		}
+		return cache
 	}
 
 	infer(env = Env.global) {
-		return env.memoizeInfer(this)
+		let cache = env.getInferCache(this)
+		if (!cache) {
+			cache = this.forceInfer(env)
+			env.setInferCache(this, cache)
+		}
+		return cache
 	}
 }
 
