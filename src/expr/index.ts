@@ -1408,7 +1408,7 @@ export class ValueMeta extends BaseExpr {
 		if (fields.type !== 'Dict') {
 			// NOTE: これ、inferした時点でDictじゃなければ切る、でも良いのでは?
 			log.add({
-				level: 'warn',
+				level: 'error',
 				ref: this,
 				reason:
 					'Type metadata should be a dictionary, ' +
@@ -1432,7 +1432,7 @@ export class ValueMeta extends BaseExpr {
 				expr = expr.withDefault(defaultValue)
 			} else {
 				log.add({
-					level: 'warn',
+					level: 'error',
 					ref: this,
 					reason:
 						`Cannot use ${defaultValue.print()} ` +
