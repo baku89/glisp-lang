@@ -108,6 +108,11 @@ const _ = seq(
 	zeroOrOne(Comment.skip(P.eof))
 ).desc('delimiter')
 
+const __ = _.assert(
+	s => s.length > 0,
+	'zero-length delimiter is not allowed'
+).desc('non-zero length delimiter')
+
 const OptionalMark = zeroOrOne(P.string('?')).map(r => !!r)
 
 const Reserved = new Set([
@@ -130,7 +135,7 @@ interface IParser {
 	Expr: Expr
 	NumberLiteral: Literal
 	StringLiteral: Literal
-	ScopeEntry: [string, Expr, [string, string]]
+	ScopeEntry: [string, string, Expr, string]
 	Scope: Scope
 	TypeVarsDef: TypeVarsDef
 	ParamsDef: ParamsDef
@@ -310,43 +315,44 @@ export const Parser = P.createLanguage<IParser>({
 			.desc('function application')
 	},
 	ScopeEntry(r) {
-		return P.seqMap(
-			SymbolParser,
-			P.string(':'),
-			_,
-			r.Expr,
-			_,
-			(name, _, d0, expr, d1) => [name, expr, [d0, d1]]
+		return P.seq(SymbolParser, P.string(':'), _, r.Expr, _).map(
+			([name, , _0, expr, _1]) => [name, _0, expr, _1]
 		)
 	},
 	Scope(r) {
 		return P.seq(
 			_,
 			P.string('let'),
-			_,
-			r.ScopeEntry.many(),
+			// Key-value pairs part
+			opt(P.seq(__, r.ScopeEntry.many())),
+			// Return value part
 			opt(P.seq(r.Expr, _))
 		)
 			.wrap(P.string('('), P.string(')'))
-			.map(([d0, , d1, entries, outPart]) => {
+			.map(([_0, , itemsPart, outPart]) => {
 				const items: Scope['items'] = {}
-				const delimiters = [d0, d1]
+				const delimiters = [_0]
 
-				for (const [name, expr, d2s] of entries) {
-					if (name in items) {
-						throw new Error(`Duplicated symbol name: '${name}'`)
+				if (itemsPart) {
+					const [__1, entries] = itemsPart
+
+					delimiters.push(__1)
+
+					for (const [name, _2a, expr, __2b] of entries) {
+						if (name in items) {
+							throw new Error(`Duplicated symbol name: '${name}'`)
+						}
+
+						items[name] = expr
+						delimiters.push(_2a, __2b)
 					}
-
-					items[name] = expr
-
-					delimiters.push(...d2s)
 				}
 
 				let out: Expr | undefined
 				if (outPart) {
-					const [_out, d3] = outPart
+					const [_out, _3] = outPart
 					out = _out
-					delimiters.push(d3)
+					delimiters.push(_3)
 				}
 
 				const expr = new Scope(items, out)
