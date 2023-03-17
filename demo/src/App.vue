@@ -42,9 +42,10 @@ defineExpose({
 			(in 🇯🇵)
 		</p>
 		<p>
-			<em>Glisp</em> (/dʒiːlisp/ /glisp/) is a Lisp-based design environment
-			that introduces the approach of computational arts to the world of
-			repetitive and manual design. Mainly developed by Baku Hashimoto (橋本麦).
+			<em>Glisp</em> (/dʒiːlɪsp/ /gɫɪsp/) is a Lisp-based design tool that
+			bridges the gap between parametric methodologies and traditional design
+			techniques, empowering artists to explore new forms of expression. Mainly
+			developed by Baku Hashimoto (橋本麦).
 		</p>
 		<pre><code class="repl">{{ result }}</code></pre>
 		<Repl />
