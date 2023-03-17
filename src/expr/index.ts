@@ -34,9 +34,10 @@ import {createListDelimiters, insertDelimiters} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
 
 /**
- * forceEval内で、依存する他の式を評価する時に用いる。戻り値のうちLogはforceEvalの呼び出し側
- * で責任をもって収集され、forceEvalのLogとガッチャンコになるので、forceEval内でLogを
- * 掻き集める必要が無い
+ * Used when evaluating other expressions that depend on it in forceEval.
+ * The Log in the return value is collected responsibly by the caller
+ * , and it will be combined with the Log of forceEval,
+ * so there is no need to collect Log within forceEval.
  */
 type IEvalDep = (expr: Expr) => Value
 

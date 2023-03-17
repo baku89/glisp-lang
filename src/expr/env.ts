@@ -14,7 +14,9 @@ export class Env {
 	#evalCache: WeakMap<BaseExpr, WithLog>
 	#inferCache: WeakMap<BaseExpr, Value>
 
-	// 一連の評価/推論プロセスで、これまでに辿ってきた式を保持する。循環参照検出用に
+	// Store the reference to Expr that have been traversed so far
+	// in the series of evaluation/inference processes.
+	// This is for detecting circular references.
 	#evalDeps: Set<BaseExpr>
 	#inferDeps: Set<BaseExpr>
 
