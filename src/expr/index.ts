@@ -573,7 +573,7 @@ export class FnDef extends BaseExpr {
 
 		if (this.body) {
 			// Returns function
-			const {body} = this
+			let {body} = this
 
 			// Infer the return type of function body
 			const arg = {...params}
@@ -612,6 +612,7 @@ export class FnDef extends BaseExpr {
 
 			if (shouldReturnDefaultValue) {
 				fnObj = () => withLog(returnType.defaultValue)
+				body = returnType.defaultValue.toExpr()
 			} else {
 				const {names, restName} = this.params.getNames()
 
