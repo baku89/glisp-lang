@@ -188,9 +188,9 @@ describe('instance relationship', () => {
 
 	function test(i: string, t: string, expected = true) {
 		it(`${i} is ${expected ? '' : 'not '}a instance of ${t}`, () => {
-			const iv = tryParse(i)
+			const iv = tryParse(i).infer().result
 			const tv = tryParse(t).eval().result
-			expect(iv.infer().isSubtypeOf(tv)).toBe(expected)
+			expect(iv.isSubtypeOf(tv)).toBe(expected)
 		})
 	}
 })

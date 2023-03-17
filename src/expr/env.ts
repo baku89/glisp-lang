@@ -12,7 +12,7 @@ export class Env {
 	#outer!: Env | undefined
 	#arg: Record<string, Value>
 	#evalCache: WeakMap<BaseExpr, WithLog>
-	#inferCache: WeakMap<BaseExpr, Value>
+	#inferCache: WeakMap<BaseExpr, WithLog>
 
 	// Store the reference to Expr that have been traversed so far
 	// in the series of evaluation/inference processes.
@@ -24,7 +24,7 @@ export class Env {
 		outer: Env | undefined,
 		arg: Record<string, Value>,
 		evalCache: WeakMap<BaseExpr, WithLog>,
-		inferCache: WeakMap<BaseExpr, Value>,
+		inferCache: WeakMap<BaseExpr, WithLog>,
 		evalDeps: Set<BaseExpr>,
 		inferDeps: Set<BaseExpr>
 	) {
@@ -99,11 +99,11 @@ export class Env {
 		return this.#evalCache.set(expr, result)
 	}
 
-	getInferCache(expr: BaseExpr): Value | null {
+	getInferCache(expr: BaseExpr): WithLog | null {
 		return this.#inferCache.get(expr) ?? null
 	}
 
-	setInferCache(expr: BaseExpr, type: Value) {
+	setInferCache(expr: BaseExpr, type: WithLog) {
 		return this.#inferCache.set(expr, type)
 	}
 

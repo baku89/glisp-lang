@@ -39,7 +39,7 @@ import {shadowTypeVars, Unifier} from './unify'
  * , and it will be combined with the Log of forceEval,
  * so there is no need to collect Log within forceEval.
  */
-type IEvalDep = (expr: Expr) => Value
+type IEvalDep = (expr: Expr, env?: Env) => Value
 
 /**
  * ASTs that have eval, infer as normal
@@ -84,8 +84,8 @@ export abstract class BaseExpr {
 
 	abstract print(options?: PrintOptions): string
 
-	abstract forceEval(env: Env, evaluate: IEvalDep): WithLog
-	abstract forceInfer(env: Env): Value
+	abstract forceEval(env: Env, evaluate: IEvalDep, infer: IEvalDep): WithLog
+	abstract forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): WithLog
 
 	abstract resolveSymbol(path: string | number): Expr | null
 
@@ -122,15 +122,21 @@ export abstract class BaseExpr {
 		let cache = env.getEvalCache(this)
 
 		if (!cache) {
-			let logs: Set<Log>[] = []
+			const logs: Set<Log>[] = []
 
-			const evaluate = (e: Expr): Value => {
-				const [value, log] = e.eval(env).asTuple
+			const evaluate = (e: Expr, _env: Env = env): Value => {
+				const [value, log] = e.eval(_env).asTuple
 				logs.push(log)
 				return value
 			}
 
-			cache = this.forceEval(env, evaluate)
+			const infer = (e: Expr, _env: Env = env): Value => {
+				const [value, log] = e.infer(_env).asTuple
+				logs.push(log)
+				return value
+			}
+
+			cache = this.forceEval(env, evaluate, infer)
 			cache.log = union(...logs, cache.log)
 
 			env.setEvalCache(this, cache)
@@ -138,15 +144,33 @@ export abstract class BaseExpr {
 		return cache
 	}
 
-	infer(env = Env.global) {
+	infer(env = Env.global): WithLog {
 		if (env.hasInferDep(this)) {
-			return unit
+			return withLog(unit, {
+				level: 'error',
+				reason: 'Circular reference detected',
+				ref: this as any as Expr,
+			})
 		}
 		env = env.withInferDep(this)
 
 		let cache = env.getInferCache(this)
 		if (!cache) {
-			cache = this.forceInfer(env)
+			const logs: Set<Log>[] = []
+
+			const evaluate = (e: Expr, _env: Env = env): Value => {
+				const [value, log] = e.eval(_env).asTuple
+				logs.push(log)
+				return value
+			}
+
+			const infer = (e: Expr, _env: Env = env): Value => {
+				const [value, log] = e.infer(_env).asTuple
+				logs.push(log)
+				return value
+			}
+
+			cache = this.forceInfer(env, evaluate, infer)
 			env.setInferCache(this, cache)
 		}
 		return cache
@@ -171,16 +195,16 @@ export class Program extends BaseExpr {
 		if (this.expr) this.expr.parent = this
 	}
 
-	forceEval(env: Env) {
+	forceEval(env: Env, evaluate: IEvalDep) {
 		if (!this.expr) {
 			return withLog(unit, {level: 'error', reason: 'Empty program'})
 		}
-		return this.expr.eval(env)
+		return withLog(evaluate(this.expr))
 	}
 
-	forceInfer(env: Env) {
-		if (!this.expr) return unit
-		return this.expr.infer(env)
+	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep) {
+		if (!this.expr) return withLog(unit)
+		return withLog(infer(this.expr))
 	}
 
 	resolveSymbol() {
@@ -330,19 +354,23 @@ export class Symbol extends BaseExpr {
 		}
 	}
 
-	forceInfer(env: Env): Value {
+	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): WithLog {
 		const resolved = this.resolve(env)
 
 		if (!resolved) {
-			return unit
+			return withLog(unit, {
+				level: 'error',
+				ref: this,
+				reason: `Symbol \`${this.print()}\` cannot be resolved`,
+			})
 		}
 
 		const {expr, mode} = resolved
 
 		if (mode) {
-			return expr.eval(env).result
+			return withLog(evaluate(expr))
 		} else {
-			return expr.infer(env)
+			return withLog(infer(expr))
 		}
 	}
 
@@ -383,9 +411,9 @@ export class ValueContainer<V extends Value = Value> extends BaseExpr {
 	}
 
 	forceInfer() {
-		if (this.value.isType) return all
-		if (this.value.type === 'Fn') return this.value.fnType
-		return this.value
+		if (this.value.isType) return withLog(all)
+		if (this.value.type === 'Fn') return withLog(this.value.fnType)
+		return withLog(this.value)
 	}
 
 	resolveSymbol() {
@@ -429,7 +457,7 @@ export class Literal extends BaseExpr {
 	}
 
 	forceInfer() {
-		return this.forceEval().result
+		return this.eval()
 	}
 
 	resolveSymbol() {
@@ -515,7 +543,11 @@ export class FnDef extends BaseExpr {
 		if (this.body) this.body.parent = this
 	}
 
-	forceEval(env: Env, evaluate: IEvalDep): WithLog<FnType | Fn> {
+	forceEval(
+		env: Env,
+		evaluate: IEvalDep,
+		infer: IEvalDep
+	): WithLog<FnType | Fn> {
 		// In either case, params need to be evaluated
 		const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
 		const {optionalPos} = this.params
@@ -533,7 +565,7 @@ export class FnDef extends BaseExpr {
 			}
 
 			const innerEnv = env.push(arg)
-			let returnType = body.infer(innerEnv)
+			let returnType = infer(body, innerEnv)
 
 			// When there's explicit notation for return type,
 			// check if inferredReturnType <: returnType is true.
@@ -600,16 +632,16 @@ export class FnDef extends BaseExpr {
 		}
 	}
 
-	forceInfer(env: Env): FnType | All {
+	forceInfer(env: Env): WithLog<FnType | All> {
 		// To be honest, I wanted to infer the function type
 		// without evaluating it, but it works anyway and should be less buggy.
-		const fn = this.eval(env).result
+		const [fn, log] = this.eval(env).asTuple
 
 		return fn.type === 'Fn'
 			? // When the expression is function definition
-			  fn.fnType
+			  withLog(fn.fnType, ...log)
 			: // Otherwise, the expression means function type definition
-			  all
+			  withLog(all, ...log)
 	}
 
 	resolveSymbol(path: number | string): Expr | null {
@@ -886,12 +918,13 @@ export class VecLiteral extends BaseExpr {
 		return withLog(vec(items, this.optionalPos, rest))
 	}
 
-	forceInfer(env: Env): Value {
+	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep) {
 		if (this.rest || this.items.length < this.optionalPos) {
-			return all
+			// When it's type
+			return withLog(all)
 		}
-		const items = this.items.map(it => it.infer(env))
-		return vec(items)
+		const items = this.items.map(it => infer(it))
+		return withLog(vec(items))
 	}
 
 	resolveSymbol(path: number | string): Expr | null {
@@ -984,11 +1017,14 @@ export class DictLiteral extends BaseExpr {
 
 	eval!: (env?: Env) => WithLog<Dict>
 
-	forceInfer(env: Env): Value {
-		if (this.optionalKeys.size > 0 || this.rest) return all
+	forceInfer(env: Env, evalute: IEvalDep, infer: IEvalDep): WithLog {
+		if (this.optionalKeys.size > 0 || this.rest) {
+			// When it's type
+			return withLog(all)
+		}
 
-		const items = mapValues(this.items, it => it.infer(env))
-		return dict(items)
+		const items = mapValues(this.items, it => infer(it))
+		return withLog(dict(items))
 	}
 
 	resolveSymbol(path: string | number): Expr | null {
@@ -1068,7 +1104,7 @@ export class App extends BaseExpr {
 		args.forEach(a => (a.parent = this))
 	}
 
-	#unify(env: Env): [Unifier, Value[]] {
+	#unify(env: Env, infer: IEvalDep): [Unifier, Value[]] {
 		if (!this.fn) throw new Error('Cannot unify unit literal')
 
 		const fn = this.fn.eval(env).result
@@ -1085,7 +1121,7 @@ export class App extends BaseExpr {
 		// 実引数をshadowする必要があるのは、(id id) のように多相関数の引数として
 		// 自らを渡した際に、仮引数と実引数とで型変数が被るのを防ぐため
 		const shadowedArgs = args.map(a => {
-			return shadowTypeVars(a.infer(env))
+			return shadowTypeVars(infer(a))
 		})
 
 		const paramsType = vec(params, fnType.optionalPos, fnType.rest?.value)
@@ -1096,7 +1132,7 @@ export class App extends BaseExpr {
 		return [unifier, shadowedArgs]
 	}
 
-	forceEval(env: Env, evaluate: IEvalDep): WithLog {
+	forceEval(env: Env, evaluate: IEvalDep, infer: IEvalDep): WithLog {
 		if (!this.fn) return withLog(unit)
 
 		// Evaluate the function itself at first
@@ -1114,7 +1150,7 @@ export class App extends BaseExpr {
 		const params = values(fnType.params)
 
 		// Unify FnType and args
-		const [unifier, shadowedArgs] = this.#unify(env)
+		const [unifier, shadowedArgs] = this.#unify(env, infer)
 		const unifiedParams = params.map(p => unifier.substitute(p))
 		const unifiedArgs = shadowedArgs.map(a => unifier.substitute(a))
 
@@ -1222,11 +1258,16 @@ export class App extends BaseExpr {
 		return withLog(unifiedResult, ...argLog, ...callLogWithRef)
 	}
 
-	forceInfer(env: Env): Value {
-		if (!this.fn) return unit
+	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): WithLog {
+		if (!this.fn) {
+			// Unit literal
+			return withLog(unit)
+		}
 
-		const ty = this.fn.infer(env)
-		if (!('fnType' in ty)) return ty
+		const ty = infer(this.fn)
+		if (!('fnType' in ty)) {
+			return withLog(ty)
+		}
 
 		/**
 		 * A function type whose return type equals to All is type constructor
@@ -1234,11 +1275,11 @@ export class App extends BaseExpr {
 		 * the expression
 		 */
 		if (ty.fnType.out.isEqualTo(all)) {
-			return this.eval(env).result
+			return this.eval(env)
 		}
 
-		const [unifier] = this.#unify(env)
-		return unifier.substitute(ty.fnType.out, true)
+		const [unifier] = this.#unify(env, infer)
+		return withLog(unifier.substitute(ty.fnType.out, true))
 	}
 
 	resolveSymbol(path: string | number): Expr | null {
@@ -1248,7 +1289,7 @@ export class App extends BaseExpr {
 		if (typeof path === 'string') {
 			// NOTE: 実引数として渡された関数の方ではなく、仮引数の方で名前を参照するべきなので、
 			// Env.globalのほうが良いのでは?
-			const fnType = this.fn.infer(Env.global)
+			const fnType = this.fn.infer(Env.global).result
 			if (fnType.type !== 'FnType') return null
 
 			const paramNames = keys(fnType.params)
@@ -1322,8 +1363,8 @@ export class Scope extends BaseExpr {
 		this.out = out
 	}
 
-	forceInfer(env: Env): Value {
-		return this.out?.infer(env) ?? unit
+	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): WithLog {
+		return withLog(this.out ? infer(this.out) : unit)
 	}
 
 	forceEval(env: Env) {
@@ -1458,13 +1499,13 @@ export class Match extends BaseExpr {
 		})
 	}
 
-	forceInfer(env: Env): Value {
+	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): WithLog {
 		let type: Value = never
-		let remainingSubjectType = this.subject.infer(env)
+		let remainingSubjectType = infer(this.subject)
 
 		for (const [_pattern, _out] of this.cases ?? []) {
-			const pattern = _pattern.eval(env).result
-			const out = _out.infer(env)
+			const pattern = evaluate(_pattern)
+			const out = infer(_out)
 
 			type = unionType(type, out)
 			remainingSubjectType = differenceType(remainingSubjectType, pattern)
@@ -1474,7 +1515,7 @@ export class Match extends BaseExpr {
 			type = unionType(type, unit)
 		}
 
-		return type
+		return withLog(type)
 	}
 
 	resolveSymbol(path: string | number): Expr | null {
