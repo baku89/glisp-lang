@@ -229,3 +229,7 @@ describe('evaluating path symbols', () => {
 	testEval('(let x: {y: 1} (inc x/y))', '2')
 	testEval('(let x: [1] (inc x/0))', '2')
 })
+
+describe('checking log cascade', () => {
+	testEval('(+ notDefined)', '0', true)
+})
