@@ -59,8 +59,8 @@ defineExpose({
 	user-select none
 	position fixed
 	top 0
-	left -1px
-	right -1px
+	left 0.5rem
+	right 0.5rem
 	border-color var(--color-on-surface)
 	border-width 0 1px 1px 1px
 	background var(--color-surface)
