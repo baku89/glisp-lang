@@ -191,11 +191,9 @@ describe('resolving path symbols', () => {
 
 		const resolved = s.resolve()
 
-		if (!resolved) throw new Error()
+		if (!resolved || resolved.mode !== 'global') throw new Error()
 
-		const {expr} = resolved
-
-		const evaluated = expr.eval().result
+		const evaluated = resolved.expr.eval().result
 
 		if (!evaluated.isEqualTo(e)) {
 			throw new Error('Got=' + evaluated.print())

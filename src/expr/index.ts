@@ -259,13 +259,19 @@ export class Symbol extends BaseExpr {
 	// 	return this.paths[0].name
 	// }
 
-	resolve(env: Env = Env.global): {expr: Expr; mode?: 'param' | 'arg'} | null {
+	resolve(
+		env: Env = Env.global
+	):
+		| {mode: 'global' | 'param'; expr: Expr}
+		| {mode: 'arg'; value: Value}
+		| null {
 		let expr: Expr | ParamsDef | Program | null = this.parent
-
 		let isFirstPath = true
-		let mode: 'param' | 'arg' | undefined
 
-		for (const path of this.paths) {
+		for (let i = 0; i < this.paths.length; i++) {
+			const path = this.paths[i]
+			const isLastPath = i === this.paths.length - 1
+
 			while (expr && expr.type === 'Program') {
 				expr = expr.parent
 			}
@@ -294,9 +300,11 @@ export class Symbol extends BaseExpr {
 							if (env.isGlobal) {
 								const e = expr.resolveSymbol(path)
 								if (e) {
-									expr = e
-									mode = 'param'
-									break
+									if (isLastPath) {
+										return {mode: 'param', expr: e}
+									} else {
+										return null
+									}
 								}
 							} else {
 								if (typeof path !== 'string') {
@@ -304,9 +312,11 @@ export class Symbol extends BaseExpr {
 								}
 								const arg = env.getArg(path)
 								if (arg) {
-									expr = new ValueContainer(arg)
-									mode = 'arg'
-									break
+									if (isLastPath) {
+										return {mode: 'arg', value: arg}
+									} else {
+										return null
+									}
 								}
 							}
 							env = env.pop()
@@ -327,7 +337,7 @@ export class Symbol extends BaseExpr {
 			return null
 		}
 
-		return {expr, mode}
+		return {mode: 'global', expr}
 	}
 
 	forceEval(env: Env, evaluate: IEvalDep): WithLog {
@@ -341,16 +351,22 @@ export class Symbol extends BaseExpr {
 			})
 		}
 
-		const {expr, mode} = resolved
-
-		const shouldUseDefault =
-			mode === 'param' &&
-			!(expr.type === 'ValueContainer' && expr.value.type == 'TypeVar')
-
-		if (shouldUseDefault) {
-			return withLog(evaluate(expr).defaultValue)
+		let value: Value
+		if (resolved.mode === 'arg') {
+			value = resolved.value
 		} else {
-			return withLog(evaluate(expr))
+			value = evaluate(resolved.expr)
+		}
+
+		// 仮引数を参照しており、かつそれが関数呼び出し時ではなく
+		// 束縛されている値が環境に見当たらない場合、自由変数なんでデフォルト値を返す
+		// ただし、型変数は除く
+		const isFreeVar = resolved.mode === 'param'
+
+		if (isFreeVar && value.type !== 'TypeVar') {
+			return withLog(value.defaultValue)
+		} else {
+			return withLog(value)
 		}
 	}
 
@@ -365,12 +381,13 @@ export class Symbol extends BaseExpr {
 			})
 		}
 
-		const {expr, mode} = resolved
-
-		if (mode) {
-			return withLog(evaluate(expr))
-		} else {
-			return withLog(infer(expr))
+		switch (resolved.mode) {
+			case 'global':
+				return withLog(infer(resolved.expr))
+			case 'param':
+				return withLog(evaluate(resolved.expr))
+			case 'arg':
+				return withLog(resolved.value)
 		}
 	}
 
