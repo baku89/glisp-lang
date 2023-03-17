@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {ref, computed, nextTick} from 'vue'
 import * as G from 'glisp'
-import {def} from '@vue/shared'
 
 const input = ref('')
 const inputLines = computed(() => input.value.split('\n').length)
