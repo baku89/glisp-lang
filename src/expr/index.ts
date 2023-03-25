@@ -273,7 +273,7 @@ export class Symbol extends BaseExpr {
 			const path = this.paths[i]
 			const isLastPath = i === this.paths.length - 1
 
-			while (expr && expr.type === 'Program') {
+			while (expr && (expr.type === 'Program' || expr.type === 'ValueMeta')) {
 				expr = expr.parent
 			}
 
@@ -341,7 +341,7 @@ export class Symbol extends BaseExpr {
 			isFirstPath = false
 		}
 
-		while (expr && expr.type === 'Program') {
+		while (expr && (expr.type === 'Program' || expr.type === 'ValueMeta')) {
 			expr = expr.parent
 		}
 

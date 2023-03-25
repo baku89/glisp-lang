@@ -216,6 +216,7 @@ describe('detecting circular reference', () => {
 
 describe('evaluating path symbols', () => {
 	testEval('(+ 7 ./1)', '14')
+	testEval('(+ 7 ^{}./1)', '14')
 	testEval('(if true ./else "else")', '"else"')
 	testEval('(let x: (+ 1 2) (inc ../x/1))', '2')
 	testEval('(let x: (+ 1 2) [(inc ../../x/1)])', '2')
