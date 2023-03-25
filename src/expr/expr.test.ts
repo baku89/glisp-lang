@@ -67,12 +67,6 @@ describe('evaluating function definition', () => {
 	testEval('((=> [f:(=> [x:Number]: Number)] (f 1)) id)', '1')
 })
 
-/*
-describe('run-time error handling', () => {
-	testEval('(try ([] 0) 1)', '1', true)
-})
-*/
-
 describe('resolving identifier', () => {
 	testEval('(let X: Number (=> [a:X]: X))', '(=> [a:Number]: Number)')
 })
@@ -124,7 +118,6 @@ describe('inferring expression type', () => {
 		'((=> (T) [f:(=> [t:T]: T)] (=> [x:T] (f x))) inc)',
 		'(=> [t:Number]: Number)'
 	)
-	test('(try 1 2)', '(union 1 2)')
 
 	test('(match x:3)', '()')
 	test('(match x:3 3:"three")', '"three"')

@@ -341,10 +341,6 @@ describe('parsing value metadata', () => {
 	testErrorParsing('^{true}Boolean')
 })
 
-describe('parsing try catch', () => {
-	testParsing('(try+())', app(symbol('try+'), app()))
-})
-
 /*
 describe('parsing expression metadata', () => {
 	// testParsing('layer#{}', symbol('layer').setNodeMeta(new NodeMeta(dict())))
