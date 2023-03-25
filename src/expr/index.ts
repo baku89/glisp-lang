@@ -852,17 +852,6 @@ export class ParamsDef {
 		}
 	}
 
-	get(name: string, env: Env) {
-		if (name in this.items) {
-			return Writer.of<Expr, Log>(this.items[name])
-		}
-		if (this.rest && this.rest.name === name) {
-			const [rest, lr] = this.rest.expr.eval(env).asTuple
-			const expr = new ValueContainer(vec([], undefined, rest))
-			return Writer.of(expr, ...lr)
-		}
-	}
-
 	isSameTo(expr: AnyExpr): boolean {
 		return (
 			this.type === expr.type &&
