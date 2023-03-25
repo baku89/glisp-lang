@@ -6,6 +6,7 @@ export {Parser} from './parser'
 export * from './std/prelude'
 export * from './log'
 export type {WithLog, Log} from './log'
+export {EvalError} from './EvalError'
 
 export {withLog} from './log'
 

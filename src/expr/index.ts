@@ -1,7 +1,7 @@
 import {entries, forOwn, fromPairs, keys, mapValues, values} from 'lodash'
 import ordinal from 'ordinal'
 
-import {GlispError} from '../GlispError'
+import {EvalError} from '../EvalError'
 import {Log, WithLog, withLog} from '../log'
 import {fromKeysValues} from '../util/fromKeysValues'
 import {isEqualArray} from '../util/isEqualArray'
@@ -1273,7 +1273,7 @@ export class App extends BaseExpr {
 			;[result, appLog] = fn.fn(...args).asTuple
 		} catch (err) {
 			// 既に式への参照を持ったエラーであればそのまま上へ投げる
-			if (err instanceof GlispError) {
+			if (err instanceof EvalError) {
 				throw err
 			}
 
@@ -1285,7 +1285,7 @@ export class App extends BaseExpr {
 			// グローバル環境、かつ式への参照を持たない例外が投げられた場合、
 			// 恐らくコヤツの関数適用が原因で投げられた例外ということなので、投げる
 			const message = err instanceof Error ? err.message : 'Run-time error'
-			throw new GlispError(this, message)
+			throw new EvalError(this, message)
 		}
 
 		const unifiedResult = unifier.substitute(result, true)

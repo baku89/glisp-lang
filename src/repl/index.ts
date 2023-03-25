@@ -3,8 +3,8 @@ import chalk from 'chalk'
 import * as os from 'os'
 import * as repl from 'repl'
 
+import {EvalError} from '../EvalError'
 import {app, Expr, valueContainer} from '../expr'
-import {GlispError} from '../GlispError'
 import {Log, WithLog, withLog} from '../log'
 import {parse} from '../parser'
 import {PreludeScope} from '../std/prelude'
@@ -104,7 +104,7 @@ function startRepl() {
 				const r = withLog(unit, {
 					level: 'error',
 					reason: err instanceof Error ? err.message : 'Run-time error',
-					ref: err instanceof GlispError ? err.ref : expr,
+					ref: err instanceof EvalError ? err.ref : expr,
 				})
 				cb(null, r)
 			}
