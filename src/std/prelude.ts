@@ -204,16 +204,6 @@ PreludeScope.defs({
 	'++': defn('(=> [...xs:String]: String)', (...xs: String[]) => {
 		return string(xs.reduce((a, b) => a + b, ''))
 	}),
-	try: defn(
-		'(=> (T) [block: T handler: T]: T)',
-		(block: Value, handler: Value) => {
-			try {
-				return block
-			} catch (e) {
-				return handler
-			}
-		}
-	),
 })
 
 PreludeScope.defs(
