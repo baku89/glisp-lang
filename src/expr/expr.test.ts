@@ -226,3 +226,10 @@ describe('evaluating path symbols', () => {
 describe('checking log cascade', () => {
 	testEval('(+ notDefined)', '0', true)
 })
+
+describe('vector as function', () => {
+	testEval('([12] 100)', '12', true)
+	testEval('([12] -5)', '12', true)
+	testEval('(["apple" "banana" "orange"] 1.2)', '"banana"')
+	testEval('(["apple" "banana" "orange"] 1.9)', '"banana"')
+})

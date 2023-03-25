@@ -964,14 +964,27 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 		return new FnType({index: NumberType}, unionType(...this.items))
 	}
 
-	get fn(): IFn {
-		return (index: Number) => {
-			const ret = this.items[index.value]
-			if (ret === undefined) {
-				throw new Error('Index out of range')
-			}
-			return withLog(ret)
+	#fn(index: Value) {
+		if (this.items.length === 0) {
+			throw new Error('Cannot refer any element of empty vector')
 		}
+
+		let i = Math.floor((index as Number).value)
+
+		if (i < 0 || this.items.length <= i) {
+			i = Math.max(0, Math.min(i, this.items.length - 1))
+
+			return withLog(this.items[i], {
+				level: 'warn',
+				reason: 'Index out of range',
+			})
+		}
+
+		return withLog(this.items[i])
+	}
+
+	get fn(): IFn {
+		return this.#fn
 	}
 
 	declare isTypeFor: (value: Value) => value is Vec
