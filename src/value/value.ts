@@ -333,6 +333,13 @@ export class Number extends Prim<number> {
 	constructor(value: number) {
 		super(undefined as any, value)
 	}
+
+	isEqualTo(value: Value) {
+		return (
+			this.type === value.type &&
+			((isNaN(this.value) && isNaN(value.value)) || this.value === value.value)
+		)
+	}
 }
 
 export const number = (value: number) => new Number(value)

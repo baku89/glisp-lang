@@ -16,6 +16,9 @@ describe('value equality', () => {
 	test('{...Number}')
 	test('(=> [n:Number]: Number)')
 	test('(union 1 2 3)')
+	test('Infinity')
+	test('-Infinity')
+	test('NaN')
 
 	function test(input: string) {
 		it(`${input} equals to itself`, () => {
