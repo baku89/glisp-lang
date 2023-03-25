@@ -9,7 +9,7 @@
 	"private": true,
 	"scripts": {
 		"build": "tsc",
-		"lint": "eslint src",
+		"lint": "eslint src --ext .ts",
 		"test": "jest --slient=false",
 		"serve": "npm run test -- --watch",
 		"repl": "npm run build; node ./lib/repl/index.js"

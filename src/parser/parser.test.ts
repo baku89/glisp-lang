@@ -361,7 +361,7 @@ describe('parsing expression metadata', () => {
 
 function testParsing(input: string, expected: Expr) {
 	test(`parsing '${input}' to be ${expected.print()}`, () => {
-		let result = parse(input)
+		const result = parse(input)
 		if (!result.expr) throw new Error('Empty program')
 		const {expr} = result
 

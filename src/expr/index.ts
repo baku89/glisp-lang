@@ -593,7 +593,7 @@ export class FnDef extends BaseExpr {
 		const {params, rest} = this.params.forceEvalChildren(env.push(), evaluate)
 		const {optionalPos} = this.params
 
-		let log = new Set<Log>()
+		const log = new Set<Log>()
 
 		if (this.body) {
 			// Returns function
@@ -1327,7 +1327,7 @@ export class App extends BaseExpr {
 		}
 
 		// index begins like (fn=0 arg0=1 arg2=2 ...)
-		return (index == 0 ? this.fn : this.args[index - 1]) ?? null
+		return (index === 0 ? this.fn : this.args[index - 1]) ?? null
 	}
 
 	print(options?: PrintOptions): string {
@@ -1624,10 +1624,8 @@ export class ValueMeta extends BaseExpr {
 	}
 
 	forceEval(env: Env, evaluate: IEvalDep): WithLog<Value> {
-		const _fields = evaluate(this.fields)
+		const fields = evaluate(this.fields)
 		let value = evaluate(this.expr)
-
-		let fields = _fields
 
 		const log = new Set<Log>()
 

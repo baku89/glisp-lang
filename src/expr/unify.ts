@@ -56,7 +56,7 @@ export class Unifier {
 	}
 
 	get isEmpty() {
-		return this.#lowers.size == 0 && this.#uppers.size == 0
+		return this.#lowers.size === 0 && this.#uppers.size === 0
 	}
 
 	#getLower(tv: TypeVar) {

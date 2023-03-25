@@ -16,6 +16,8 @@ module.exports = {
 	rules: {
 		'no-console': 'warn',
 		'no-debugger': 'warn',
+		eqeqeq: 'error',
+		'prefer-const': 'error',
 		'@typescript-eslint/no-explicit-any': 'off',
 		'@typescript-eslint/no-use-before-define': 'off',
 		'@typescript-eslint/explicit-module-boundary-types': 'off',

@@ -29,7 +29,7 @@ export function testEval(
 			throw new Error('Expected no log, but got=' + printLog(log))
 		}
 
-		if (hasLog && log.size == 0) {
+		if (hasLog && log.size === 0) {
 			throw new Error('Expected logs, but no log')
 		}
 	})
