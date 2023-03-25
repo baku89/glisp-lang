@@ -7,9 +7,9 @@ import {
 	False,
 	fnType,
 	never,
-	number as num,
+	number,
 	NumberType,
-	string as str,
+	string,
 	StringType,
 	True,
 	unit,
@@ -20,21 +20,21 @@ describe('evaluating literals', () => {
 	testEval('_', all)
 	testEval('Never', never)
 	testEval('()', unit)
-	testEval('0', num(0))
-	testEval('"foo"', str('foo'))
+	testEval('0', number(0))
+	testEval('"foo"', string('foo'))
 	testEval('true', True)
 	testEval('false', False)
 
 	testEval('[]', vec())
-	testEval('[0]', vec([num(0)]))
+	testEval('[0]', vec([number(0)]))
 	testEval('[...Number]', vec([], undefined, NumberType))
-	testEval('[1 ...Number]', vec([num(1)], undefined, NumberType))
-	testEval('[0]', vec([num(0)]))
-	testEval('{a:1 b:2}', dict({a: num(1), b: num(2)}))
+	testEval('[1 ...Number]', vec([number(1)], undefined, NumberType))
+	testEval('[0]', vec([number(0)]))
+	testEval('{a:1 b:2}', dict({a: number(1), b: number(2)}))
 	testEval('{a?:Number ...String}', dict({a: NumberType}, ['a'], StringType))
 	testEval('(=> [x:Number]: String)', fnType({x: NumberType}, StringType))
-	testEval('(let a: 10 a)', num(10))
-	testEval('(let a: (let a: 20 a) a)', num(20))
+	testEval('(let a: 10 a)', number(10))
+	testEval('(let a: (let a: 20 a) a)', number(20))
 })
 
 describe('evaluating function definition', () => {
