@@ -40,7 +40,7 @@ export class Env {
 		return !this.#outer
 	}
 
-	push(arg: Record<string, Value>) {
+	push(arg: Record<string, Value> = {}) {
 		return new Env(
 			this,
 			arg,

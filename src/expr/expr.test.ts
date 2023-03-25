@@ -153,11 +153,13 @@ describe('evaluating function body', () => {
 
 			if (!i) throw new Error('Empty program')
 
-			if (i.type !== 'FnDef')
+			if (i.type !== 'FnDef') {
 				throw new Error('Not a function. Got=' + i.print())
+			}
 
-			if (!i.body)
+			if (!i.body) {
 				throw new Error('Not a function definition. Got=' + i.print())
+			}
 
 			const result = i.body.eval().result
 
@@ -191,7 +193,7 @@ describe('resolving path symbols', () => {
 
 		const resolved = s.resolve()
 
-		if (!resolved || resolved.mode !== 'global') throw new Error()
+		if (!resolved || resolved.type !== 'global') throw new Error()
 
 		const evaluated = resolved.expr.eval().result
 

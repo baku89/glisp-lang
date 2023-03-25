@@ -262,9 +262,9 @@ export class Symbol extends BaseExpr {
 	resolve(
 		env: Env = Env.global
 	):
-		| {mode: 'global' | 'param'; expr: Expr}
-		| {mode: 'arg'; value: Value}
-		| null {
+		| {type: 'global' | 'param'; expr: Expr}
+		| {type: 'arg'; value: Value}
+		| {type: 'error'; reason: string} {
 		let expr: Expr | ParamsDef | Program | null = this.parent
 		let isFirstPath = true
 
@@ -277,12 +277,15 @@ export class Symbol extends BaseExpr {
 			}
 
 			if (!expr) {
-				return null
+				return {
+					type: 'error',
+					reason: `Symbol \`${this.print()}\` cannot be resolved`,
+				}
 			}
 
 			if (path === UpPath) {
 				expr = expr.parent
-			} else if (path == CurrentPath) {
+			} else if (path === CurrentPath) {
 				// Do nothing
 			} else {
 				// path === NamePath || path === IndexPath
@@ -297,28 +300,36 @@ export class Symbol extends BaseExpr {
 								break
 							}
 						} else if (expr.type === 'FnDef') {
-							if (env.isGlobal) {
-								const e = expr.resolveSymbol(path)
-								if (e) {
-									if (isLastPath) {
-										return {mode: 'param', expr: e}
-									} else {
-										return null
+							const e = expr.resolveSymbol(path)
+							if (e) {
+								if (!isLastPath) {
+									return {
+										type: 'error',
+										reason:
+											`Symbol \`${this.print()}\` referring function parameter ` +
+											'cannot be followed by any path',
 									}
 								}
-							} else {
-								if (typeof path !== 'string') {
-									throw new Error('Invalid')
-								}
-								const arg = env.getArg(path)
-								if (arg) {
-									if (isLastPath) {
-										return {mode: 'arg', value: arg}
+								if (env.isGlobal) {
+									return {type: 'param', expr: e}
+								} else {
+									// 型変数は環境にセットされないので、そのまま返す
+									if (
+										e.type === 'ValueContainer' &&
+										e.value.type === 'TypeVar'
+									) {
+										return {type: 'arg', value: e.value}
+									}
+
+									const arg = env.getArg(path.toString())
+									if (arg) {
+										return {type: 'arg', value: arg}
 									} else {
-										return null
+										throw new Error()
 									}
 								}
 							}
+
 							env = env.pop()
 						}
 						expr = expr.parent
@@ -333,26 +344,38 @@ export class Symbol extends BaseExpr {
 			expr = expr.parent
 		}
 
-		if (!expr || expr.type === 'ParamsDef') {
-			return null
+		if (!expr) {
+			return {
+				type: 'error',
+				reason: `Symbol \`${this.print()}\` cannot be resolved`,
+			}
 		}
 
-		return {mode: 'global', expr}
+		if (expr.type === 'ParamsDef') {
+			return {
+				type: 'error',
+				reason:
+					`Symbol \`${this.print()} is referring a parameter part of ` +
+					'function definition',
+			}
+		}
+
+		return {type: 'global', expr}
 	}
 
 	forceEval(env: Env, evaluate: IEvalDep): WithLog {
 		const resolved = this.resolve(env)
 
-		if (!resolved) {
+		if (resolved.type === 'error') {
 			return withLog(unit, {
 				level: 'error',
 				ref: this,
-				reason: `Symbol \`${this.print()}\` cannot be resolved`,
+				reason: resolved.reason,
 			})
 		}
 
 		let value: Value
-		if (resolved.mode === 'arg') {
+		if (resolved.type === 'arg') {
 			value = resolved.value
 		} else {
 			value = evaluate(resolved.expr)
@@ -361,9 +384,7 @@ export class Symbol extends BaseExpr {
 		// 仮引数を参照しており、かつそれが関数呼び出し時ではなく
 		// 束縛されている値が環境に見当たらない場合、自由変数なんでデフォルト値を返す
 		// ただし、型変数は除く
-		const isFreeVar = resolved.mode === 'param'
-
-		if (isFreeVar && value.type !== 'TypeVar') {
+		if (resolved.type === 'param') {
 			return withLog(value.defaultValue)
 		} else {
 			return withLog(value)
@@ -373,19 +394,20 @@ export class Symbol extends BaseExpr {
 	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): WithLog {
 		const resolved = this.resolve(env)
 
-		if (!resolved) {
+		if (resolved.type === 'error') {
 			return withLog(unit, {
 				level: 'error',
 				ref: this,
-				reason: `Symbol \`${this.print()}\` cannot be resolved`,
+				reason: resolved.reason,
 			})
 		}
 
-		switch (resolved.mode) {
+		switch (resolved.type) {
 			case 'global':
 				return withLog(infer(resolved.expr))
-			case 'param':
+			case 'param': {
 				return withLog(evaluate(resolved.expr))
+			}
 			case 'arg':
 				return withLog(resolved.value)
 		}
@@ -566,7 +588,8 @@ export class FnDef extends BaseExpr {
 		infer: IEvalDep
 	): WithLog<FnType | Fn> {
 		// In either case, params need to be evaluated
-		const [{params, rest}, paramsLog] = this.params.eval(env).asTuple
+		// Paramの評価時にenvをPushするのは、型変数をデフォルト値にさせないため
+		const {params, rest} = this.params.forceEvalChildren(env.push(), evaluate)
 		const {optionalPos} = this.params
 
 		let log = new Set<Log>()
@@ -633,20 +656,21 @@ export class FnDef extends BaseExpr {
 
 			const fn = new Fn(fnType, fnObj, body)
 
-			return withLog(fn, ...paramsLog)
+			return withLog(fn, ...log)
 		} else {
 			// Returns a function type if there's no function body
 
 			// Evaluates return type. Uses All type when no return type is defined.
 			let returnType: Value = all
 			if (this.returnType) {
-				const _returnType = evaluate(this.returnType)
+				// Paramの評価時にenvをPushするのは、型変数をデフォルト値にさせないため
+				const _returnType = evaluate(this.returnType, env.push())
 				returnType = _returnType
 			}
 
 			const fnType = new FnType(params, optionalPos, rest, returnType)
 
-			return withLog(fnType, ...paramsLog, ...log)
+			return withLog(fnType, ...log)
 		}
 	}
 
@@ -764,20 +788,16 @@ export class ParamsDef {
 		if (this.rest) this.rest.expr.parent = this
 	}
 
-	eval(env: Env) {
-		// Infer parameter types by simply evaluating 'em
-		const [params, lp] = Writer.mapValues(this.items, p => p.eval(env)).asTuple
+	forceEvalChildren(env: Env, evaluate: IEvalDep) {
+		const params = mapValues(this.items, it => evaluate(it, env))
 
-		let rest: FnType['rest'], lr: Set<Log>
+		let rest: FnType['rest']
 		if (this.rest) {
-			const [value, _lr] = this.rest.expr.eval(env).asTuple
+			const value = evaluate(this.rest.expr, env)
 			rest = {name: this.rest.name, value}
-			lr = _lr
-		} else {
-			lr = new Set()
 		}
 
-		return Writer.of({params, rest}, ...lp, ...lr)
+		return {params, rest}
 	}
 
 	resolveSymbol(path: number | string): Expr | null {
