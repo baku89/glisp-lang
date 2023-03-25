@@ -19,7 +19,7 @@ describe('functions in the prelude module', () => {
 	testEval('(inc 10)', '11')
 	testEval('(dec 10)', '9')
 	testEval('(sqrt 25)', '5')
-	testEval('(sqrt -2)', '0')
+	testEval('(sqrt -2)', '0', true)
 	testEval('(hypot 3 4)', '5')
 	testEval('(id 10)', '10')
 	testEval('((compose inc isEven) 1)', 'true')

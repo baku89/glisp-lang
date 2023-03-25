@@ -232,7 +232,9 @@ first: (=> (T) [coll:[...T]] (coll 0))
 id: (=> (T) [x:T] x)
 
 sqrt: (=> [x:Number]
-        (if (<= 0 x) (** x 0.5) 0))
+        (match r: (<= 0 x)
+               true: (** x 0.5)
+               false: (log 0 "warn" "Negative Number")))
 
 square: (=> [x:Number] (** x 2))
 
