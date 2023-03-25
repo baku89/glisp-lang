@@ -152,7 +152,7 @@ PreludeScope.defs({
 		else return number(x.value.length)
 	}),
 	range: defn(
-		'(=> [start:Number end:Number step?:^{default: 1}Number]: [...Number])',
+		'(=> [start:Number end:Number ?step:^{default: 1}Number]: [...Number])',
 		(start: Number, end: Number, step: Number) =>
 			vec(range(start.value, end.value, step.value).map(number))
 	),
@@ -222,7 +222,7 @@ if: (=> (T) [test:Boolean then:T else:T]
 inc: (=> [x:Number] (+ x 1))
 dec: (=> [x:Number] (- x 1))
 
-isEven: (=> [x:Number] (== (% x 2) 0))
+even?: (=> [x:Number] (== (% x 2) 0))
 
 compose: (=> (T U V) [f:(=> [t:T]: U) g:(=> [u:U]: V)]
              (=> [x:T] (g (f x))))

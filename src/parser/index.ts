@@ -92,7 +92,7 @@ const OneOrMoreDigits = oneOrMore(P.digit)
 
 const Punctuation = P.oneOf('()[]{}"@#^:;.,?/\\')
 
-const AllowedCharForSymbol = P.notFollowedBy(
+const AllowedCharForName = P.notFollowedBy(
 	P.alt(P.digit, P.whitespace, Punctuation)
 ).then(P.any)
 
@@ -144,7 +144,7 @@ interface IParser {
 	FnDef: FnDef
 	App: App
 	VecLiteral: VecLiteral
-	DictEntry: [string, boolean, Expr, [string, string]]
+	DictEntry: [boolean, string, Expr, [string, string]]
 	DictLiteral: DictLiteral
 	NamePath: string
 	Symbol: Symbol
@@ -234,7 +234,7 @@ export const Parser = P.createLanguage<IParser>({
 
 				const delimiters = [d0]
 
-				for (const [key, optional, expr, ds] of pairs) {
+				for (const [optional, key, expr, ds] of pairs) {
 					if (key in items) throw new Error(`Duplicated name: ${key}`)
 
 					items[key] = expr
@@ -402,13 +402,13 @@ export const Parser = P.createLanguage<IParser>({
 		return P.seq(
 			_,
 			// Items part
-			P.seq(r.Expr, OptionalMark, _).many(),
+			P.seq(OptionalMark, r.Expr, _).many(),
 			// Rest part
 			opt(P.seq(P.string('...'), r.Expr, _))
 		)
 			.wrap(P.string('['), P.string(']'))
 			.map(([d0, ItemsPart, RestPart]) => {
-				const [items, optionalFlags, ds] = zip(ItemsPart)
+				const [optionalFlags, items, ds] = zip(ItemsPart)
 				const [, rest, dl] = RestPart ?? [null, null, null]
 
 				const optionalPos = getOptionalPos(optionalFlags, 'item')
@@ -422,12 +422,12 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	DictEntry(r) {
 		return P.seq(
-			followedByColon(P.seq(r.NamePath, OptionalMark)),
+			followedByColon(P.seq(OptionalMark, r.NamePath)),
 			_,
 			r.Expr,
 			_
-		).map(([[key, optional], d0, expr, d1]) => {
-			return [key, optional, expr, [d0, d1]]
+		).map(([[optional, key], d0, expr, d1]) => {
+			return [optional, key, expr, [d0, d1]]
 		})
 	},
 	DictLiteral(r) {
@@ -446,7 +446,7 @@ export const Parser = P.createLanguage<IParser>({
 				const delimiters = [d0]
 
 				const items: DictLiteral['items'] = {}
-				for (const [key, optional, value, ds] of pairsPart) {
+				for (const [optional, key, value, ds] of pairsPart) {
 					if (key in items) throw new Error(`Duplicated key: ${key}`)
 
 					items[key] = value
@@ -464,8 +464,8 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	NamePath() {
 		return seq(
-			AllowedCharForSymbol,
-			many(P.alt(P.digit, AllowedCharForSymbol))
+			AllowedCharForName,
+			many(P.alt(P.digit, P.string('?'), AllowedCharForName))
 		).assert(
 			name => !Reserved.has(name),
 			'cannot use reserved keyword as a symbol'

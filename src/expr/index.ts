@@ -813,7 +813,7 @@ export class ParamsDef {
 
 		const paramsTokens = params
 			.map(([name, value], i) => [
-				name + (i < optionalPos ? '' : '?') + ':',
+				(i < optionalPos ? '' : '?') + name + ':',
 				value.print(options),
 			])
 			.flat()
@@ -981,7 +981,7 @@ export class VecLiteral extends BaseExpr {
 		}
 
 		const items = this.items.map(
-			(it, i) => it.print(options) + (this.optionalPos <= i ? '?' : '')
+			(it, i) => (this.optionalPos <= i ? '?' : '') + it.print(options)
 		)
 		const rest = this.rest ? ['...' + this.rest.print(options)] : []
 
@@ -1085,7 +1085,7 @@ export class DictLiteral extends BaseExpr {
 		const itemTokens = entries(this.items)
 			.map(([key, value]) => {
 				const optionalMark = this.#isOptional(key) ? '?' : ''
-				return [`${key}${optionalMark}:`, value.print(options)]
+				return [optionalMark + key + ':', value.print(options)]
 			})
 			.flat()
 

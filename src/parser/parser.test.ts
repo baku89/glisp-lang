@@ -63,8 +63,8 @@ describe('parsing symbols', () => {
 	testParsing('`_`', '_')
 	testParsing('->', '->')
 	testParsing('try', 'try')
+	testParsing('even?', 'even?')
 
-	testErrorParsing('symbol?')
 	testErrorParsing('10deg')
 	testErrorParsing('10 20')
 	testErrorParsing('/')
@@ -183,16 +183,16 @@ describe('parsing vector', () => {
 		vec([app(symbol('+')), symbol('false'), app(symbol('+')), symbol('+')])
 	)
 	testParsing('[...1]', vec([], 0, literal(1)))
-	testParsing('[1?]', vec([literal(1)], 0))
-	testParsing('[1? ...2]', vec([literal(1)], 0, literal(2)))
-	testParsing('[1 2?]', vec([literal(1), literal(2)], 1))
+	testParsing('[?1]', vec([literal(1)], 0))
+	testParsing('[?1 ...2]', vec([literal(1)], 0, literal(2)))
+	testParsing('[1 ?2]', vec([literal(1), literal(2)], 1))
 	testParsing(
-		'[1 2? 3? ...4]',
+		'[1 ?2 ?3 ...4]',
 		vec([literal(1), literal(2), literal(3)], 1, literal(4))
 	)
 
-	testErrorParsing('[1? 2]')
-	testErrorParsing('[1? 2 3? 4?]')
+	testErrorParsing('[?1 2]')
+	testErrorParsing('[?1 2 ?3 ?4]')
 })
 
 describe('parsing dictionary', () => {
@@ -201,9 +201,9 @@ describe('parsing dictionary', () => {
 	testParsing('{   }', dict({}))
 	testParsing('{a: A b: B}', dict({a: symbol('A'), b: symbol('B')}))
 	testParsing('{a: {a: 1}}', dict({a: dict({a: literal(1)})}))
-	testParsing('{a?:1}', dict({a: literal(1)}, ['a']))
+	testParsing('{?a:1}', dict({a: literal(1)}, ['a']))
 	testParsing(
-		'{a?:1 b:2 ...c}',
+		'{?a:1 b:2 ...c}',
 		dict(
 			{
 				a: literal(1),
@@ -301,10 +301,10 @@ describe('parsing function type', () => {
 		'(=> (T U) [x:T]: T)',
 		fnDef(['T', 'U'], {x: symbol('T')}, symbol('T'))
 	)
-	testParsing('(=> [x?:x]: y)', fnDef(null, paramsDef({x}, 0), y))
-	testParsing('(=> [x?:x]: y)', fnDef(null, paramsDef({x}, 0), y))
-	testParsing('(=> [x?:x]: y)', fnDef(null, paramsDef({x}, 0), y))
-	testParsing('(=> [x:x y?:y]: z)', fnDef(null, paramsDef({x, y}, 1), z))
+	testParsing('(=> [?x:x]: y)', fnDef(null, paramsDef({x}, 0), y))
+	testParsing('(=> [?x:x]: y)', fnDef(null, paramsDef({x}, 0), y))
+	testParsing('(=> [?x:x]: y)', fnDef(null, paramsDef({x}, 0), y))
+	testParsing('(=> [x:x ?y:y]: z)', fnDef(null, paramsDef({x, y}, 1), z))
 })
 
 describe('parsing value metadata', () => {
