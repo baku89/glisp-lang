@@ -237,8 +237,6 @@ isEven: (=> [x:Number] (== (% x 2) 0))
 compose: (=> (T U V) [f:(=> [t:T]: U) g:(=> [u:U]: V)]
              (=> [x:T] (g (f x))))
 
-const: (=> (T) [x:T] (=> [] x))
-
 first: (=> (T) [coll:[...T]] (coll 0))
 
 id: (=> (T) [x:T] x)
@@ -250,7 +248,6 @@ square: (=> [x:Number] (** x 2))
 
 hypot:  (=> [x:Number y:Number] (sqrt (+ (* x x) (* y y))))
 
-test: (inc 20)
 
 PI: 3.1415926535897932384626433832795028841971693993
 	`)
