@@ -328,8 +328,6 @@ export class Prim<T = any> extends BaseValue {
 }
 
 export class Number extends Prim<number> {
-	protected toExprExceptMeta = () => literal(this.value)
-
 	constructor(value: number) {
 		super(undefined as any, value)
 	}
@@ -340,19 +338,25 @@ export class Number extends Prim<number> {
 			((isNaN(this.value) && isNaN(value.value)) || this.value === value.value)
 		)
 	}
+
+	protected toExprExceptMeta() {
+		return literal(this.value)
+	}
 }
 
 export const number = (value: number) => new Number(value)
 
 export class String extends Prim<string> {
-	protected toExprExceptMeta = () => literal(this.value)
-
 	constructor(value: string) {
 		super(undefined as any, value)
 	}
 
 	toString() {
 		return this.value
+	}
+
+	protected toExprExceptMeta() {
+		return literal(this.value)
 	}
 }
 
@@ -454,7 +458,9 @@ export class Enum extends BaseValue {
 	}
 
 	// TODO: fix this
-	protected toExprExceptMeta = () => symbol(this.name)
+	protected toExprExceptMeta() {
+		return symbol(this.name)
+	}
 
 	isEqualTo(value: Value) {
 		return (

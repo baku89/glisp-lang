@@ -248,7 +248,7 @@ export class Unifier {
 		return this.#addConsts(...cs)
 	}
 
-	substitute = (value: Value, unshadow = false): Value => {
+	substitute(value: Value, unshadow = false): Value {
 		if (this.isEmpty) return value
 		if (value.type !== 'Fn' && !value.isType) return value
 
