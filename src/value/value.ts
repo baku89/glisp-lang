@@ -290,16 +290,18 @@ export class Prim<T = any> extends BaseValue {
 		return 'Prim' as const
 	}
 
-	public readonly superType!: PrimType
-	public readonly value: T
-
-	constructor(superType: PrimType, value: T) {
+	constructor(value: T, superType: PrimType | All = All.instance) {
 		super()
-		if (superType !== undefined) {
-			this.superType = superType
-		}
+		this.#superType = superType
 		this.value = value
 	}
+
+	readonly #superType!: PrimType | All
+	get superType() {
+		return this.#superType
+	}
+
+	readonly value: T
 
 	get defaultValue() {
 		return this
@@ -321,7 +323,7 @@ export class Prim<T = any> extends BaseValue {
 	}
 
 	clone() {
-		const value = new Prim(this.superType, this.value)
+		const value = new Prim(this.value, this.superType)
 		value.meta = this.meta
 		return value
 	}
@@ -329,7 +331,11 @@ export class Prim<T = any> extends BaseValue {
 
 export class Number extends Prim<number> {
 	constructor(value: number) {
-		super(undefined as any, value)
+		super(value)
+	}
+
+	get superType() {
+		return NumberType
 	}
 
 	isEqualTo(value: Value) {
@@ -348,7 +354,11 @@ export const number = (value: number) => new Number(value)
 
 export class String extends Prim<string> {
 	constructor(value: string) {
-		super(undefined as any, value)
+		super(value)
+	}
+
+	get superType() {
+		return StringType
 	}
 
 	toString() {
@@ -376,7 +386,7 @@ export class PrimType<T = any> extends BaseValue {
 		) {
 			this.#initialDefaultValue = initialDefaultValue
 		} else {
-			this.#initialDefaultValue = new Prim(this, initialDefaultValue)
+			this.#initialDefaultValue = new Prim(initialDefaultValue, this)
 		}
 
 		return this
@@ -406,7 +416,7 @@ export class PrimType<T = any> extends BaseValue {
 	}
 
 	of(value: T): Prim<T> {
-		return new Prim(this, value)
+		return new Prim(value, this)
 	}
 
 	withDefault(defaultValue: Atomic): Value {
@@ -433,10 +443,8 @@ export const primType = <T>(name: string, initialDefaultValue: T) =>
 	new PrimType(name, initialDefaultValue)
 
 export const NumberType = new PrimType('Number', new Number(0))
-;(Number.prototype.superType as Number['superType']) = NumberType
 
 export const StringType = new PrimType('String', new String(''))
-;(String.prototype.superType as String['superType']) = StringType
 
 export class Enum extends BaseValue {
 	get type() {
