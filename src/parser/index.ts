@@ -183,10 +183,10 @@ export const Parser = P.createLanguage<IParser>({
 			seq(
 				P.regex(/[+-]?/),
 				P.alt(
-					// Integer
-					seq(OneOrMoreDigits, zeroOrOne(P.string('.'))),
 					// Float
-					seq(P.digits, P.string('.'), OneOrMoreDigits)
+					seq(P.digits, P.string('.'), OneOrMoreDigits),
+					// Integer
+					seq(OneOrMoreDigits, zeroOrOne(P.string('.')))
 				)
 			),
 			P.regex(/-?Infinity/),

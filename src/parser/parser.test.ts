@@ -33,6 +33,7 @@ describe('parsing literals', () => {
 	testParsing('.1', literal(0.1))
 	testParsing('+.2', literal(0.2))
 	testParsing('5.', literal(5))
+	testParsing('0.5', literal(0.5))
 	testParsing('-0.', literal(0))
 	testParsing('003', literal(3))
 	testParsing('Infinity', literal(Infinity))
