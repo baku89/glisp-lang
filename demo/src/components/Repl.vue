@@ -70,7 +70,20 @@ function evaluate() {
 
 	const expr = parsed.value.value
 
-	const [evaluated, log] = expr.eval().asTuple
+	let evaluated: G.Value, log: Set<G.Log>
+
+	try {
+		;[evaluated, log] = expr.eval().asTuple
+	} catch (err) {
+		evaluated = G.unit
+		log = new Set([
+			{
+				level: 'error',
+				reason: err instanceof Error ? err.message : 'Run-time error',
+				ref: err instanceof G.EvalError ? err.ref : expr,
+			},
+		])
+	}
 
 	let printed = ''
 	if (!IO.isTypeFor(evaluated)) {
