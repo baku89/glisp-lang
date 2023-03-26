@@ -1,6 +1,6 @@
 <script setup lang="ts">
 interface Props {
-	align:
+	align?:
 		| 'none'
 		| 'top'
 		| 'right'
@@ -32,7 +32,9 @@ withDefaults(defineProps<Props>(), {align: 'none'})
 	border 1px solid b
 	border-radius var(--ui-surface-radius)
 
-
+	&.top
+		border-color t t b t
+		border-radius 0
 	&.top-left
 		border-color t b b t
 		border-radius 0 0 var(--ui-surface-radius) 0

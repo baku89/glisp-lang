@@ -6,7 +6,7 @@ import Surface from './components/Surface.vue'
 
 <template>
 	<div>
-		<Surface class="gheader" align="top-left">
+		<Surface class="gheader" align="top">
 			<Icon class="glisp-logo" src="assets/favicon/favicon.svg" />
 			<ul>
 				<li><a href="https://glisp.app">Try</a></li>
@@ -42,6 +42,7 @@ import Surface from './components/Surface.vue'
 	position fixed
 	top 0
 	left 0
+	right 0
 	height 3rem
 	display flex
 	padding 0 2rem 0 1rem

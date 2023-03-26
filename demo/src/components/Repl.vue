@@ -3,7 +3,7 @@ import * as G from 'glisp'
 import {EvalResult} from 'glisp'
 import {computed, nextTick, ref, shallowReactive} from 'vue'
 
-import ExprInspector from './ExprInspector.vue'
+import ExprScope from './ExprScope.vue'
 
 const input = ref('')
 const inputLines = computed(() => input.value.split('\n').length)
@@ -134,7 +134,7 @@ function clear() {
 
 <template>
 	<div class="Repl">
-		<ExprInspector :expr="projectScope" />
+		<ExprScope class="projectScope" :expr="projectScope" />
 		<ul class="results">
 			<li
 				v-for="{input, evaluated, log, key} in results"
@@ -190,6 +190,9 @@ $indent = 2rem
 .Repl
 	margin-top 2rem
 	padding-bottom 10vh
+
+.projectScope
+	margin-bottom 2rem
 
 .results
 	font-family var(--font-code)
