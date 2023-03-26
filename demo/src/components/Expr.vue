@@ -1,70 +1,62 @@
 <script setup lang="ts">
 import * as G from 'glisp'
-import {entries} from 'lodash'
 import {computed} from 'vue'
 
+import ExprLiteral from './ExprLiteral.vue'
+import ExprProgram from './ExprProgram.vue'
+import ExprScope from './ExprScope.vue'
+import ExprVecLiteral from './ExprVecLiteral.vue'
+
 interface Props {
-	expr: G.Scope
+	expr: G.Expr
 	valueType?: G.Value
+	layout?: 'expanded' | 'collapsed' | 'minimal'
 }
 
 const props = withDefaults(defineProps<Props>(), {
 	valueType: () => G.all,
+	layout: 'expanded',
 })
 
-const items = computed(() => {
-	return entries(props.expr.items)
+const exprComponent = computed(() => {
+	switch (props.expr.type) {
+		case 'Program':
+			return ExprProgram
+		case 'Literal':
+			return ExprLiteral
+		case 'Scope':
+			return ExprScope
+		case 'VecLiteral':
+			return ExprVecLiteral
+		default:
+			return null
+	}
 })
 </script>
 
 <template>
-	<div class="Expr">
-		<div class="header">
-			<div class="icon material-symbols-rounded">expand_more</div>
-			<div class="exprType">Let</div>
-		</div>
-		<div class="children">
-			<dl class="items">
-				<div v-for="[name, e] in items" :key="name" class="row">
-					<dt class="name">{{ name }}</dt>
-					<dd class="expr">{{ e.print() }}</dd>
-				</div>
-			</dl>
-		</div>
+	<component
+		:is="exprComponent"
+		v-if="exprComponent !== null"
+		:expr="expr"
+		:value-type="valueType"
+		:layout="layout"
+	/>
+	<div v-else class="text">
+		{{ expr.print() }} -> {{ expr.eval().value.print() }}
 	</div>
 </template>
 
 <style lang="stylus" scoped>
 @import '@/common.styl'
-.Expr
-	font-family var(--font-ui)
+.text
+	border-radius var(--ui-input-border-radius)
+	font-family var(--font-code)
+	color var(--color-on-surface-variant)
+	background var(--color-surface-variant)
+	font-size var(--ui-input-font-size)
+	padding 0 .6em
 
-.header
-	display flex
-	height 1.25rem
-.icon
-	font-size 1.25rem
-	width 1.25rem
-	aspect-ratio 1
-.exprType
-	line-height 1.25rem
-	padding-left .25rem
-.children
-	position relative
-	padding-left 1.25rem
-
-	&:before
-		content ''
-		display block
-		position absolute
-		left (1.25 / 2rem)
-		width 1px
-		height 100%
-		background black
-
-.row
-	display flex
-
-.name
-	width 8rem
+	&:active, &:focus
+		outline 2px var(--color-primary) solid
 </style>

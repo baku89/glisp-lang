@@ -1,7 +1,8 @@
 @import '@/common.styl'
 
 // Reset
-dt
+*
+	outline none
 	font-weight inherit
 
 // Theme
@@ -21,12 +22,19 @@ dt
 	--color-surface #f2f2f399
 	--color-on-surface #1a1b1f
 	--color-surface-border #ddd
+	--color-surface-variant #efeff4
+	--color-on-surface-variant #363841
 	--gradient #2638ff 0%, #f37ea5 16%, #f0a59b 28%, #f1caca 35%, #ccdce6 44%, #bef1ee 54%, #8ef6b7 63%, #6fc8d9 82%, #2638ff 100%
 	--color-error #ea5180
 	--color-on-error #FFFFFF
 	--color-warning #f7a576
 	--color-on-warning #FFFFFF
+	// UI Layout
 	--ui-surface-radius 1rem
+	--ui-input-font-size 14px
+	--ui-input-border-radius 4px
+	--ui-input-height 24px
+	--ui-input-vert-margin 12px
 
 // @media (prefers-color-scheme dark)
 // :root
