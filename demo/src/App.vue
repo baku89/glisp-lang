@@ -4,6 +4,7 @@ import {ref} from 'vue'
 import {tryParse} from '../..'
 import Icon from './components/Icon.vue'
 import Repl from './components/Repl.vue'
+import Surface from './components/Surface.vue'
 
 const result = ref(
 	tryParse(
@@ -23,7 +24,7 @@ defineExpose({
 
 <template>
 	<div>
-		<header class="gheader">
+		<Surface class="gheader" align="top-left">
 			<Icon class="glisp-logo" src="assets/favicon/favicon.svg" />
 			<ul>
 				<li><a href="https://glisp.app">Try</a></li>
@@ -31,7 +32,7 @@ defineExpose({
 				<li><a href="https://github.com/baku89/glisp-lang">Repo</a></li>
 				<li><a href="https://github.com/sponsors/baku89">Support</a></li>
 			</ul>
-		</header>
+		</Surface>
 		<main class="entry">
 			<h1>Glisp / REPL</h1>
 			<hr />
@@ -47,7 +48,9 @@ defineExpose({
 				techniques, empowering artists to explore new forms of expression.
 				Mainly developed by Baku Hashimoto (橋本麦).
 			</p>
-			<pre><code class="repl">{{ result }}</code></pre>
+			<Surface class="repl">
+				<pre><code>{{ result }}</code></pre>
+			</Surface>
 			<Repl />
 		</main>
 	</div>
@@ -60,12 +63,9 @@ defineExpose({
 	position fixed
 	top 0
 	left 0
-	right 0
-	border-bottom 1px solid var(--color-on-surface)
-	background var(--color-surface)
 	height 3rem
 	display flex
-	padding 0 1rem
+	padding 0 2rem 0 1rem
 	align-items center
 	gap 2rem
 	backdrop-filter blur(12px)
@@ -87,10 +87,9 @@ defineExpose({
 main
 	max-width 50rem
 .repl
-	display block
 	padding 1rem
 	border-radius 1rem
-	border 1px solid var(--color-on-surface)
+	border 1px solid var(--color-surface-border)
 	background var(--color-surface)
 	color var(--color-on-surface)
 </style>
