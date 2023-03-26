@@ -177,7 +177,8 @@ describe('resolving path symbols', () => {
 			!i ||
 			i.type === 'Literal' ||
 			i.type === 'ValueContainer' ||
-			i.type === 'Symbol'
+			i.type === 'Symbol' ||
+			i.type === 'InfixNumber'
 		) {
 			throw new Error()
 		}

@@ -55,7 +55,7 @@ export type AnyExpr = AtomExpr | ParentExpr
 /**
  * ASTs that cannot have child elements
  */
-export type AtomExpr = Symbol | ValueContainer | Literal
+export type AtomExpr = Symbol | ValueContainer | Literal | InfixNumber
 
 /**
  * expressions that can contain other experssions
@@ -1598,6 +1598,80 @@ export const match = (
 	cases?: [Expr, Expr][],
 	otherwise?: Expr
 ) => new Match(captureName, subject, cases, otherwise)
+
+export class InfixNumber extends BaseExpr {
+	get type() {
+		return 'InfixNumber' as const
+	}
+
+	public readonly args: number[]
+
+	constructor(public readonly op: NamePath, ...args: number[]) {
+		super()
+
+		if (args.length === 0) {
+			throw new Error('Invalid zero-length arguments')
+		}
+
+		this.args = args
+	}
+
+	forceEval(env: Env): WithLog<Value> {
+		const args = this.args.map(a => new Literal(a))
+
+		const app = new App(new Symbol('$' + this.op), ...args)
+		app.parent = this.parent
+
+		const [value, log] = app.eval(env).asTuple
+
+		log.forEach(l => (l.ref = this))
+
+		return withLog(value, ...log)
+	}
+
+	forceInfer(env: Env): WithLog<Value> {
+		const args = this.args.map(a => new Literal(a))
+
+		const app = new App(new Symbol('$' + this.op), ...args)
+		app.parent = this.parent
+
+		const [value, log] = app.infer(env).asTuple
+
+		log.forEach(l => (l.ref = this))
+
+		return withLog(value, ...log)
+	}
+
+	resolveSymbol() {
+		return null
+	}
+
+	extras?: {raw: string[]}
+
+	print() {
+		if (!this.extras) {
+			this.extras = {raw: this.args.map(a => a.toString())}
+		}
+
+		if (this.extras.raw.length === 1) {
+			return this.extras.raw[0] + this.op
+		} else {
+			return this.extras.raw.join(this.op)
+		}
+	}
+
+	clone() {
+		return new InfixNumber(this.op, ...this.args)
+	}
+
+	isSameTo(expr: AnyExpr): boolean {
+		return (
+			this.type === expr.type &&
+			this.op === expr.op &&
+			isEqualArray(this.args, expr.args)
+		)
+	}
+}
 
 export class ValueMeta extends BaseExpr {
 	get type() {

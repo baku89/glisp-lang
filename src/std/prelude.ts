@@ -204,6 +204,12 @@ PreludeScope.defs({
 	'++': defn('(=> [...xs:String]: String)', (...xs: String[]) => {
 		return string(xs.reduce((a, b) => a + b, ''))
 	}),
+	'$%': defn('(=> [value: Number]: Number)', (value: Number) => {
+		return number(value.value / 100)
+	}),
+	$rad: defn('(=> [radians: Number]: Number)', (value: Number) => {
+		return number((value.value * 180) / Math.PI)
+	}),
 	'truthy?': defn('(=> [value: _]: Boolean)', (value: Value) => {
 		// Returns true if the value is either of () or belows:
 		// false, 0, -0, 0n, "", null, undefined, and NaN.
