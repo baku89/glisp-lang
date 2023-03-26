@@ -32,5 +32,6 @@ module.exports = {
 		'vue/require-default-prop': 'off',
 		'vue/no-v-html': 'off',
 		'vue/no-template-shadow': 'off',
+		'vue/no-multiple-template-root': 'off',
 	},
 }

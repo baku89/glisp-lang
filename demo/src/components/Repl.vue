@@ -74,7 +74,7 @@ const projectScope = shallowReactive(
 			a: G.tryParse('(+ b 2)').expr,
 			b: G.tryParse('10').expr,
 			c: G.literal('hello'),
-			d: G.tryParse('(let TAU: (* PI 2) E: 2.71828)').expr,
+			d: G.tryParse('(let TAU: (* PI 2) E: 2.71828 (+ TAU b))').expr,
 			f: G.tryParse('[1 2 3 4 "foo"]').expr,
 		},
 		G.app(G.symbol('-'), G.symbol('a'))

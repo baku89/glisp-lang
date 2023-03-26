@@ -4,6 +4,7 @@ import {entries} from 'lodash'
 import {computed, ref} from 'vue'
 
 import Expr from './Expr.vue'
+import Row from './Row.vue'
 
 interface Props {
 	expr: G.Scope
@@ -31,11 +32,11 @@ const items = computed(() => {
 
 const itemExpanded = ref(new Set<string>())
 
-function toggleItemExpanded(name: string) {
-	if (itemExpanded.value.has(name)) {
-		itemExpanded.value.delete(name)
-	} else {
+function setItemExpanded(name: string, expanded: boolean) {
+	if (expanded) {
 		itemExpanded.value.add(name)
+	} else {
+		itemExpanded.value.delete(name)
 	}
 }
 </script>
@@ -44,38 +45,25 @@ function toggleItemExpanded(name: string) {
 	<div class="ExprScope">
 		<div v-if="layout === 'expanded'" class="expanded">
 			<div class="items">
-				<div
+				<Row
 					v-for="[name, e, expandable, expanded] in items"
 					:key="name"
-					class="row"
-					:class="{expanded}"
+					:expanded="expanded"
+					:expandable="expandable"
+					@update:expanded="setItemExpanded(name, $event)"
 				>
-					<div class="key">
-						<button
-							class="key__icon material-symbols-rounded"
-							:class="{expandable}"
-							@click="() => toggleItemExpanded(name)"
-						>
-							{{ expandable ? 'chevron_right' : '・' }}
-						</button>
-						<div class="key__label">{{ name }}:</div>
-					</div>
+					<template #label>{{ name }}:</template>
 					<Expr
 						class="value"
 						:expr="e"
 						:layout="expanded ? 'expanded' : 'collapsed'"
 					/>
-				</div>
+				</Row>
 			</div>
-			<div v-if="expr.out" class="ret row">
-				<div class="key">
-					<button class="key__icon material-symbols-rounded">
-						chevron_right
-					</button>
-					<div class="key__label">Return</div>
-				</div>
+			<Row v-if="expr.out" class="ret" :expanded="false" :expandable="false">
+				<template #label>Return</template>
 				<Expr class="value" :expr="expr.out" />
-			</div>
+			</Row>
 		</div>
 		<div v-else class="collapsed">{{ expr.eval().value.print() }}</div>
 	</div>
@@ -128,45 +116,6 @@ function toggleItemExpanded(name: string) {
 		width 0
 		border-left 1px dashed black
 		height 100%
-
-.row
-	display flex
-	gap var(--ui-input-vert-margin) 0
-
-	&.expanded
-		flex-direction column
-		& > .key > .key__icon
-			transform rotate(90deg)
-
-.key
-	display flex
-	align-items center
-	height var(--ui-input-height)
-	width var(--ui-inspector-header-width)
-	--ui-inspector-header-width 8rem
-
-
-	&__icon
-		font-size 18px
-		width 18px
-		height 18px
-		transition transform .1s ease
-		cursor pointer
-
-		&:not(.expandable)
-			cursor initial
-			transform none !important
-
-	&__label
-		line-height var(--ui-input-height)
-		padding-left .2em
-
-
-.value
-	flex-grow 1
-
-.expr
-	font-family var(--font-code)
 
 .ret
 	position relative

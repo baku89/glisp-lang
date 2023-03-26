@@ -6,7 +6,7 @@ interface Props {
 	valueType?: G.Value
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
 	valueType: () => G.all,
 })
 </script>
