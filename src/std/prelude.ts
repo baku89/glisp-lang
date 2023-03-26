@@ -197,7 +197,7 @@ PreludeScope.defs({
 			)
 	),
 	fnType: defn('(=> [f:_]: _)', (f: Value) => ('fnType' in f ? f.fnType : f)),
-	isSubtype: defn('(=> [x:_ y:_]: Boolean)', (x: Value, y: Value) =>
+	'subtype?': defn('(=> [x:_ y:_]: Boolean)', (x: Value, y: Value) =>
 		boolean(x.isSubtypeOf(y))
 	),
 	show: defn('(=> [value:_]: String)', (value: Value) => string(value.print())),
