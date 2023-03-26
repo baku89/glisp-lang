@@ -204,13 +204,29 @@ PreludeScope.defs({
 	'++': defn('(=> [...xs:String]: String)', (...xs: String[]) => {
 		return string(xs.reduce((a, b) => a + b, ''))
 	}),
+	'truthy?': defn('(=> [value: _]: Boolean)', (value: Value) => {
+		// Returns true if the value is either of () or belows:
+		// false, 0, -0, 0n, "", null, undefined, and NaN.
+		// ref: https://developer.mozilla.org/en-US/docs/Glossary/Truthy
+
+		if (value.type === 'Unit') {
+			return False
+		}
+
+		if (value.type === 'Prim') {
+			if (!value.value) {
+				return False
+			}
+		}
+		return True
+	}),
 })
 
 PreludeScope.defs(
 	parseModule(`
 
-if: (=> (T) [test:Boolean then:T else:T]
-      (match _: test
+if: (=> (T) [test:_ then:T else:T]
+      (match _: (truthy? test)
              true: then
              false: else))
 	

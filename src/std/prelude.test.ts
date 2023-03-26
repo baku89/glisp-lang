@@ -27,3 +27,14 @@ describe('functions in the prelude module', () => {
 	testEval('((compose id id) 1)', '1')
 	testEval('(filter even? [0 1 2 3 4 5 6])', '[0 2 4 6]')
 })
+
+describe('truthy values', () => {
+	testEval('(truthy? 0)', 'false')
+	testEval('(truthy? -0)', 'false')
+	testEval('(truthy? "")', 'false')
+	testEval('(truthy? NaN)', 'false')
+	testEval('(truthy? ())', 'false')
+	testEval('(truthy? 1)', 'true')
+	testEval('(truthy? "hi")', 'true')
+	testEval('(truthy? [])', 'true')
+})
