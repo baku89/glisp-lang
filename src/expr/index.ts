@@ -1383,7 +1383,7 @@ export class Scope extends BaseExpr {
 		return 'Scope' as const
 	}
 
-	public readonly items: Record<string, Expr>
+	public items: Record<string, Expr>
 	public readonly out?: Expr
 
 	constructor(items: Record<string, Expr> = {}, out?: Expr) {
@@ -1449,20 +1449,15 @@ export class Scope extends BaseExpr {
 		return scope
 	}
 
-	def(name: string, expr: Expr) {
-		if (name in this.items)
-			throw new Error(`Variable '${name}' is already defined`)
+	defs(pairs: Record<string, Expr>) {
+		this.items = {...this.items}
 
-		expr.parent = this
-		this.items[name] = expr
-
-		return this
-	}
-
-	defs(items: Record<string, Expr>) {
-		for (const [name, exp] of entries(items)) {
-			this.def(name, exp)
+		for (const [name, expr] of entries(pairs)) {
+			expr.parent = this
+			this.items[name] = expr
 		}
+
+		delete this.extras
 	}
 }
 export const scope = (items?: Record<string, Expr>, ret?: Expr) =>
