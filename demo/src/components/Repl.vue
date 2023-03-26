@@ -6,7 +6,7 @@ import {computed, nextTick, ref} from 'vue'
 const input = ref('')
 const inputLines = computed(() => input.value.split('\n').length)
 
-const parsed = computed(() => G.parse(input.value, replScope))
+const parsed = computed(() => G.parse(input.value, projectScope))
 
 const inputIcon = computed(() => {
 	if (!parsed.value.status) return 'dangerous'
@@ -57,7 +57,7 @@ const replScope = G.PreludeScope.extend({
 
 				return new G.EvalResult(
 					IO.of(() => {
-						replScope.items[_name] = G.valueContainer(value)
+						projectScope.def(_name, value.toExpr())
 					})
 				)
 			}
@@ -65,6 +65,8 @@ const replScope = G.PreludeScope.extend({
 	),
 	clear: G.valueContainer(IO.of(clear)),
 })
+
+const projectScope = replScope.extend({})
 
 const appEl = document.getElementById('app') as HTMLElement
 
