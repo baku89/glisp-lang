@@ -1,25 +1,7 @@
 <script setup lang="ts">
-import {ref} from 'vue'
-
-import {tryParse} from '../..'
 import Icon from './components/Icon.vue'
 import Repl from './components/Repl.vue'
 import Surface from './components/Surface.vue'
-
-const result = ref(
-	tryParse(
-		`; Examples
-(let circle: (=> [c: Vec2 r:Number] (ellipse c [r r]))
-     c1: (circle [0 ./0] 100)
-     c2: (circle c1/c c1/r)
-     (style (stroke "black")
-       c1 c2))`
-	).print()
-)
-
-defineExpose({
-	result,
-})
 </script>
 
 <template>
@@ -48,9 +30,6 @@ defineExpose({
 				techniques, empowering artists to explore new forms of expression.
 				Mainly developed by Baku Hashimoto (橋本麦).
 			</p>
-			<Surface class="repl">
-				<pre><code>{{ result }}</code></pre>
-			</Surface>
 			<Repl />
 		</main>
 	</div>
@@ -84,12 +63,6 @@ defineExpose({
 .glisp-logo
 	width 1.8rem
 
-main
+.entry
 	max-width 50rem
-.repl
-	padding 1rem
-	border-radius 1rem
-	border 1px solid var(--color-surface-border)
-	background var(--color-surface)
-	color var(--color-on-surface)
 </style>

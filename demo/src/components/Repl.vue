@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import * as G from 'glisp'
 import {EvalResult} from 'glisp'
-import {computed, nextTick, ref} from 'vue'
+import {computed, nextTick, ref, shallowReactive} from 'vue'
+
+import ExprInspector from './ExprInspector.vue'
 
 const input = ref('')
 const inputLines = computed(() => input.value.split('\n').length)
 
-const parsed = computed(() => G.parse(input.value, projectScope))
+const parsed = computed(() => G.parse(input.value, projectScope as G.Scope))
 
 const inputIcon = computed(() => {
 	if (!parsed.value.status) return 'dangerous'
@@ -57,7 +59,7 @@ const replScope = G.PreludeScope.extend({
 
 				return new G.EvalResult(
 					IO.of(() => {
-						projectScope.def(_name, value.toExpr())
+						projectScope.defs({[_name]: value.toExpr()})
 					})
 				)
 			}
@@ -66,7 +68,7 @@ const replScope = G.PreludeScope.extend({
 	clear: G.valueContainer(IO.of(clear)),
 })
 
-const projectScope = replScope.extend({})
+const projectScope = shallowReactive(replScope.extend({}))
 
 const appEl = document.getElementById('app') as HTMLElement
 
@@ -132,6 +134,7 @@ function clear() {
 
 <template>
 	<div class="Repl">
+		<ExprInspector :expr="projectScope" />
 		<ul class="results">
 			<li
 				v-for="{input, evaluated, log, key} in results"

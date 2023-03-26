@@ -29,7 +29,8 @@ withDefaults(defineProps<Props>(), {align: 'none'})
 	b = var(--color-surface-border)
 
 	background var(--color-surface)
-	border 1px solid transparent
+	border 1px solid b
+	border-radius var(--ui-surface-radius)
 
 
 	&.top-left
