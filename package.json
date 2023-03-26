@@ -11,8 +11,7 @@
 		"build": "tsc",
 		"lint": "eslint src demo --ext .ts,.vue",
 		"test": "jest --slient=false",
-		"serve": "npm run test -- --watch",
-		"repl": "npm run build; node ./lib/repl/index.js"
+		"serve": "yarn run test -- --watch"
 	},
 	"typings": "./lib/index.d.ts",
 	"bin": {
