@@ -200,6 +200,12 @@ PreludeScope.defs({
 	'++': defn('(=> [...xs:String]: String)', (...xs: String[]) => {
 		return string(xs.reduce((a, b) => a + b, ''))
 	}),
+	join: defn(
+		'(=> [delimiter: String ...xs: String]: String)',
+		(delimiter: String, ...xs: String[]) => {
+			return string(xs.map(x => x.value).join(delimiter.value))
+		}
+	),
 	'truthy?': defn('(=> [value: _]: Boolean)', (value: Value) => {
 		// Returns true if the value is either of () or belows:
 		// false, 0, -0, 0n, "", null, undefined, and NaN.
