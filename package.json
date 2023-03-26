@@ -9,6 +9,7 @@
 	"private": true,
 	"scripts": {
 		"build": "tsc",
+		"dev": "yarn workspace demo run dev",
 		"lint": "eslint src demo --ext .ts,.vue",
 		"test": "jest --slient=false",
 		"serve": "yarn run test -- --watch"
@@ -17,6 +18,9 @@
 	"bin": {
 		"glisp": "./bin/glisp"
 	},
+	"workspaces": [
+		"demo"
+	],
 	"dependencies": {
 		"@types/parsimmon": "^1.10.6",
 		"lodash": "^4.17.21",
