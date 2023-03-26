@@ -55,7 +55,7 @@ defineExpose({
 
 <style scoped lang="stylus">
 @import '@/common.styl'
-.gheadr
+.gheader
 	user-select none
 	position fixed
 	top 0
