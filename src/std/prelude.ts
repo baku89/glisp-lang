@@ -246,7 +246,7 @@ id: (=> (T) [x:T] x)
 sqrt: (=> [x:Number]
         (match r: (<= 0 x)
                true: (** x 0.5)
-               false: (log 0 "warn" "Negative Number")))
+               (log 0 "warn" "Negative Number")))
 
 square: (=> [x:Number] (** x 2))
 
