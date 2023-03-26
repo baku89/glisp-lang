@@ -5,6 +5,7 @@ import {
 	DictLiteral,
 	Expr,
 	FnDef,
+	InfixNumber,
 	Literal,
 	Match,
 	ParamsDef,
@@ -130,6 +131,8 @@ const Reserved = new Set([
 	'NaN',
 ])
 
+const InfixName = P.regex(/[a-z!$%&*_=|]+/i)
+
 // Main parser
 interface IParser {
 	Program: Program
@@ -149,6 +152,7 @@ interface IParser {
 	NamePath: string
 	Symbol: Symbol
 	ValueMeta: ValueMeta
+	InfixNumber: InfixNumber
 }
 
 export const Parser = P.createLanguage<IParser>({
@@ -166,6 +170,7 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	Expr(r) {
 		return P.alt(
+			r.InfixNumber,
 			r.NumberLiteral,
 			r.StringLiteral,
 			r.Scope,
@@ -498,6 +503,39 @@ export const Parser = P.createLanguage<IParser>({
 				return meta
 			})
 			.desc('value metadata')
+	},
+	InfixNumber(r) {
+		return P.alt(
+			// 2e2, 3v3v3
+			P.seq(r.NumberLiteral, P.seq(InfixName, r.NumberLiteral).atLeast(1)).map(
+				([first, rest]) => {
+					const [[op, ...opRest], restArgs] = zip(rest)
+
+					const args = [first.value, ...restArgs.map(a => a.value)] as number[]
+
+					if (opRest.some(r => op !== r)) {
+						throw new Error('Invalid infix literals')
+					}
+
+					const expr = new InfixNumber(op, ...args)
+
+					const raw = [
+						first.extras?.raw,
+						...restArgs.map(a => a.extras?.raw),
+					] as string[]
+
+					expr.extras = {raw}
+
+					return expr
+				}
+			),
+			// 100%, 20mm
+			P.seq(r.NumberLiteral, InfixName).map(([arg, op]) => {
+				const expr = new InfixNumber(op, arg.value as number)
+				expr.extras = {raw: [arg.extras?.raw as string]}
+				return expr
+			})
+		)
 	},
 })
 

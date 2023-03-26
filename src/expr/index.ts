@@ -1673,6 +1673,10 @@ export class InfixNumber extends BaseExpr {
 	}
 }
 
+export const infix = (op: string, ...args: number[]) => {
+	return new InfixNumber(op, ...args)
+}
+
 export class ValueMeta extends BaseExpr {
 	get type() {
 		return 'ValueMeta' as const

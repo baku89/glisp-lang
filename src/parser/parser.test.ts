@@ -3,6 +3,7 @@ import {
 	dictLiteral as dict,
 	Expr,
 	fnDef,
+	infix,
 	literal,
 	match,
 	ParamsDef,
@@ -130,6 +131,17 @@ describe('parsing app expressions', () => {
 	testParsing('(x)', app(x))
 	testParsing('(0 false)', app(literal(1), symbol('false')))
 	testParsing('((true) x)', app(app(symbol('true')), x))
+})
+
+describe('parsing infix literals', () => {
+	testParsing('50%', infix('%', 50))
+	testParsing('-1.%', infix('%', -1))
+	testParsing('.01%', infix('%', 0.01))
+	testParsing('2.3e5', infix('e', 2.3, 5))
+	testParsing('2.3e-2', infix('e', 2.3, -2))
+	testParsing('2.3e.1', infix('e', 2.3, 0.1))
+	testParsing('3V2V1', infix('V', 3, 2, 1))
+	testErrorParsing('3V2V')
 })
 
 describe('parsing scope', () => {
