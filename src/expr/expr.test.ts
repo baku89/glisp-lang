@@ -186,7 +186,8 @@ describe('resolving path symbols', () => {
 
 		const resolved = s.resolve()
 
-		if (!resolved || resolved.type !== 'global') throw new Error()
+		if (!resolved || !('type' in resolved) || resolved.type !== 'global')
+			throw new Error()
 
 		const evaluated = resolved.expr.eval().result
 

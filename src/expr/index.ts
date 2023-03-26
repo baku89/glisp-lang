@@ -255,17 +255,12 @@ export class Symbol extends BaseExpr {
 		this.paths = paths
 	}
 
-	// get name() {
-	// 	if (this.paths[0].type !== 'name') throw new Error()
-	// 	return this.paths[0].name
-	// }
-
 	resolve(
 		env: Env = Env.global
 	):
 		| {type: 'global' | 'param'; expr: Expr}
 		| {type: 'arg'; value: Value}
-		| {type: 'error'; reason: string} {
+		| Log {
 		let expr: Expr | ParamsDef | Program | null = this.parent
 		let isFirstPath = true
 
@@ -279,8 +274,9 @@ export class Symbol extends BaseExpr {
 
 			if (!expr) {
 				return {
-					type: 'error',
+					level: 'error',
 					reason: `Symbol \`${this.print()}\` cannot be resolved`,
+					ref: this,
 				}
 			}
 
@@ -305,10 +301,11 @@ export class Symbol extends BaseExpr {
 							if (e) {
 								if (!isLastPath) {
 									return {
-										type: 'error',
+										level: 'error',
 										reason:
 											`Symbol \`${this.print()}\` referring function parameter ` +
 											'cannot be followed by any path',
+										ref: this,
 									}
 								}
 								if (env.isGlobal) {
@@ -347,17 +344,19 @@ export class Symbol extends BaseExpr {
 
 		if (!expr) {
 			return {
-				type: 'error',
+				level: 'error',
 				reason: `Symbol \`${this.print()}\` cannot be resolved`,
+				ref: this,
 			}
 		}
 
 		if (expr.type === 'ParamsDef') {
 			return {
-				type: 'error',
+				level: 'error',
 				reason:
 					`Symbol \`${this.print()} is referring a parameter part of ` +
 					'function definition',
+				ref: this,
 			}
 		}
 
@@ -367,12 +366,8 @@ export class Symbol extends BaseExpr {
 	forceEval(env: Env, evaluate: IEvalDep): WithLog {
 		const resolved = this.resolve(env)
 
-		if (resolved.type === 'error') {
-			return withLog(unit, {
-				level: 'error',
-				ref: this,
-				reason: resolved.reason,
-			})
+		if ('level' in resolved) {
+			return withLog(unit, resolved)
 		}
 
 		let value: Value
@@ -395,12 +390,8 @@ export class Symbol extends BaseExpr {
 	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): WithLog {
 		const resolved = this.resolve(env)
 
-		if (resolved.type === 'error') {
-			return withLog(unit, {
-				level: 'error',
-				ref: this,
-				reason: resolved.reason,
-			})
+		if ('level' in resolved) {
+			return withLog(unit, resolved)
 		}
 
 		switch (resolved.type) {
