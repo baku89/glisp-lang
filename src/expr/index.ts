@@ -1545,6 +1545,11 @@ export class Match extends BaseExpr {
 			remainingSubjectType = differenceType(remainingSubjectType, pattern)
 		}
 
+		if (this.otherwise) {
+			type = unionType(type, infer(this.otherwise))
+			remainingSubjectType = never
+		}
+
 		if (!remainingSubjectType.isEqualTo(never)) {
 			type = unionType(type, unit)
 		}
