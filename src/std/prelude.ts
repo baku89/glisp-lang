@@ -179,11 +179,7 @@ PreludeScope.defs({
 		'(=> (T U) [f: (=> [u:U t:T]: U) coll: [...T] initial: U]: U)',
 		(f: Fn, coll: Vec, initial: Value) => {
 			return coll.items.reduce(
-				(prev: Value, curt: Value) =>
-					f.fn(
-						() => prev,
-						() => curt
-					).value,
+				(prev: Value, curt: Value) => f.fn(prev, curt).value,
 				initial
 			)
 		}
