@@ -1613,6 +1613,10 @@ export class InfixNumber extends BaseExpr {
 			throw new Error('Invalid zero-length arguments')
 		}
 
+		if (args.some(a => !isFinite(a))) {
+			throw new Error('Non-finite numbers cannot be used in InfixNumber')
+		}
+
 		this.args = args
 	}
 
