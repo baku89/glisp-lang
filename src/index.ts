@@ -4,11 +4,9 @@ export * from './value'
 export type {IFn, Value} from './value'
 export {Parser} from './parser'
 export * from './std/prelude'
-export * from './log'
-export type {WithLog, Log} from './log'
+export * from './EvalResult'
+export type {Log} from './EvalResult'
 export {EvalError} from './EvalError'
-
-export {withLog} from './log'
 
 import type {ParentExpr} from './expr'
 import {Parser} from './parser'

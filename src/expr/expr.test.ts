@@ -125,8 +125,8 @@ describe('inferring expression type', () => {
 
 	function test(input: string, expected: string) {
 		it(`${input} is inferred to be ${expected}`, () => {
-			const i = tryParse(input).infer().result
-			const e = tryParse(expected).eval().result
+			const i = tryParse(input).infer().value
+			const e = tryParse(expected).eval().value
 
 			if (!i.isEqualTo(e)) throw new Error('Got=' + i.print())
 		})
@@ -142,7 +142,7 @@ describe('evaluating function body', () => {
 	function test(input: string, expected: string) {
 		it(`body of ${input} should evaluate to ${expected}`, () => {
 			const i = tryParse(input).expr
-			const e = tryParse(expected).eval().result
+			const e = tryParse(expected).eval().value
 
 			if (!i) throw new Error('Empty program')
 
@@ -154,7 +154,7 @@ describe('evaluating function body', () => {
 				throw new Error('Not a function definition. Got=' + i.print())
 			}
 
-			const result = i.body.eval().result
+			const result = i.body.eval().value
 
 			if (!result.isEqualTo(e)) throw new Error('Got=' + result.print())
 		})
@@ -171,7 +171,7 @@ describe('resolving path symbols', () => {
 	function test(input: string, path: string, expected: string) {
 		const i = tryParse(input).expr
 		const s = Parser.Symbol.tryParse(path)
-		const e = tryParse(expected).eval().result
+		const e = tryParse(expected).eval().value
 
 		if (
 			!i ||
@@ -190,7 +190,7 @@ describe('resolving path symbols', () => {
 		if (!resolved || !('type' in resolved) || resolved.type !== 'global')
 			throw new Error()
 
-		const evaluated = resolved.expr.eval().result
+		const evaluated = resolved.expr.eval().value
 
 		if (!evaluated.isEqualTo(e)) {
 			throw new Error('Got=' + evaluated.print())

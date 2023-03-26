@@ -4,8 +4,8 @@ import * as os from 'os'
 import * as repl from 'repl'
 
 import {EvalError} from '../EvalError'
+import {EvalResult, Log} from '../EvalResult'
 import {app, Expr, valueContainer} from '../expr'
-import {Log, WithLog, withLog} from '../log'
 import {parse} from '../parser'
 import {PreludeScope} from '../std/prelude'
 import {
@@ -54,7 +54,7 @@ const replScope = PreludeScope.extend({
 		fn(
 			fnType({name: StringType, value: all}, IO),
 			(name: String, value: Value) =>
-				withLog(
+				new EvalResult(
 					IO.of(() => {
 						replScope.items[name.value] = valueContainer(value)
 					})
@@ -84,7 +84,7 @@ function startRepl() {
 						.filter(s => !!s)
 						.join('\n')
 
-				const r = withLog(unit, {
+				const r = new EvalResult(unit).withLog({
 					level: 'error',
 					reason,
 				})
@@ -95,13 +95,13 @@ function startRepl() {
 			try {
 				const evaluated = expr.eval()
 
-				if (IO.isTypeFor(evaluated.result)) {
-					evaluated.result.value()
+				if (IO.isTypeFor(evaluated.value)) {
+					evaluated.value.value()
 				}
 
 				cb(null, evaluated)
 			} catch (err) {
-				const r = withLog(unit, {
+				const r = new EvalResult(unit).withLog({
 					level: 'error',
 					reason: err instanceof Error ? err.message : 'Run-time error',
 					ref: err instanceof EvalError ? err.ref : expr,
@@ -109,10 +109,10 @@ function startRepl() {
 				cb(null, r)
 			}
 		},
-		writer: ({result, log}: WithLog) => {
+		writer: ({value: result, info}: EvalResult) => {
 			let str = ''
 
-			for (const l of log) {
+			for (const l of info.log) {
 				str += printLog(l) + '\n'
 			}
 

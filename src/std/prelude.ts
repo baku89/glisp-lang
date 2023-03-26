@@ -1,9 +1,8 @@
 import {range} from 'lodash'
 
+import {EvalResult, Log} from '../EvalResult'
 import {scope, ValueContainer, valueContainer} from '../expr'
-import {Log, withLog} from '../log'
 import {parse, parseModule} from '../parser'
-import {Writer} from '../util/Writer'
 import {
 	All,
 	boolean,
@@ -42,7 +41,7 @@ interface Defn {
 }
 
 const defn: Defn = (type, f, {writeLog = false} = {}) => {
-	const fnType = parse(type, PreludeScope).eval().result
+	const fnType = parse(type, PreludeScope).eval().value
 
 	if (fnType.type !== 'FnType') throw new Error('Not a fnType:' + type)
 
@@ -51,7 +50,7 @@ const defn: Defn = (type, f, {writeLog = false} = {}) => {
 	if (writeLog) {
 		_f = (...args) => f(...args) as ReturnType<IFn>
 	} else {
-		_f = (...args) => withLog(f(...args) as Value)
+		_f = (...args) => new EvalResult(f(...args) as Value)
 	}
 
 	const _fn = fn(fnType, _f)
@@ -80,7 +79,7 @@ PreludeScope.defs({
 	log: defn(
 		'(=> (T) [value:T level:(union "error" "warn" "info") reason:String]: T)',
 		(value: Value, level: String, reason: String) =>
-			Writer.of(value, {
+			new EvalResult(value).withLog({
 				level: level.value as Log['level'],
 				reason: reason.value,
 			}),
@@ -162,15 +161,16 @@ PreludeScope.defs({
 	map: defn(
 		'(=> (T U) [f: (=> [t:T]: U) coll:[...T]]: [...U])',
 		(f: Fn, coll: Vec) => {
-			const [items] = Writer.map(coll.items, f.fn).asTuple
-			return vec(items)
-		}
+			const [items, info] = EvalResult.map(coll.items, f.fn).asArray
+			return new EvalResult(vec(items), info)
+		},
+		{writeLog: true}
 	),
 	filter: defn(
 		'(=> (T) [pred: (=> [x: T]: Boolean) coll: [...T]]: [...T])',
 		(f: Fn, coll: Vec) => {
 			const items = coll.items.filter(it => {
-				return f.fn(it).result.isEqualTo(True)
+				return f.fn(it).value.isEqualTo(True)
 			})
 			return vec(items)
 		}
@@ -183,7 +183,7 @@ PreludeScope.defs({
 					f.fn(
 						() => prev,
 						() => curt
-					).result,
+					).value,
 				initial
 			)
 		}

@@ -8,6 +8,7 @@ import {
 	values,
 } from 'lodash'
 
+import {EvalResult} from '../EvalResult'
 import {
 	App,
 	app,
@@ -25,7 +26,6 @@ import {
 	vecLiteral,
 } from '../expr'
 import {getTypeVars} from '../expr/unify'
-import {WithLog, withLog} from '../log'
 import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
 import {isEqualSet} from '../util/isEqualSet'
@@ -142,7 +142,7 @@ abstract class BaseValue {
 	abstract clone(): Value
 }
 
-export type IFn = (...params: any[]) => WithLog
+export type IFn = (...params: any[]) => EvalResult
 
 interface IFnType {
 	fnType: FnType
@@ -745,7 +745,7 @@ export class FnType extends BaseValue implements IFnType {
 	#initialDefaultValue?: Fn
 	get initialDefaultValue(): Fn {
 		if (!this.#initialDefaultValue) {
-			const fnObj = () => withLog(this.out.defaultValue)
+			const fnObj = () => new EvalResult(this.out.defaultValue)
 			const fn = new Fn(this, fnObj, this.out.defaultValue.toExpr())
 			this.#initialDefaultValue = fn
 		}
@@ -988,13 +988,13 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 		if (i < 0 || this.items.length <= i) {
 			i = Math.max(0, Math.min(i, this.items.length - 1))
 
-			return withLog(this.items[i], {
+			return new EvalResult(this.items[i]).withLog({
 				level: 'warn',
 				reason: 'Index out of range',
 			})
 		}
 
-		return withLog(this.items[i])
+		return new EvalResult(this.items[i])
 	}
 
 	get fn(): IFn {

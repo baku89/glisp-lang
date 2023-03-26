@@ -1,13 +1,13 @@
 import {tryParse} from '..'
+import {Log} from '../EvalResult'
 import type {Expr} from '../expr'
-import {Log} from '../log'
 import type {Value} from '../value'
 
 export function evaluate(input: string | Expr): Value {
 	if (typeof input === 'string') {
-		return tryParse(input).eval().result
+		return tryParse(input).eval().value
 	}
-	return input.eval().result
+	return input.eval().value
 }
 
 export function testEval(
@@ -19,9 +19,13 @@ export function testEval(
 
 	test(`${input} evaluates to ${eString}`, () => {
 		const expr = tryParse(input)
-		const expectedVal = tryParse(input).eval().result
+		const expectedVal = tryParse(input).eval().value
 
-		const {result, log} = expr.eval()
+		const {
+			value: result,
+			info: {log},
+		} = expr.eval()
+
 		if (!result.isEqualTo(expectedVal)) {
 			throw new Error('Got=' + result.print())
 		}

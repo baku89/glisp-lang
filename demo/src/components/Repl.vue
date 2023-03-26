@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import * as G from 'glisp'
+import {EvalResult} from 'glisp'
 import {computed, nextTick, ref} from 'vue'
 
 const input = ref('')
@@ -47,14 +48,14 @@ const replScope = G.PreludeScope.extend({
 
 				const symbol = G.Parser.Symbol.parse(_name)
 				if (!symbol.status) {
-					return G.withLog(G.unit, {
+					return new G.EvalResult(G.unit).withLog({
 						level: 'error',
 						reason: `\`${_name}\` cannot be used as a symbol name`,
 						ref: G.valueContainer(G.unit),
 					})
 				}
 
-				return G.withLog(
+				return new G.EvalResult(
 					IO.of(() => {
 						replScope.items[_name] = G.valueContainer(value)
 					})
@@ -72,24 +73,26 @@ function evaluate() {
 
 	const expr = parsed.value.value
 
-	let evaluated: G.Value, log: Set<G.Log>
+	let result: G.EvalResult
 
 	try {
-		;[evaluated, log] = expr.eval().asTuple
+		result = expr.eval()
 	} catch (err) {
-		evaluated = G.unit
-		log = new Set([
-			{
-				level: 'error',
-				reason: err instanceof Error ? err.message : 'Run-time error',
-				ref: err instanceof G.EvalError ? err.ref : expr,
-			},
-		])
+		result = new EvalResult(G.unit).withLog({
+			level: 'error',
+			reason: err instanceof Error ? err.message : 'Run-time error',
+			ref: err instanceof G.EvalError ? err.ref : expr,
+		})
 	}
 
+	const {
+		value,
+		info: {log},
+	} = result
+
 	let printed = ''
-	if (!IO.isTypeFor(evaluated)) {
-		printed = evaluated.print()
+	if (!IO.isTypeFor(value)) {
+		printed = value.print()
 	}
 
 	results.value.push({
@@ -109,8 +112,8 @@ function evaluate() {
 	})
 
 	// Execute the content of IO monad
-	if (IO.isTypeFor(evaluated)) {
-		evaluated.value()
+	if (IO.isTypeFor(value)) {
+		value.value()
 	}
 
 	nextTick(() => {

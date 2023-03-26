@@ -1,4 +1,4 @@
-import {WithLog} from '../log'
+import {EvalResult} from '../EvalResult'
 import {Value} from '../value'
 import type {BaseExpr} from '.'
 
@@ -11,8 +11,8 @@ import type {BaseExpr} from '.'
 export class Env {
 	#outer!: Env | undefined
 	#arg: Record<string, Value>
-	#evalCache: WeakMap<BaseExpr, WithLog>
-	#inferCache: WeakMap<BaseExpr, WithLog>
+	#evalCache: WeakMap<BaseExpr, EvalResult>
+	#inferCache: WeakMap<BaseExpr, EvalResult>
 
 	// Store the reference to Expr that have been traversed so far
 	// in the series of evaluation/inference processes.
@@ -23,8 +23,8 @@ export class Env {
 	private constructor(
 		outer: Env | undefined,
 		arg: Record<string, Value>,
-		evalCache: WeakMap<BaseExpr, WithLog>,
-		inferCache: WeakMap<BaseExpr, WithLog>,
+		evalCache: WeakMap<BaseExpr, EvalResult>,
+		inferCache: WeakMap<BaseExpr, EvalResult>,
 		evalDeps: Set<BaseExpr>,
 		inferDeps: Set<BaseExpr>
 	) {
@@ -91,19 +91,19 @@ export class Env {
 		return this.#arg[name]
 	}
 
-	getEvalCache(expr: BaseExpr): WithLog | null {
+	getEvalCache(expr: BaseExpr): EvalResult | null {
 		return this.#evalCache.get(expr) ?? null
 	}
 
-	setEvalCache(expr: BaseExpr, result: WithLog) {
+	setEvalCache(expr: BaseExpr, result: EvalResult) {
 		return this.#evalCache.set(expr, result)
 	}
 
-	getInferCache(expr: BaseExpr): WithLog | null {
+	getInferCache(expr: BaseExpr): EvalResult | null {
 		return this.#inferCache.get(expr) ?? null
 	}
 
-	setInferCache(expr: BaseExpr, type: WithLog) {
+	setInferCache(expr: BaseExpr, type: EvalResult) {
 		return this.#inferCache.set(expr, type)
 	}
 
