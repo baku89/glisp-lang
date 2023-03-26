@@ -1,14 +1,19 @@
 module.exports = {
 	root: true,
-	parser: '@typescript-eslint/parser',
+	parser: 'vue-eslint-parser',
 	env: {
 		node: true,
 		commonjs: true,
 		'jest/globals': true,
 	},
-	extends: ['eslint:recommended', 'prettier'],
-
+	extends: [
+		'eslint:recommended',
+		'plugin:vue/recommended',
+		'plugin:prettier-vue/recommended',
+		'prettier',
+	],
 	parserOptions: {
+		parser: '@typescript-eslint/parser',
 		ecmaVersion: 2022,
 		sourceType: 'module',
 	},
@@ -23,5 +28,9 @@ module.exports = {
 		'@typescript-eslint/explicit-module-boundary-types': 'off',
 		'simple-import-sort/imports': 'error',
 		'unused-imports/no-unused-imports-ts': 'error',
+		'vue/multi-word-component-names': 'off',
+		'vue/require-default-prop': 'off',
+		'vue/no-v-html': 'off',
+		'vue/no-template-shadow': 'off',
 	},
 }

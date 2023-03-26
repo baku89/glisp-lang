@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import {ref, computed, nextTick} from 'vue'
 import * as G from 'glisp'
+import {computed, nextTick, ref} from 'vue'
 
 const input = ref('')
 const inputLines = computed(() => input.value.split('\n').length)
@@ -20,9 +20,11 @@ const inputClass = computed(() => {
 })
 
 interface Result {
+	key: number
 	input: string
 	evaluated: string
 	log: {
+		key: number
 		icon: string
 		reason: G.Log['reason']
 		ref?: string
@@ -63,7 +65,7 @@ const replScope = G.PreludeScope.extend({
 	clear: G.valueContainer(IO.of(clear)),
 })
 
-let appEl = document.getElementById('app') as HTMLElement
+const appEl = document.getElementById('app') as HTMLElement
 
 function evaluate() {
 	if (!parsed.value.status) return
@@ -91,12 +93,14 @@ function evaluate() {
 	}
 
 	results.value.push({
+		key: results.value.length,
 		input: expr.print(),
 		evaluated: printed,
-		log: Array.from(log).map(({level, reason, ref}) => {
+		log: Array.from(log).map(({level, reason, ref}, key) => {
 			reason = reason.replaceAll(/`(.+?)`/g, '<code>$1</code>')
 
 			return {
+				key,
 				icon: level === 'warn' ? 'warning' : level,
 				reason,
 				ref: ref?.print(),
@@ -124,20 +128,24 @@ function clear() {
 <template>
 	<div class="Repl">
 		<ul class="results">
-			<li class="result" v-for="{input, evaluated, log} in results">
+			<li
+				v-for="{input, evaluated, log, key} in results"
+				:key="key"
+				class="result"
+			>
 				<div class="input">{{ input }}</div>
 				<ul class="log">
-					<li v-for="{icon, reason, ref} in log">
+					<li v-for="{icon, reason, ref, key} in log" :key="key">
 						<span class="log__icon material-symbols-rounded" :class="icon">
 							{{ icon }}
 						</span>
 						<div class="log__reason" v-html="reason" />
-						<div class="log__ref" v-if="ref">
+						<div v-if="ref" class="log__ref">
 							at <code>{{ ref }}</code>
 						</div>
 					</li>
 				</ul>
-				<div class="evaluated" v-if="evaluated">{{ evaluated }}</div>
+				<div v-if="evaluated" class="evaluated">{{ evaluated }}</div>
 			</li>
 		</ul>
 
@@ -147,11 +155,11 @@ function clear() {
 			:style="{height: inputLines * 1.6 + 1 + 'em'}"
 		>
 			<textarea
+				v-model="input"
 				data-gramm="false"
 				data-gramm_editor="false"
 				data-enable-grammarly="false"
 				type="text"
-				v-model="input"
 				@keydown.meta.enter.prevent="evaluate"
 			/>
 			<button
