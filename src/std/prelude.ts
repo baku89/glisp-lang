@@ -204,12 +204,6 @@ PreludeScope.defs({
 	'++': defn('(=> [...xs:String]: String)', (...xs: String[]) => {
 		return string(xs.reduce((a, b) => a + b, ''))
 	}),
-	'$%': defn('(=> [value: Number]: Number)', (value: Number) => {
-		return number(value.value / 100)
-	}),
-	$rad: defn('(=> [radians: Number]: Number)', (value: Number) => {
-		return number((value.value * 180) / Math.PI)
-	}),
 	'truthy?': defn('(=> [value: _]: Boolean)', (value: Value) => {
 		// Returns true if the value is either of () or belows:
 		// false, 0, -0, 0n, "", null, undefined, and NaN.
@@ -262,6 +256,11 @@ square: (=> [x:Number] (** x 2))
 
 hypot:  (=> [x:Number y:Number] (sqrt (+ (* x x) (* y y))))
 
+$%: (=> [percent:Number] (div percent 100))
+$rad: (=> [radians:Number] (div (* radians 180) PI))
+$turn: (=> [turns:Number] (* turns 360))
+$e: (=> [coeff:Number exponent:Number]
+        (* coeff (** 10 exponent)))
 
 PI: 3.1415926535897932384626433832795028841971693993
 	`)
