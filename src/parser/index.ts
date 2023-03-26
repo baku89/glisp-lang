@@ -131,6 +131,19 @@ const Reserved = new Set([
 	'NaN',
 ])
 
+const FiniteNumericString = seq(
+	P.regex(/[+-]?/),
+	P.alt(
+		// Float
+		seq(P.digits, P.string('.'), OneOrMoreDigits),
+		// Integer
+		seq(OneOrMoreDigits, zeroOrOne(P.string('.')))
+	)
+)
+
+const ReservedNumericString = P.alt(P.regex(/-?Infinity/), P.string('NaN'))
+
+// TODO: allow other characters that would not affect to the parsing logic
 const InfixName = P.regex(/[a-z!$%&*_=|]+/i)
 
 // Main parser
@@ -184,19 +197,7 @@ export const Parser = P.createLanguage<IParser>({
 		).desc('expression')
 	},
 	NumberLiteral() {
-		return P.alt(
-			seq(
-				P.regex(/[+-]?/),
-				P.alt(
-					// Float
-					seq(P.digits, P.string('.'), OneOrMoreDigits),
-					// Integer
-					seq(OneOrMoreDigits, zeroOrOne(P.string('.')))
-				)
-			),
-			P.regex(/-?Infinity/),
-			P.string('NaN')
-		)
+		return P.alt(FiniteNumericString, ReservedNumericString)
 			.map(raw => {
 				const expr = new Literal(parseFloat(raw))
 				expr.extras = {raw}
@@ -507,28 +508,26 @@ export const Parser = P.createLanguage<IParser>({
 	InfixNumber(r) {
 		return P.alt(
 			// 2e2, 3v3v3
-			P.seq(r.NumberLiteral, P.seq(InfixName, r.NumberLiteral).atLeast(1)).map(
-				([first, rest]) => {
-					const [[op, ...opRest], restArgs] = zip(rest)
+			P.seq(
+				FiniteNumericString,
+				P.seq(InfixName, FiniteNumericString).atLeast(1)
+			).map(([first, rest]) => {
+				const [[op, ...opRest], restArgs] = zip(rest)
 
-					const args = [first.value, ...restArgs.map(a => a.value)] as number[]
+				const args = [parseFloat(first), ...restArgs.map(parseFloat)]
 
-					if (opRest.some(r => op !== r)) {
-						throw new Error('Invalid infix literals')
-					}
-
-					const expr = new InfixNumber(op, ...args)
-
-					const raw = [
-						first.extras?.raw,
-						...restArgs.map(a => a.extras?.raw),
-					] as string[]
-
-					expr.extras = {raw}
-
-					return expr
+				if (opRest.some(r => op !== r)) {
+					throw new Error('Invalid infix literals')
 				}
-			),
+
+				const expr = new InfixNumber(op, ...args)
+
+				const raw = [first, ...restArgs]
+
+				expr.extras = {raw}
+
+				return expr
+			}),
 			// 100%, 20mm
 			P.seq(r.NumberLiteral, InfixName).map(([arg, op]) => {
 				const expr = new InfixNumber(op, arg.value as number)
