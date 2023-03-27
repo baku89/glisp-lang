@@ -177,8 +177,8 @@ export class Unifier {
 			const tParam = vec(values(tf.params), tf.optionalPos, tf.rest?.value)
 			const uParam = vec(values(uf.params), uf.optionalPos, uf.rest?.value)
 
-			const tOut = tf.out
-			const uOut = uf.out
+			const tOut = tf.ret
+			const uOut = uf.ret
 
 			const cParam: Const = [tParam, Ri, uParam]
 			const cOut: Const = [tOut, R, uOut]
@@ -264,8 +264,8 @@ export class Unifier {
 				const rest = value.rest
 					? {...value.rest, value: this.substitute(value.rest.value, unshadow)}
 					: undefined
-				const out = this.substitute(value.out, unshadow)
-				return fnType(params, null, rest, out)
+				const ret = this.substitute(value.ret, unshadow)
+				return fnType(params, null, rest, ret)
 			}
 			case 'UnionType': {
 				const types = value.types.map(ty => this.substitute(ty, unshadow))

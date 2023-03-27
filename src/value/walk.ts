@@ -65,7 +65,7 @@ export function createFoldFn<U>(
 				return foldFn(
 					...values(value.params).map(fold),
 					value.rest ? fold(value.rest.value) : initial,
-					fold(value.out)
+					fold(value.ret)
 				)
 			case 'Vec':
 				return foldFn(

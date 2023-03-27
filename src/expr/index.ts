@@ -1308,12 +1308,12 @@ export class App extends BaseExpr {
 		 * (e.g. 'struct' function), so it should be evaluated to infer a type of
 		 * the expression
 		 */
-		if (ty.fnType.out.isEqualTo(all)) {
+		if (ty.fnType.ret.isEqualTo(all)) {
 			return this.eval(env)
 		}
 
 		const [unifier] = this.#unify(env, infer)
-		return new EvalResult(unifier.substitute(ty.fnType.out, true))
+		return new EvalResult(unifier.substitute(ty.fnType.ret, true))
 	}
 
 	resolveSymbol(path: string | number): Expr | null {
@@ -1384,25 +1384,25 @@ export class Scope extends BaseExpr {
 	}
 
 	public items: Record<string, Expr>
-	public readonly out?: Expr
+	public readonly ret?: Expr
 
-	constructor(items: Record<string, Expr> = {}, out?: Expr) {
+	constructor(items: Record<string, Expr> = {}, ret?: Expr) {
 		super()
 
 		// Set parent
 		forOwn(items, v => (v.parent = this))
-		if (out) out.parent = this
+		if (ret) ret.parent = this
 
 		this.items = items
-		this.out = out
+		this.ret = ret
 	}
 
 	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): EvalResult {
-		return new EvalResult(this.out ? infer(this.out) : unit)
+		return new EvalResult(this.ret ? infer(this.ret) : unit)
 	}
 
 	forceEval(env: Env) {
-		return this.out?.eval(env) ?? new EvalResult(unit)
+		return this.ret?.eval(env) ?? new EvalResult(unit)
 	}
 
 	resolveSymbol(path: string | number): Expr | null {
@@ -1415,18 +1415,18 @@ export class Scope extends BaseExpr {
 		const varEntries = entries(this.items)
 
 		if (!this.extras) {
-			const tokensCount = 1 + varEntries.length * 2 + (this.out ? 1 : 0)
+			const tokensCount = 1 + varEntries.length * 2 + (this.ret ? 1 : 0)
 			const delimiters = createListDelimiters(tokensCount)
 
 			this.extras = {delimiters}
 		}
 
 		const items = varEntries.map(([k, v]) => [k + ':', v.print(options)]).flat()
-		const out = this.out ? [this.out.print(options)] : []
+		const ret = this.ret ? [this.ret.print(options)] : []
 
 		const {delimiters} = this.extras
 
-		return '(' + insertDelimiters(['let', ...items, ...out], delimiters) + ')'
+		return '(' + insertDelimiters(['let', ...items, ...ret], delimiters) + ')'
 	}
 
 	extras?: {delimiters: string[]}
@@ -1434,17 +1434,17 @@ export class Scope extends BaseExpr {
 	isSameTo(expr: AnyExpr) {
 		return (
 			this.type === expr.type &&
-			nullishEqual(this.out, expr.out, isSame) &&
+			nullishEqual(this.ret, expr.ret, isSame) &&
 			isEqualDict(this.items, expr.items, isSame)
 		)
 	}
 
 	clone(): Scope {
-		return new Scope(mapValues(this.items, clone), this.out?.clone())
+		return new Scope(mapValues(this.items, clone), this.ret?.clone())
 	}
 
-	extend(items: Record<string, Expr>, out?: Expr): Scope {
-		const scope = new Scope(items, out)
+	extend(items: Record<string, Expr>, ret?: Expr): Scope {
+		const scope = new Scope(items, ret)
 		scope.parent = this
 		return scope
 	}
@@ -1466,8 +1466,8 @@ export const scope = (items?: Record<string, Expr>, ret?: Expr) =>
 /**
  * AST representing match expression
  * (match captureName: expr ;; expr is omittable
- *        case1: out1
- *        case2: out22
+ *        case1: then1
+ *        case2: then2
  *        default ;; omittable
  */
 export class Match extends BaseExpr {
@@ -1494,9 +1494,9 @@ export class Match extends BaseExpr {
 		this.subject.parent = this
 
 		this.cases = cases ?? []
-		for (const [pattern, out] of this.cases) {
+		for (const [pattern, then] of this.cases) {
 			pattern.parent = this
-			out.parent = this
+			then.parent = this
 		}
 
 		if (otherwise) {
@@ -1511,9 +1511,9 @@ export class Match extends BaseExpr {
 
 		// Try to match the pattern in order
 		// and evaluate ret expression if matched
-		for (const [pattern, out] of this.cases) {
+		for (const [pattern, then] of this.cases) {
 			if (subject.isSubtypeOf(evaluate(pattern))) {
-				return new EvalResult(evaluate(out))
+				return new EvalResult(evaluate(then))
 			}
 		}
 
@@ -1532,11 +1532,11 @@ export class Match extends BaseExpr {
 		let type: Value = never
 		let remainingSubjectType = infer(this.subject)
 
-		for (const [_pattern, _out] of this.cases ?? []) {
+		for (const [_pattern, _then] of this.cases ?? []) {
 			const pattern = evaluate(_pattern)
-			const out = infer(_out)
+			const then = infer(_then)
 
-			type = unionType(type, out)
+			type = unionType(type, then)
 			remainingSubjectType = differenceType(remainingSubjectType, pattern)
 		}
 

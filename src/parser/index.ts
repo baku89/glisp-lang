@@ -339,7 +339,7 @@ export const Parser = P.createLanguage<IParser>({
 			opt(P.seq(r.Expr, _))
 		)
 			.wrap(P.string('('), P.string(')'))
-			.map(([_0, , itemsPart, outPart]) => {
+			.map(([_0, , itemsPart, retPart]) => {
 				const items: Scope['items'] = {}
 				const delimiters = [_0]
 
@@ -358,14 +358,13 @@ export const Parser = P.createLanguage<IParser>({
 					}
 				}
 
-				let out: Expr | undefined
-				if (outPart) {
-					const [_out, _3] = outPart
-					out = _out
-					delimiters.push(_3)
+				let ret: Expr | undefined
+				if (retPart) {
+					ret = retPart[0]
+					delimiters.push(retPart[1])
 				}
 
-				const expr = new Scope(items, out)
+				const expr = new Scope(items, ret)
 				expr.extras = {delimiters}
 				return expr
 			})
@@ -388,8 +387,8 @@ export const Parser = P.createLanguage<IParser>({
 
 				const cases: Match['cases'] = []
 
-				for (const [pattern, d4, out, d5] of casesPart) {
-					cases.push([pattern, out])
+				for (const [pattern, d4, then, d5] of casesPart) {
+					cases.push([pattern, then])
 					delimiters.push(d4, d5)
 				}
 

@@ -661,7 +661,7 @@ export class Fn extends BaseValue implements IFnLike {
 		return fnDef(
 			typeVars.length > 0 ? typeVars : null,
 			paramsDef(_params, fnType.optionalPos, rest),
-			fnType.out.toExpr(),
+			fnType.ret.toExpr(),
 			this.body.clone()
 		)
 	}
@@ -688,28 +688,28 @@ export class FnType extends BaseValue implements IFnType {
 	public readonly params: Record<string, Value>
 	public readonly optionalPos: number
 	public readonly rest?: {name: string; value: Value}
-	public readonly out: Value
+	public readonly ret: Value
 
-	constructor(params: FnType['params'], out: Value)
+	constructor(params: FnType['params'], ret: Value)
 	constructor(
 		params: FnType['params'],
 		optionalPos: number | null,
 		rest: FnType['rest'],
-		out: Value
+		ret: Value
 	)
 	constructor(
 		params: FnType['params'],
-		outOrOptionalPos: number | Value | null,
+		retOrOptionalPos: number | Value | null,
 		rest?: FnType['rest'],
-		out?: Value
+		ret?: Value
 	) {
 		super()
 
 		const maxRequiredParamNum = values(params).length
 
 		const optionalPos =
-			typeof outOrOptionalPos === 'number'
-				? outOrOptionalPos
+			typeof retOrOptionalPos === 'number'
+				? retOrOptionalPos
 				: maxRequiredParamNum
 
 		if (
@@ -724,10 +724,10 @@ export class FnType extends BaseValue implements IFnType {
 		this.optionalPos = optionalPos
 		this.rest = rest
 
-		if (outOrOptionalPos && typeof outOrOptionalPos !== 'number') {
-			this.out = outOrOptionalPos
-		} else if (out) {
-			this.out = out
+		if (retOrOptionalPos && typeof retOrOptionalPos !== 'number') {
+			this.ret = retOrOptionalPos
+		} else if (ret) {
+			this.ret = ret
 		} else {
 			throw new Error('Invalid parameters for FnType constructor')
 		}
@@ -745,8 +745,8 @@ export class FnType extends BaseValue implements IFnType {
 	#initialDefaultValue?: Fn
 	get initialDefaultValue(): Fn {
 		if (!this.#initialDefaultValue) {
-			const fnObj = () => new EvalResult(this.out.defaultValue)
-			const fn = new Fn(this, fnObj, this.out.defaultValue.toExpr())
+			const fnObj = () => new EvalResult(this.ret.defaultValue)
+			const fn = new Fn(this, fnObj, this.ret.defaultValue.toExpr())
 			this.#initialDefaultValue = fn
 		}
 		return this.#initialDefaultValue
@@ -760,7 +760,7 @@ export class FnType extends BaseValue implements IFnType {
 				this.rest ? getTypeVars(this.rest.value) : new Set()
 			)
 
-			const tvOut = getTypeVars(this.out)
+			const tvOut = getTypeVars(this.ret)
 
 			this.#typeVars = union(tvParams, tvOut)
 		}
@@ -785,7 +785,7 @@ export class FnType extends BaseValue implements IFnType {
 		return fnDef(
 			typeVars.length > 0 ? typeVars : null,
 			paramsDef(params, this.optionalPos, rest),
-			this.out.toExpr(),
+			this.ret.toExpr(),
 			null
 		)
 	}
@@ -809,7 +809,7 @@ export class FnType extends BaseValue implements IFnType {
 			return false
 		}
 
-		return this.out.isEqualTo(value.out)
+		return this.ret.isEqualTo(value.ret)
 	}
 
 	isSubtypeOf(value: Value): boolean {
@@ -828,7 +828,7 @@ export class FnType extends BaseValue implements IFnType {
 			value.rest?.value
 		)
 
-		return valueParam.isSubtypeOf(thisParam) && this.out.isSubtypeOf(value.out)
+		return valueParam.isSubtypeOf(thisParam) && this.ret.isSubtypeOf(value.ret)
 	}
 
 	declare isTypeFor: (value: Value) => value is Fn
@@ -842,7 +842,7 @@ export class FnType extends BaseValue implements IFnType {
 	}
 
 	clone() {
-		const value = new FnType(this.params, this.optionalPos, this.rest, this.out)
+		const value = new FnType(this.params, this.optionalPos, this.rest, this.ret)
 		value.#defaultValue = this.#defaultValue
 		value.#initialDefaultValue = this.#initialDefaultValue
 		value.#typeVars = this.#typeVars
@@ -852,27 +852,27 @@ export class FnType extends BaseValue implements IFnType {
 }
 
 interface IFnTypeConstructor {
-	(params: FnType['params'], out: Value): FnType
+	(params: FnType['params'], ret: Value): FnType
 	(
 		params: FnType['params'],
 		optionalPos: number | null,
 		rest: FnType['rest'],
-		out: Value
+		ret: Value
 	): FnType
 	(
 		params: FnType['params'],
-		outOrOptionalPos: number | Value | null,
+		retOrOptionalPos: number | Value | null,
 		rest?: FnType['rest'],
-		out?: Value
+		ret?: Value
 	): FnType
 }
 
 export const fnType: IFnTypeConstructor = (
 	params,
-	outOrOptionalPos,
+	retOrOptionalPos,
 	rest?,
-	out?
-) => new FnType(params, outOrOptionalPos as any, rest as any, out as any)
+	ret?
+) => new FnType(params, retOrOptionalPos as any, rest as any, ret as any)
 
 export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 	get type() {
