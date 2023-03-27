@@ -2,9 +2,11 @@
 import * as G from 'glisp'
 import {computed} from 'vue'
 
+import ExprApp from './ExprApp.vue'
 import ExprLiteral from './ExprLiteral.vue'
 import ExprProgram from './ExprProgram.vue'
 import ExprScope from './ExprScope.vue'
+import ExprSymbol from './ExprSymbol.vue'
 import ExprVecLiteral from './ExprVecLiteral.vue'
 
 interface Props {
@@ -24,6 +26,10 @@ const exprComponent = computed(() => {
 			return ExprProgram
 		case 'Literal':
 			return ExprLiteral
+		case 'Symbol':
+			return ExprSymbol
+		case 'App':
+			return ExprApp
 		case 'Scope':
 			return ExprScope
 		case 'VecLiteral':
@@ -41,6 +47,7 @@ const exprComponent = computed(() => {
 		:expr="expr"
 		:value-type="valueType"
 		:layout="layout"
+		v-bind="$attrs"
 	/>
 	<div v-else class="text">
 		{{ expr.print() }} -> {{ expr.eval().value.print() }}
@@ -55,7 +62,7 @@ const exprComponent = computed(() => {
 	color var(--color-on-surface-variant)
 	background var(--color-surface-variant)
 	font-size var(--ui-input-font-size)
-	padding 0 .6em
+	padding 0 var(--ui-input-horiz-padding)
 
 	&:active, &:focus
 		outline 2px var(--color-primary) solid

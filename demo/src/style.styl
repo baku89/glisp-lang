@@ -1,17 +1,30 @@
 @import '@/common.styl'
 
 // Reset
-*
+*, *:before, *:after
+	box-sizing border-box
 	outline none
 	font-weight inherit
+	font-style normal
+	font-size inherit
+	cursor inherit
+
+:root
+	font-synthesis none
+	// text-rendering optimizeLegibility
+	-webkit-font-smoothing antialiased
+	-moz-osx-font-smoothing grayscale
+	-webkit-text-size-adjust 100%
 
 // Theme
 :root
 	// Typography
 	--font-ui Inter, system-ui, Avenir, Helvetica, Arial, sans-serif
-	--font-text Spectral, 'Shippori Mincho', yu-mincho-pr6n, YuMincho, '游明朝', Yu Mincho, YuMincho, Hiragino Mincho ProN, 'HGS明朝E', serif
+	--font-text var(--font-ui)
+	// --font-text Spectral, 'Shippori Mincho', yu-mincho-pr6n, YuMincho, '游明朝', Yu Mincho, YuMincho, Hiragino Mincho ProN, 'HGS明朝E', serif
 	--font-heading 'Gestures', serif
-	--font-code 'Fira Code', monospace
+	--font-code 'Fragment Mono', monospace
+	// 
 	// Color schemes
 	// Based on https://m3.material.io/styles/color/the-color-system/tokens
 	// and color builder: https://m3.material.io/theme-builder#/custom
@@ -19,22 +32,34 @@
 	--color-background #ffffff
 	--color-primary #2638ff
 	--color-on-primary #ffffff
+	--color-primary-container #e0e0ff
+	--color-on-primary-container #00006e
 	--color-surface #f2f2f399
 	--color-on-surface #1a1b1f
 	--color-surface-border #ddd
-	--color-surface-variant #efeff4
+	--color-surface-variant #efeff4 // for input
 	--color-on-surface-variant #363841
-	--gradient #2638ff 0%, #f37ea5 16%, #f0a59b 28%, #f1caca 35%, #ccdce6 44%, #bef1ee 54%, #8ef6b7 63%, #6fc8d9 82%, #2638ff 100%
+	--color-outline #9697c3
+	--color-outline-variant #cacad4
 	--color-error #ea5180
 	--color-on-error #FFFFFF
 	--color-warning #f7a576
 	--color-on-warning #FFFFFF
+	// Syntax highlighting
+	// Based on https://marketplace.visualstudio.com/items?itemName=liviuschera.noctis
+	--color-hl-string #06b497
+	--color-hl-number #7068B1
 	// UI Layout
 	--ui-surface-radius 1rem
+	--ui-input-horiz-padding 0.5em
 	--ui-input-font-size 14px
 	--ui-input-border-radius 4px
 	--ui-input-height 24px
-	--ui-input-vert-margin 12px
+	--ui-input-row-margin 12px
+	--ui-input-col-width 6rem
+	--ui-input-gap 4px
+	--ui-inspector-header-width 6rem
+	--ui-inspector-tree-icon-size 18px
 
 // @media (prefers-color-scheme dark)
 // :root
@@ -46,14 +71,7 @@
 	font-family var(--font-text)
 	line-height 1.6
 	color-scheme light dark
-	font-synthesis none
-	text-rendering optimizeLegibility
-	-webkit-font-smoothing antialiased
-	-moz-osx-font-smoothing grayscale
-	-webkit-text-size-adjust 100%
-
-*, *:before, *:after
-	box-sizing border-box
+	--gradient #2638ff 0%, #f37ea5 16%, #f0a59b 28%, #f1caca 35%, #ccdce6 44%, #bef1ee 54%, #8ef6b7 63%, #6fc8d9 82%, #2638ff 100%
 
 a
 	border-radius 0.4em

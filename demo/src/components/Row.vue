@@ -21,21 +21,19 @@ function onClickChevron() {
 
 <template>
 	<div class="Row" :class="{expanded}">
-		<div class="key">
+		<div class="Row__key">
 			<button
-				class="key__icon material-symbols-rounded"
+				class="Row__icon material-symbols-rounded"
 				:class="{expandable}"
 				@click="onClickChevron"
 			>
 				{{ expandable ? 'chevron_right' : '・' }}
 			</button>
-			<div class="key__label">
+			<div v-if="$slots.label" class="Row__label">
 				<slot name="label" />
 			</div>
 		</div>
-		<div class="value">
-			<slot />
-		</div>
+		<slot class="Row__value" />
 	</div>
 </template>
 
@@ -43,37 +41,38 @@ function onClickChevron() {
 @import '@/common.styl'
 
 .Row
-	display flex
-	gap var(--ui-input-vert-margin) 0
+	display grid
+	grid-template-columns min-content 1fr
+	gap var(--ui-input-row-margin) 0
 
 	&.expanded
-		flex-direction column
-		& > .key > .key__icon
+		grid-template-columns 1fr
+		& > .Row__key > .Row__icon
 			transform rotate(90deg)
 
-.key
-	display flex
-	align-items center
-	height var(--ui-input-height)
-	width var(--ui-inspector-header-width)
-	--ui-inspector-header-width 8rem
+	&__key
+		user-select none
+		display flex
+		align-items center
+		font-size var(--ui-input-font-size)
+		height var(--ui-input-height)
 
 
 	&__icon
-		font-size 18px
-		width 18px
-		height 18px
+		// background red
+		font-size var(--ui-inspector-tree-icon-size)
+		width var(--ui-inspector-tree-icon-size)
+		height var(--ui-inspector-tree-icon-size)
 		transition transform .1s ease
 		cursor pointer
+		color var(--color-outline)
 
 		&:not(.expandable)
 			cursor initial
 			transform none !important
 
 	&__label
+		width var(--ui-inspector-header-width)
 		line-height var(--ui-input-height)
 		padding-left .2em
-
-.value
-	flex-grow 1
 </style>

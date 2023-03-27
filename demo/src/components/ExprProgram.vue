@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import * as G from 'glisp'
 
-import Expr from './Expr.vue'
+import Expr from './ExprAll.vue'
 
 interface Props {
 	expr: G.Program

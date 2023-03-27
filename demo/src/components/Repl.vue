@@ -68,18 +68,22 @@ const replScope = G.PreludeScope.extend({
 	clear: G.valueContainer(IO.of(clear)),
 })
 
-const projectScope = shallowReactive(
-	replScope.extend(
-		{
-			a: G.tryParse('(+ b 2)').expr,
-			b: G.tryParse('10').expr,
-			c: G.literal('hello'),
-			d: G.tryParse('(let TAU: (* PI 2) E: 2.71828 (+ TAU b))').expr,
-			f: G.tryParse('[1 2 3 4 "foo"]').expr,
-		},
-		G.app(G.symbol('-'), G.symbol('a'))
-	)
+const _projectScope = G.Parser.Scope.tryParse(
+	`
+(let a: (+ b 2)
+     b: 10
+		 c: "hello"
+		 d: (let TAU: (* PI 2)
+		      	 E: 2.71828
+						 (+ TAU b))
+		 v: [1 [0 (** 2 3) ()] (let y: 20 y) (+ 1 2) "foo"]
+		 g: ()
+		 (- a))
+`.trim()
 )
+_projectScope.parent = replScope
+
+const projectScope = shallowReactive(_projectScope)
 
 const appEl = document.getElementById('app') as HTMLElement
 

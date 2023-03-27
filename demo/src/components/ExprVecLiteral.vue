@@ -1,80 +1,91 @@
 <script setup lang="ts">
 import * as G from 'glisp'
+import {computed, ref} from 'vue'
 
-import Expr from './Expr.vue'
+import Expr from './ExprAll.vue'
+import ExprMnimal from './ExprMnimal.vue'
+import Row from './Row.vue'
 
 interface Props {
 	expr: G.VecLiteral
 	valueType?: G.Value
+	layout?: 'expanded' | 'collapsed' | 'minimal'
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
 	valueType: () => G.vec([], undefined, G.all),
+	layout: 'expanded',
 })
+
+const items = computed(() => {
+	return props.expr.items.map((item, index) => {
+		const expandable = !(item.type === 'Literal' || item.type === 'Symbol')
+
+		const expanded = itemExpanded.value.has(index) && expandable
+
+		return [index, item, expandable, expanded] as const
+	})
+})
+
+const itemExpanded = ref(new Set<number>())
+
+function setItemExpanded(index: number, expanded: boolean) {
+	if (expanded) {
+		itemExpanded.value.add(index)
+	} else {
+		itemExpanded.value.delete(index)
+	}
+}
 </script>
 
 <template>
-	<div class="ExprVecLiteral">
-		<div v-for="(item, i) in expr.items" :key="i" class="row">
-			<div class="key">
-				<button class="key__icon material-symbols-rounded">expand_more</button>
-				<div class="key__label">{{ i }}</div>
-			</div>
-			<Expr class="value collapsed" :expr="item" />
-		</div>
+	<div v-if="layout === 'expanded'" class="ExprVecLiteral--expanded">
+		<Row
+			v-for="[index, item, expandable, expanded] in items"
+			:key="index"
+			:expandable="expandable"
+			:expanded="expanded"
+			@update:expanded="setItemExpanded(index, $event)"
+		>
+			<Expr :expr="item" :layout="expanded ? 'expanded' : 'collapsed'" />
+		</Row>
 	</div>
+	<div v-else-if="layout === 'collapsed'" class="ExprVecLiteral--collapsed">
+		<Expr
+			v-for="(item, i) in expr.items"
+			:key="i"
+			class="item"
+			:expr="item"
+			layout="minimal"
+		/>
+	</div>
+	<ExprMnimal v-else class="ExprVecLiteral--minimal" :expr="expr" />
 </template>
 
 <style lang="stylus" scoped>
 @import '@/common.styl'
 
 .ExprVecLiteral
-	position relative
-	font-family var(--font-code)
-	display flex
-	flex-direction column
-	gap var(--ui-input-vert-margin)
-	font-family var(--font-ui)
+	&--expanded
+		position relative
+		font-family var(--font-code)
+		display flex
+		flex-direction column
+		gap var(--ui-input-row-margin)
+		font-family var(--font-ui)
+		padding-left calc(var(--ui-input-height) * .666)
 
-	&:before
-		content ''
-		display block
-		position absolute
-		left calc(var(--ui-input-height) / 2)
-		width calc(var(--ui-input-vert-margin) * .75)
-		border 1px solid black
-		border-right 0
-		height 100%
+		+box-before()
+			left calc(var(--ui-input-height) / 3)
+			width calc(var(--ui-input-row-margin) * .75)
+			border 1px solid var(--color-outline-variant)
+			border-right 0
+			border-top 0
+			bottom calc(var(--ui-input-row-margin) * -0.5)
+			top calc(var(--ui-input-row-margin) * -1)
 
-.row
-	display flex
-	gap var(--ui-input-vert-margin)
-	font-family var(--font-ui)
-	padding-left var(--ui-input-height)
-
-.key
-	display flex
-	align-items center
-	height var(--ui-input-height)
-	width var(--ui-inspector-header-width)
-	--ui-inspector-header-width 8rem
-
-
-	&__icon
-		font-size 18px
-		width 18px
-		height 18px
-		transition transform .1s ease
-		cursor pointer
-
-		&:not(.expandable)
-			cursor initial
-			transform none !important
-
-	&__label
-		line-height var(--ui-input-height)
-		padding-left .2em
-
-.value
-	flex-grow 1
+	&--collapsed
+		display grid
+		grid-template-columns: repeat(auto-fill, minmax(var(--ui-input-col-width), 1fr))
+		gap var(--ui-input-gap)
 </style>

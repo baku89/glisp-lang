@@ -3,3 +3,10 @@ weird-heading()
 
 	&:first-letter
 		font-feature-settings 'salt'
+
+box-before()
+	&:before
+		position absolute
+		display block
+		content ''
+		{block}

@@ -2,7 +2,7 @@
 import * as G from 'glisp'
 
 interface Props {
-	expr: G.Literal
+	expr: G.Symbol
 	valueType?: G.Value
 }
 
@@ -12,38 +12,27 @@ withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-	<div class="ExprLiteral">
-		<input
-			type="text"
-			:value="expr.value"
-			class="input"
-			:class="typeof expr.value === 'number' ? 'number' : 'string'"
-		/>
+	<div class="ExprSymbol">
+		<input type="text" :value="expr.print()" />
 	</div>
 </template>
 
 <style lang="stylus" scoped>
 @import '@/common.styl'
 
-.ExprLiteral
+.ExprSymbol
 	font-family var(--font-code)
 
-.input
+input
 	display block
 	font-size var(--ui-input-font-size)
 	width 100%
 	height var(--ui-input-height)
 	border-radius var(--ui-input-border-radius)
 	background var(--color-surface-variant)
+	color var(--color-on-surface-variant)
 	padding 0 var(--ui-input-horiz-padding)
 
 	&:active, &:focus
 		outline 2px solid var(--color-primary)
-
-	&.string
-		color var(--color-hl-string)
-
-	&.number
-		color var(--color-hl-number)
-		text-align right
 </style>

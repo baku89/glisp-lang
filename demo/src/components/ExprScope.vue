@@ -3,7 +3,7 @@ import * as G from 'glisp'
 import {entries} from 'lodash'
 import {computed, ref} from 'vue'
 
-import Expr from './Expr.vue'
+import Expr from './ExprAll.vue'
 import Row from './Row.vue'
 
 interface Props {
@@ -39,6 +39,8 @@ function setItemExpanded(name: string, expanded: boolean) {
 		itemExpanded.value.delete(name)
 	}
 }
+
+const retExpanded = ref(false)
 </script>
 
 <template>
@@ -53,16 +55,21 @@ function setItemExpanded(name: string, expanded: boolean) {
 					@update:expanded="setItemExpanded(name, $event)"
 				>
 					<template #label>{{ name }}:</template>
-					<Expr
-						class="value"
-						:expr="e"
-						:layout="expanded ? 'expanded' : 'collapsed'"
-					/>
+					<Expr :expr="e" :layout="expanded ? 'expanded' : 'collapsed'" />
 				</Row>
 			</div>
-			<Row v-if="expr.out" class="ret" :expanded="false" :expandable="false">
+			<Row
+				v-if="expr.out"
+				v-model:expanded="retExpanded"
+				class="ret"
+				:expandable="true"
+			>
 				<template #label>Return</template>
-				<Expr class="value" :expr="expr.out" />
+				<Expr
+					class="value"
+					:expr="expr.out"
+					:layout="retExpanded ? 'expanded' : 'collapsed'"
+				/>
 			</Row>
 		</div>
 		<div v-else class="collapsed">{{ expr.eval().value.print() }}</div>
@@ -77,44 +84,42 @@ function setItemExpanded(name: string, expanded: boolean) {
 	font-family var(--font-ui)
 
 	& > .expanded
-		padding-left var(--ui-input-height)
 		display flex
 		flex-direction column
-		gap var(--ui-input-vert-margin)
+		gap var(--ui-input-row-margin)
 
 		&:after
-			content 'l'
+			content 'L'
 			position absolute
-			top 0
+			top calc(var(--ui-input-height) / 2)
 			left 0
-			background black
+			background var(--color-outline-variant)
 			color var(--color-background)
 			border-radius 9999px
 			display block
 			aspect-ratio 1
-			width var(--ui-input-height)
-			height var(--ui-input-height)
-			line-height var(--ui-input-height)
+			width var(--ui-inspector-tree-icon-size)
+			height var(--ui-inspector-tree-icon-size)
+			line-height var(--ui-inspector-tree-icon-size)
 			text-align center
-			font-weight bold
+			font-weight 900
 			font-family var(--font-code)
-			font-size calc(var(--ui-input-height) * 0.85)
-			transform scale(.6)
+			font-size calc(var(--ui-inspector-tree-icon-size) * 0.8)
+			transform translateY(-50%) scale(.8)
 
+.items, .ret
+	padding-left var(--ui-inspector-tree-icon-size)
 
 .items
 	position relative
 	display flex
 	flex-direction column
-	gap var(--ui-input-vert-margin)
+	gap var(--ui-input-row-margin)
 
-	&:before
-		content ''
-		display block
-		position absolute
-		left calc(var(--ui-input-height) / -2)
+	+box-before()
+		left calc(var(--ui-inspector-tree-icon-size) / 2)
 		width 0
-		border-left 1px dashed black
+		border-left 1px dashed var(--color-outline-variant)
 		height 100%
 
 .ret
@@ -125,15 +130,15 @@ function setItemExpanded(name: string, expanded: boolean) {
 		content ''
 		display block
 		position absolute
-		left calc(var(--ui-input-height) / -2)
+		left calc(var(--ui-inspector-tree-icon-size) / 2)
 
-	&:before
-		width var(--ui-input-vert-margin)
-		border-bottom-left-radius var(--ui-input-vert-margin)
-		border-left 3px solid black
-		border-bottom 3px solid black
-		top calc(var(--ui-input-vert-margin) * -1)
-		bottom 0
+	+box-before()
+		width calc(var(--ui-input-row-margin) * .75)
+		border-bottom-left-radius var(--ui-input-row-margin)
+		border-left 3px solid var(--color-outline-variant)
+		border-bottom @border-left
+		top calc(var(--ui-input-row-margin) * -1)
+		bottom calc(var(--ui-input-row-margin) * -0.5)
 		margin-left -1px
 
 		&:first-child
