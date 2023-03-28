@@ -1,49 +1,35 @@
 <script setup lang="ts">
 import * as G from 'glisp'
+import {computed, ref} from 'vue'
+
+import InputNumber from './InputNumber.vue'
+import InputString from './InputString.vue'
 
 interface Props {
 	expr: G.Literal
 	valueType?: G.Value
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
 	valueType: () => G.all,
+})
+
+const value = ref(props.expr.value)
+
+const inputComponent = computed(() => {
+	switch (typeof value.value) {
+		case 'string':
+			return InputString
+		default:
+			return InputNumber
+	}
 })
 </script>
 
 <template>
-	<div class="ExprLiteral">
-		<input
-			type="text"
-			:value="expr.value"
-			class="input"
-			:class="typeof expr.value === 'number' ? 'number' : 'string'"
-		/>
-	</div>
+	<component :is="inputComponent" v-model="value" class="ExprLiteral" />
 </template>
 
 <style lang="stylus" scoped>
 @import '@/common.styl'
-
-.ExprLiteral
-	font-family var(--font-code)
-
-.input
-	display block
-	font-size var(--ui-input-font-size)
-	width 100%
-	height var(--ui-input-height)
-	border-radius var(--ui-input-border-radius)
-	background var(--color-surface-variant)
-	padding 0 var(--ui-input-horiz-padding)
-
-	&:active, &:focus
-		outline 2px solid var(--color-primary)
-
-	&.string
-		color var(--color-hl-string)
-
-	&.number
-		color var(--color-hl-number)
-		text-align right
 </style>

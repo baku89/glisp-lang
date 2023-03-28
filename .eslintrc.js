@@ -34,5 +34,6 @@ module.exports = {
 		'vue/no-template-shadow': 'off',
 		'vue/no-multiple-template-root': 'off',
 		'vue/no-v-model-argument': 'off',
+		'vue/attribute-hyphenation': 'off',
 	},
 }

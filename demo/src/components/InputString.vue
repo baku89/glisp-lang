@@ -1,46 +1,41 @@
-<template lang="pug">
-.InputString(:class='{invalid}')
-	input.InputString__input(
-		type='text'
-		:value='modelValue'
-		:disabled='disabled'
-		@focus='onFocus'
-	@input='onInput')
+<template>
+	<div class="InputString" :class="{invalid}">
+		<input
+			class="InputString__input"
+			type="text"
+			:value="modelValue"
+			:disabled="disabled"
+			@focus="onFocus"
+			@input="onInput"
+		/>
+	</div>
 </template>
 
-<script lang="ts">
-import {defineComponent} from 'vue'
+<script lang="ts" setup>
+withDefaults(
+	defineProps<{
+		modelValue: string
+		disabled?: boolean
+		invalid?: boolean
+	}>(),
+	{
+		disabled: false,
+		invalid: false,
+	}
+)
 
-export default defineComponent({
-	name: 'InputString',
-	props: {
-		modelValue: {
-			type: String,
-			required: true,
-		},
-		disabled: {
-			type: Boolean,
-			default: false,
-		},
-		invalid: {
-			type: Boolean,
-			default: false,
-		},
-	},
-	emits: ['update:modelValue'],
-	setup(props, {emit}) {
-		function onFocus(e: Event) {
-			;(e.target as HTMLInputElement).select()
-		}
+const emits = defineEmits<{
+	(e: 'update:modelValue', value: string): void
+}>()
 
-		function onInput(e: Event) {
-			const newValue = (e.target as HTMLInputElement).value
-			emit('update:modelValue', newValue)
-		}
+function onFocus(e: Event) {
+	;(e.target as HTMLInputElement).select()
+}
 
-		return {onFocus, onInput}
-	},
-})
+function onInput(e: Event) {
+	const newValue = (e.target as HTMLInputElement).value
+	emits('update:modelValue', newValue)
+}
 </script>
 
 <style lang="stylus" scoped>

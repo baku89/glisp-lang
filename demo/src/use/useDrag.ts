@@ -38,7 +38,7 @@ export function useDrag(
 		onDragEnd,
 	}: UseDragOptions = {}
 ) {
-	const state = reactive<Omit<DragState, 'event'>>({
+	const state = reactive<DragState>({
 		// All coordinates are relative to the viewport
 		xy: vec2.create(),
 		previous: vec2.create(),
@@ -88,11 +88,11 @@ export function useDrag(
 			if (disabled?.value) return
 			if (!event.isPrimary) return
 
-			state.xy = vec2.fromValues(event.clientX, event.clientY)
-
 			if ('movementX' in event) {
 				const movement = vec2.fromValues(event.movementX, event.movementY)
 				state.xy = vec2.add(vec2.create(), state.xy, movement)
+			} else {
+				// state.xy = vec2.fromValues(event.clientX, event.clientY)
 			}
 
 			state.delta = vec2.sub(vec2.create(), state.xy, state.previous)

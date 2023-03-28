@@ -63,7 +63,7 @@ function onClickChevron() {
 		font-size var(--ui-inspector-tree-icon-size)
 		width var(--ui-inspector-tree-icon-size)
 		height var(--ui-inspector-tree-icon-size)
-		transition transform .1s ease
+		input-transition(transform)
 		cursor pointer
 		color var(--color-outline)
 

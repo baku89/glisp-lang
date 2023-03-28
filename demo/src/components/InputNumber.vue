@@ -1,39 +1,3 @@
-<template lang="pug">
-.InputNumber(ref='root', :class='{tweaking, invalid}', v-bind='$attrs')
-	input.input(
-		ref='input',
-		type='text',
-		min='0',
-		inputmode='numeric',
-		pattern='d\*',
-		:value='display',
-		:disabled='disabled'
-		@focus='onFocus',
-		@input='onInput',
-		@blur='onBlur'
-		@keydown.up.prevent='increment(1)'
-		@keydown.down.prevent='increment(-1)'
-	)
-	.cursor(
-		v-if='tweaking'
-		:class='{floating: !pointerLocked}'
-		:style='cursorStyle')
-		IconDec.dec(:class='{active: tweakMode === "value" && tweakDirection < 0}' :size='height')
-		IconInc.inc(:class='{active: tweakMode === "value" && tweakDirection > 0}' :size='height')
-
-	.bar(v-if='hasRange')
-		.fill(:style='{width: `${width * ((modelValue - min) / (max - min))}px`}')
-			.tip
-
-teleport(to='#GlispUI__overlays')
-	svg.InputNumber__overlay(v-if='tweaking')
-		g(:transform='`translate(${left + width / 2 + scaleOffset}, ${top + height / 2})`')
-			g(v-if='tweakMode === "speed"')
-				line.scale(v-bind='scaleAttrs(0)')
-				line.scale(v-bind='scaleAttrs(1)')
-				line.scale(v-bind='scaleAttrs(2)')
-	</template>
-
 <script lang="ts">
 import {useElementBounding, useFocus, useKeyModifier} from '@vueuse/core'
 import {useWheel} from '@vueuse/gesture'
@@ -45,9 +9,6 @@ import IconInc from 'vue-material-design-icons/Plus.vue'
 import {useDrag} from '../use/useDrag'
 import {fit, smoothstep, toFixedWithNoTrailingZeros, unsignedMod} from '../util'
 
-/**
- * Input for number
- */
 export default defineComponent({
 	name: 'InputNumber',
 	components: {
@@ -407,16 +368,83 @@ export default defineComponent({
 })
 </script>
 
-<style lang="stylus" scoped>
+<template>
+	<div
+		ref="root"
+		class="InputNumber"
+		:class="{tweaking, invalid}"
+		v-bind="$attrs"
+	>
+		<input
+			ref="input"
+			class="input"
+			type="text"
+			min="0"
+			inputmode="numeric"
+			pattern="d*"
+			:value="display"
+			:disabled="disabled"
+			@focus="onFocus"
+			@input="onInput"
+			@blur="onBlur"
+			@keydown.up.prevent="increment(1)"
+			@keydown.down.prevent="increment(-1)"
+		/>
+		<div
+			v-if="tweaking"
+			class="cursor"
+			:class="{floating: !pointerLocked}"
+			:style="cursorStyle"
+		>
+			<IconDec
+				class="dec"
+				:class="{active: tweakMode === 'value' && tweakDirection < 0}"
+				:size="height"
+			/>
+			<IconInc
+				class="inc"
+				:class="{active: tweakMode === 'value' && tweakDirection > 0}"
+				:size="height"
+			/>
+		</div>
+		<div v-if="hasRange" class="bar">
+			<div
+				class="fill"
+				:style="{width: `${width * ((modelValue - min) / (max - min))}px`}"
+			>
+				<div class="tip" />
+			</div>
+		</div>
+	</div>
+	<teleport to="#GlispUI__overlays">
+		<svg v-if="tweaking" class="InputNumber__overlay">
+			<g
+				:transform="`translate(${left + width / 2 + scaleOffset}, ${
+					top + height / 2
+				})`"
+			>
+				<g v-if="tweakMode === 'speed'">
+					<line class="scale" v-bind="scaleAttrs(0)" />
+					<line class="scale" v-bind="scaleAttrs(1)" />
+					<line class="scale" v-bind="scaleAttrs(2)" />
+				</g>
+			</g>
+		</svg>
+	</teleport>
+</template>
+
+<style lang="stylus">
 @import '@/common.styl'
 
 .InputNumber
 	position relative
 	input('.tweaking')
-	font-numeric()
+	font-family var(--font-code)
 	text-align right
 	user-select none
-	-webkit-user-select none
+
+	&:not(:has(:disabled))
+		cursor col-resize
 
 	.input
 		pointer-events none
@@ -438,12 +466,12 @@ export default defineComponent({
 			height 100%
 			text-align center
 			font-family var(--font-code)
-			color base16('03')
+			color var(--color-outline-variant)
 			transition .2s ease color
 			transform scale(.75)
 
 		.active
-			color base16('accent')
+			color var(--color-primary)
 
 		.dec
 			right 100%
@@ -456,20 +484,20 @@ export default defineComponent({
 			top 0
 			bottom 0
 			left 50%
-			margin-left calc(-1px * var(--height))
+			margin-left calc(-1 * var(--height))
 			input-transition(width, margin-left)
 
 	.bar
 		position absolute
 		inset 0
-		mix-blend-mode lighten
-		border-radius var(--input-border-radius)
+		mix-blend-mode darken
+		border-radius var(--ui-input-border-radius)
 		overflow hidden
 
 	.fill
 		position absolute
 		height 100%
-		background base16('03')
+		background cyan
 
 	.tip
 		position absolute
@@ -482,24 +510,24 @@ export default defineComponent({
 			position absolute
 			display block
 			height 100%
-			left calc(var(--input-height) / -2)
+			left calc(var(--ui-input-height) / -2)
 			right @left
 
 	.tip:hover, &.tweaking .tip
-			background base16('accent')
+			background var(--color-primary)
 
 	&__overlay
 		position fixed
 		overflow visible
 		pointer-events none
-		inset 0
+		top 0
 
 		.scale
 			fill none
 			stroke-width 4
 			stroke-linecap round
-			stroke base16('accent')
+			stroke var(--color-primary)
 
 		.pointer
-			fill base16('accent')
+			fill var(--color-primary)
 </style>
