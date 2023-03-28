@@ -99,12 +99,20 @@ export class Env {
 		return this.#evalCache.set(expr, result)
 	}
 
+	clearEvalCache(expr: BaseExpr) {
+		return this.#evalCache.delete(expr)
+	}
+
 	getInferCache(expr: BaseExpr): EvalResult | null {
 		return this.#inferCache.get(expr) ?? null
 	}
 
 	setInferCache(expr: BaseExpr, type: EvalResult) {
 		return this.#inferCache.set(expr, type)
+	}
+
+	clearInferCache(expr: BaseExpr) {
+		return this.#inferCache.delete(expr)
 	}
 
 	static global = new Env(

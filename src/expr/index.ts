@@ -112,6 +112,8 @@ export abstract class BaseExpr {
 
 	parent: ParentExpr | null = null
 
+	deps = new Set<Symbol>()
+
 	abstract print(options?: PrintOptions): string
 
 	abstract forceEval(
@@ -147,6 +149,9 @@ export abstract class BaseExpr {
 	}
 	*/
 
+	evaluated: EvalResult<Value> | null = null
+	inferred: EvalResult<Value> | null = null
+
 	eval(env = Env.global): EvalResult<Value> {
 		if (env.hasEvalDep(this)) {
 			return new EvalResult(unit).withLog({
@@ -166,6 +171,8 @@ export abstract class BaseExpr {
 
 			env.setEvalCache(this, cache)
 		}
+
+		this.evaluated = cache
 
 		return cache
 	}
@@ -189,6 +196,8 @@ export abstract class BaseExpr {
 
 			env.setInferCache(this, cache)
 		}
+
+		this.inferred = cache
 
 		return cache
 	}
@@ -389,6 +398,10 @@ export class Symbol extends BaseExpr {
 			return new EvalResult(unit).withLog(resolved)
 		}
 
+		if (resolved.type === 'global') {
+			resolved.expr.deps.add(this)
+		}
+
 		let value: Value
 		if (resolved.type === 'arg') {
 			value = resolved.value
@@ -411,6 +424,10 @@ export class Symbol extends BaseExpr {
 
 		if ('level' in resolved) {
 			return new EvalResult(unit).withLog(resolved)
+		}
+
+		if (resolved.type === 'global') {
+			resolved.expr.deps.add(this)
 		}
 
 		switch (resolved.type) {
@@ -1458,6 +1475,27 @@ export class Scope extends BaseExpr {
 		}
 
 		delete this.extras
+	}
+
+	replaceChild(name: string, newExpr: Expr) {
+		if (!(name in this.items)) throw new Error()
+
+		const oldExpr = this.items[name]
+		oldExpr.deps.forEach(clearAscendantCache)
+
+		newExpr.parent = this
+		this.items = {...this.items, [name]: newExpr}
+
+		function clearAscendantCache(expr: Expr) {
+			let e: ParentExpr | Expr | null = expr
+			while (e !== null) {
+				if (e instanceof BaseExpr) {
+					Env.global.clearEvalCache(e)
+					Env.global.clearInferCache(e)
+				}
+				e = e.parent
+			}
+		}
 	}
 }
 export const scope = (items?: Record<string, Expr>, ret?: Expr) =>
