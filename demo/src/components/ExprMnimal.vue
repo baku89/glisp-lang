@@ -12,7 +12,7 @@ withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-	<button class="ExprMinimal">{{ expr.eval().value.print() }}</button>
+	<div class="ExprMinimal">{{ expr.eval().value.print() }}</div>
 </template>
 
 <style lang="stylus" scoped>
@@ -27,7 +27,7 @@ withDefaults(defineProps<Props>(), {
 	border-radius var(--ui-input-border-radius)
 	background var(--color-primary-container)
 	color var(--color-on-primary-container)
-	padding 0 var(--ui-input-horiz-padding) 0 var(--ui-input-height)
+	padding 0 var(--ui-input-horiz-padding)
 	font-family var(--font-code)
 	cursor inherit
 </style>

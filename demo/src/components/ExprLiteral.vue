@@ -14,6 +14,10 @@ const props = withDefaults(defineProps<Props>(), {
 	valueType: () => G.all,
 })
 
+const emits = defineEmits<{
+	(e: 'update:expr', newExpr: G.Expr): void
+}>()
+
 const value = ref(props.expr.value)
 
 const inputComponent = computed(() => {
@@ -24,10 +28,23 @@ const inputComponent = computed(() => {
 			return InputNumber
 	}
 })
+
+function onInput(newValue: number | string) {
+	const newExpr = G.literal(newValue)
+
+	emits('update:expr', newExpr)
+
+	value.value = newValue
+}
 </script>
 
 <template>
-	<component :is="inputComponent" v-model="value" class="ExprLiteral" />
+	<component
+		:is="inputComponent"
+		:modelValue="value"
+		class="ExprLiteral"
+		@update:modelValue="onInput"
+	/>
 </template>
 
 <style lang="stylus" scoped>

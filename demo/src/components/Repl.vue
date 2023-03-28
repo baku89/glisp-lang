@@ -1,9 +1,10 @@
 <script setup lang="ts">
+import chroma from 'chroma-js'
 import * as G from 'glisp'
-import {EvalResult} from 'glisp'
 import {computed, nextTick, ref, shallowReactive} from 'vue'
 
 import ExprScope from './ExprScope.vue'
+import Surface from './Surface.vue'
 
 const input = ref('')
 const inputLines = computed(() => input.value.split('\n').length)
@@ -22,7 +23,7 @@ const inputClass = computed(() => {
 	return ''
 })
 
-interface Result {
+interface ReplLine {
 	key: number
 	input: string
 	evaluated: string
@@ -34,14 +35,35 @@ interface Result {
 	}[]
 }
 
-const results = ref<Result[]>([])
+const replLines = ref<ReplLine[]>([])
 
 const IO = G.primType('IO', () => {
 	return
 })
 
+const Color = G.primType('Color', chroma('black'))
+
 const replScope = G.PreludeScope.extend({
 	IO: G.valueContainer(IO),
+	Color: G.valueContainer(Color),
+	rgba: G.valueContainer(
+		G.fn(
+			G.fnType(
+				{
+					red: G.NumberType,
+					green: G.NumberType,
+					blue: G.NumberType,
+					alpha: G.NumberType,
+				},
+				Color
+			),
+			(red: G.Number, green: G.Number, blue: G.Number, alpha: G.Number) => {
+				return new G.EvalResult(
+					Color.of(chroma([red.value, green.value, blue.value, alpha.value]))
+				)
+			}
+		)
+	),
 	def: G.valueContainer(
 		G.fn(
 			G.fnType({name: G.StringType, value: G.all}, IO),
@@ -68,22 +90,25 @@ const replScope = G.PreludeScope.extend({
 	clear: G.valueContainer(IO.of(clear)),
 })
 
-const _projectScope = G.Parser.Scope.tryParse(
-	`
+const projectScope = shallowReactive(
+	G.Parser.Scope.tryParse(
+		`
 (let a: (+ b 2)
-     b: 10
-		 c: "hello"
-		 d: (let TAU: (* PI 2)
-		      	 E: 2.71828
-						 (+ TAU b))
-		 v: [1 [0 (** 2 3) ()] (let y: 20 y) (+ 1 2) "foo"]
-		 g: ()
-		 (- a))
-`.trim()
+     b: 123
+     c: "hello"
+     d: (let TAU: (* PI 2)
+             E: 2.71828
+             (+ TAU b))
+     v: [1
+         [0 (** 2 3) ()]
+         (let y: 20 y)
+         (+ 1 2)
+         "foo"]
+     g: (sqrt 2)
+(- b))`.trim()
+	)
 )
-_projectScope.parent = replScope
-
-const projectScope = shallowReactive(_projectScope)
+projectScope.parent = replScope
 
 const appEl = document.getElementById('app') as HTMLElement
 
@@ -97,7 +122,7 @@ function evaluate() {
 	try {
 		result = expr.eval()
 	} catch (err) {
-		result = new EvalResult(G.unit).withLog({
+		result = new G.EvalResult(G.unit).withLog({
 			level: 'error',
 			reason: err instanceof Error ? err.message : 'Run-time error',
 			ref: err instanceof G.EvalError ? err.ref : expr,
@@ -114,8 +139,8 @@ function evaluate() {
 		printed = value.print()
 	}
 
-	results.value.push({
-		key: results.value.length,
+	replLines.value.push({
+		key: replLines.value.length,
 		input: expr.print(),
 		evaluated: printed,
 		log: Array.from(log).map(({level, reason, ref}, key) => {
@@ -143,16 +168,19 @@ function evaluate() {
 }
 
 function clear() {
-	results.value = []
+	replLines.value = []
 }
 </script>
 
 <template>
 	<div class="Repl">
+		<Surface class="rawCode">
+			<pre><code>{{ projectScope.print() }}</code></pre>
+		</Surface>
 		<ExprScope class="projectScope" :expr="projectScope" />
 		<ul class="results">
 			<li
-				v-for="{input, evaluated, log, key} in results"
+				v-for="{input, evaluated, log, key} in replLines"
 				:key="key"
 				class="result"
 			>
@@ -205,6 +233,15 @@ $indent = 2rem
 .Repl
 	margin-top 2rem
 	padding-bottom 10vh
+
+.rawCode
+	padding 1rem
+	margin-bottom 2rem
+
+	pre, code
+		display block
+		width 100%
+		margin-top 0
 
 .projectScope
 	margin-bottom 2rem

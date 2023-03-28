@@ -16,7 +16,7 @@ withDefaults(defineProps<Props>(), {align: 'none'})
 </script>
 
 <template>
-	<div class="Surface" :class="align">
+	<div class="Surface" :class="align" v-bind="$attrs">
 		<slot />
 	</div>
 </template>

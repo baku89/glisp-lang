@@ -20,6 +20,10 @@ const props = withDefaults(defineProps<Props>(), {
 	layout: 'expanded',
 })
 
+defineEmits<{
+	(e: 'update:expr', expr: G.Expr): void
+}>()
+
 const exprComponent = computed(() => {
 	switch (props.expr.type) {
 		case 'Program':
@@ -48,6 +52,7 @@ const exprComponent = computed(() => {
 		:value-type="valueType"
 		:layout="layout"
 		v-bind="$attrs"
+		@update:expr="$emit('update:expr', $event)"
 	/>
 	<div v-else class="text">
 		{{ expr.print() }} -> {{ expr.eval().value.print() }}

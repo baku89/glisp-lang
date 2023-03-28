@@ -50,6 +50,7 @@ const argNames = computed<[string, string][]>(() => {
 <template>
 	<div v-if="layout === 'expanded'" class="ExprApp--expanded">
 		<Row v-if="expr.fn" :expanded="false" :expandable="false">
+			<template #label>ƒ</template>
 			<Expr :expr="expr.fn" />
 		</Row>
 		<Row
@@ -66,7 +67,7 @@ const argNames = computed<[string, string][]>(() => {
 		</Row>
 	</div>
 	<div v-else-if="layout === 'collapsed'" class="ExprApp--collapsed">
-		<div v-if="expr.fn" class="collapsed-fn">{{ expr.fn.print() }}</div>
+		<Expr v-if="expr.fn" class="collapsed-fn" :expr="expr.fn" />
 		<Expr
 			v-for="(item, i) in expr.args"
 			:key="i"
@@ -113,7 +114,8 @@ const argNames = computed<[string, string][]>(() => {
 	color var(--color-outline-variant)
 
 .collapsed-fn
-	box-shadow inset 0 0 0 2px var(--color-surface-variant)
-	text-align center
-	border-radius calc(var(--ui-input-height) / 2) var(--ui-input-border-radius) var(--ui-input-border-radius) calc(var(--ui-input-height) / 2)
+	box-shadow inset 0 0 0 2px var(--color-surface-variant) !important
+	text-align center !important
+	border-radius calc(var(--ui-input-height) / 2) var(--ui-input-border-radius) var(--ui-input-border-radius) calc(var(--ui-input-height) / 2) !important
+	background var(--color-background) !important
 </style>

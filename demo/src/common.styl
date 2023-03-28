@@ -17,7 +17,8 @@ input($focus-selector = ':focus')
 	background var(--color-surface-variant)
 	color var(--color-on-surface-variant)
 	input-transition(box-shadow)
-	font-size var(--input-font-size)
+	font-size var(--ui-input-font-size)
+	--border-color var(--color-primary)
 
 	& input
 		display block
@@ -33,13 +34,14 @@ input($focus-selector = ':focus')
 
 	&.invalid
 		color var(--color-error)
+		--border-color var(--color-error)
 
 	&:hover, &:focus, &:focus-within
-		box-shadow 0 0 0 0 inset var(--color-primary), 0 0 0 1px inset var(--color-primary)
+		box-shadow 0 0 0 0 inset var(--border-color), 0 0 0 1px inset var(--border-color)
 
 	&:focus, &:focus-within, &{$focus-selector}
 		z-index 1
-		box-shadow 0 0 0 1px inset var(--color-primary), 0 0 0 1px var(--color-primary)
+		box-shadow 0 0 0 1px inset var(--border-color), 0 0 0 1px var(--border-color)
 
 input-transition(prop = all)
 	values = ()

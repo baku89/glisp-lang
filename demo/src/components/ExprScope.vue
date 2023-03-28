@@ -4,6 +4,7 @@ import {entries} from 'lodash'
 import {computed, ref} from 'vue'
 
 import Expr from './ExprAll.vue'
+import ExprMnimal from './ExprMnimal.vue'
 import Row from './Row.vue'
 
 interface Props {
@@ -41,6 +42,10 @@ function setItemExpanded(name: string, expanded: boolean) {
 }
 
 const retExpanded = ref(false)
+
+function updateItem(name: string, newExpr: G.Expr) {
+	props.expr.replaceChild(name, newExpr)
+}
 </script>
 
 <template>
@@ -55,11 +60,15 @@ const retExpanded = ref(false)
 					@update:expanded="setItemExpanded(name, $event)"
 				>
 					<template #label>{{ name }}:</template>
-					<Expr :expr="e" :layout="expanded ? 'expanded' : 'collapsed'" />
+					<Expr
+						:expr="e"
+						:layout="expanded ? 'expanded' : 'collapsed'"
+						@update:expr="updateItem(name, $event)"
+					/>
 				</Row>
 			</div>
 			<Row
-				v-if="expr.out"
+				v-if="expr.ret"
 				v-model:expanded="retExpanded"
 				class="ret"
 				:expandable="true"
@@ -67,12 +76,12 @@ const retExpanded = ref(false)
 				<template #label>Return</template>
 				<Expr
 					class="value"
-					:expr="expr.out"
+					:expr="expr.ret"
 					:layout="retExpanded ? 'expanded' : 'collapsed'"
 				/>
 			</Row>
 		</div>
-		<div v-else class="collapsed">{{ expr.eval().value.print() }}</div>
+		<ExprMnimal v-else class="collapsed" :expr="expr" />
 	</div>
 </template>
 

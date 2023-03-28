@@ -12,14 +12,14 @@ import {fit, smoothstep, toFixedWithNoTrailingZeros, unsignedMod} from '../util'
 const props = withDefaults(
 	defineProps<{
 		modelValue: number
-		min: number
-		max: number
-		clampMin: boolean
-		clampMax: boolean
-		disabled: boolean
-		invalid: boolean
-		minSpeed: number
-		maxSpeed: number
+		min?: number
+		max?: number
+		clampMin?: boolean
+		clampMax?: boolean
+		disabled?: boolean
+		invalid?: boolean
+		minSpeed?: number
+		maxSpeed?: number
 	}>(),
 	{
 		min: Number.MIN_SAFE_INTEGER,
