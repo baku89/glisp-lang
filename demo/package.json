@@ -8,16 +8,20 @@
 		"build": "vue-tsc && vite build",
 		"preview": "vite preview"
 	},
-	"dependencies": {
-		"destyle.css": "^4.0.0",
-		"vue": "^3.2.45"
-	},
 	"devDependencies": {
+		"@types/gl-matrix": "^3.2.0",
 		"@vitejs/plugin-vue": "^4.0.0",
+		"@vueuse/core": "^9.13.0",
+		"@vueuse/gesture": "^2.0.0-beta.1",
+		"destyle.css": "^4.0.0",
+		"gl-matrix": "^3.4.3",
+		"pug": "^3.0.2",
 		"stylus": "^0.59.0",
 		"typescript": "^4.9.3",
 		"vite": "^4.1.0",
 		"vite-plugin-stylus-alias": "^1.1.2",
+		"vue": "^3.2.47",
+		"vue-material-design-icons": "^5.2.0",
 		"vue-tsc": "^1.0.24"
 	}
 }
