@@ -241,7 +241,21 @@ watchEffect(() => {
 	}
 })
 
+const fillStyle = computed(() => {
+	const w =
+		width.value * ((props.modelValue - props.min) / (props.max - props.min))
+
+	return {width: w + 'px'}
+})
+
 const scaleOffset = ref(0)
+
+const overlayTranslate = computed(() => {
+	const tx = left.value + width.value / 2 + scaleOffset.value
+	const ty = top.value + height.value / 2
+
+	return `translate(${tx}, ${ty})`
+})
 
 const scaleAttrs = (offset: number) => {
 	const precision = unsignedMod(
@@ -347,7 +361,7 @@ window.addEventListener('touchstart', (e: TouchEvent) => {
 			@keydown.down.prevent="increment(-1)"
 		/>
 		<div
-			v-if="tweaking"
+			v-if="tweaking || true"
 			class="cursor"
 			:class="{floating: !pointerLocked}"
 			:style="cursorStyle"
@@ -363,22 +377,15 @@ window.addEventListener('touchstart', (e: TouchEvent) => {
 				:size="height"
 			/>
 		</div>
-		<div v-if="hasRange" class="bar">
-			<div
-				class="fill"
-				:style="{width: `${width * ((modelValue - min) / (max - min))}px`}"
-			>
+		<div v-if="hasRange" class="slider">
+			<div class="fill" :style="fillStyle">
 				<div class="tip" />
 			</div>
 		</div>
 	</div>
 	<teleport to="#GlispUI__overlays">
 		<svg v-if="tweaking" class="InputNumber__overlay">
-			<g
-				:transform="`translate(${left + width / 2 + scaleOffset}, ${
-					top + height / 2
-				})`"
-			>
+			<g :transform="overlayTranslate">
 				<g v-if="tweakMode === 'speed'">
 					<line class="scale" v-bind="scaleAttrs(0)" />
 					<line class="scale" v-bind="scaleAttrs(1)" />
@@ -416,58 +423,58 @@ window.addEventListener('touchstart', (e: TouchEvent) => {
 		width auto !important
 		opacity 1 !important
 
-.dec, .inc
-	position absolute
-	aspect-ratio 1
-	height 100%
-	text-align center
-	font-family var(--font-code)
-	color var(--color-outline-variant)
-	transition .2s ease color
-	transform scale(.75)
+	.dec, .inc
+		position absolute
+		aspect-ratio 1
+		height 100%
+		text-align center
+		font-family var(--font-code)
+		color var(--color-outline-variant)
+		transition .2s ease color
+		transform scale(.75)
 
-.active
-	color var(--color-primary)
+	.active
+		color var(--color-primary)
 
-.dec
-	right 100%
+	.dec
+		right 100%
 
-.inc
-	left 100%
+	.inc
+		left 100%
 
-&.floating
-	inset auto
-	top 0
-	bottom 0
-	left 50%
-	margin-left calc(-1 * var(--height))
-	input-transition(width, margin-left)
+	&.floating
+		inset auto
+		top 0
+		bottom 0
+		left 50%
+		margin-left calc(-1 * var(--height))
+		input-transition(width, margin-left)
 
-.bar
+.slider
 	position absolute
 	inset 0
 	mix-blend-mode darken
 	border-radius var(--ui-input-border-radius)
 	overflow hidden
 
-.fill
-	position absolute
-	height 100%
-	background cyan
-
-.tip
-	position absolute
-	height 100%
-	width 1px
-	right -1px
-
-	&:before
-		content ''
+	.fill
 		position absolute
-		display block
 		height 100%
-		left calc(var(--ui-input-height) / -2)
-		right @left
+		background cyan
+
+	.tip
+		position absolute
+		height 100%
+		width 1px
+		right -1px
+
+		&:before
+			content ''
+			position absolute
+			display block
+			height 100%
+			left calc(var(--ui-input-height) / -2)
+			right @left
 
 .tip:hover, &.tweaking .tip
 		background var(--color-primary)
