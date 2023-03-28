@@ -4,12 +4,15 @@ import {defineConfig} from 'vite'
 import vitePluginStylusAlias from 'vite-plugin-stylus-alias'
 
 // https://vitejs.dev/config/
-export default defineConfig({
-	plugins: [vue(), vitePluginStylusAlias.default()],
-	resolve: {
-		alias: {
-			'@': path.resolve(__dirname, 'src'),
-			glisp: path.resolve(__dirname, '..'),
+export default defineConfig(() => {
+	return {
+		plugins: [vue(), vitePluginStylusAlias.default()],
+		base: './',
+		resolve: {
+			alias: {
+				'@': path.resolve(__dirname, 'src'),
+				glisp: path.resolve(__dirname, '..'),
+			},
 		},
-	},
+	}
 })
