@@ -361,7 +361,7 @@ window.addEventListener('touchstart', (e: TouchEvent) => {
 			@keydown.down.prevent="increment(-1)"
 		/>
 		<div
-			v-if="tweaking || true"
+			v-if="tweaking"
 			class="cursor"
 			:class="{floating: !pointerLocked}"
 			:style="cursorStyle"
