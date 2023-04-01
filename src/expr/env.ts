@@ -1,5 +1,4 @@
 import {Value} from '../value'
-import type {BaseExpr} from '.'
 
 /**
  * 関数のコールスタックのようなもの。引数名-引数のセットを保持する.
@@ -8,25 +7,15 @@ import type {BaseExpr} from '.'
  * スタックされた環境への参照を保持する。#outerが無いEnvはグローバルスコープ
  */
 export class Env {
-	#outer!: Env | undefined
+	#outer!: Env | null
 	#arg: Record<string, Value>
 
-	// Store the reference to Expr that have been traversed so far
-	// in the series of evaluation/inference processes.
-	// This is for detecting circular references.
-	#evalDeps: Set<BaseExpr>
-	#inferDeps: Set<BaseExpr>
-
 	private constructor(
-		outer: Env | undefined,
-		arg: Record<string, Value>,
-		evalDeps: Set<BaseExpr>,
-		inferDeps: Set<BaseExpr>
+		outer: Env | null = null,
+		arg: Record<string, Value> = {}
 	) {
 		this.#outer = outer
 		this.#arg = arg
-		this.#evalDeps = evalDeps
-		this.#inferDeps = inferDeps
 	}
 
 	get isGlobal() {
@@ -34,34 +23,16 @@ export class Env {
 	}
 
 	push(arg: Record<string, Value> = {}) {
-		return new Env(this, arg, this.#evalDeps, this.#inferDeps)
+		return new Env(this, arg)
 	}
 
 	pop() {
 		return this.#outer ?? this
 	}
 
-	withEvalDep(expr: BaseExpr): Env {
-		const evalDeps = new Set([expr, ...this.#evalDeps])
-		return new Env(this.#outer, this.#arg, evalDeps, this.#inferDeps)
-	}
-
-	hasEvalDep(expr: BaseExpr): boolean {
-		return this.#evalDeps.has(expr)
-	}
-
-	withInferDep(expr: BaseExpr): Env {
-		const inferDeps = new Set([expr, ...this.#inferDeps])
-		return new Env(this.#outer, this.#arg, this.#evalDeps, inferDeps)
-	}
-
-	hasInferDep(expr: BaseExpr): boolean {
-		return this.#inferDeps.has(expr)
-	}
-
 	getArg(name: string): Value | undefined {
 		return this.#arg[name]
 	}
 
-	static global = new Env(undefined, {}, new Set(), new Set())
+	static global = new Env()
 }

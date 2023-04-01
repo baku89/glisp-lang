@@ -28,6 +28,7 @@ import {
 	Value,
 	vec,
 } from '../value'
+import {evaluatingExprs, inferringExprs} from './dep'
 import {Env} from './env'
 import {createListDelimiters, insertDelimiters} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
@@ -157,21 +158,25 @@ export abstract class BaseExpr {
 	inferred: EvalResult<Value> | null = null
 
 	eval(env = Env.global): EvalResult<Value> {
-		if (env.hasEvalDep(this)) {
-			return new EvalResult(unit).withLog({
-				level: 'error',
-				reason: 'Circular reference detected',
-				ref: this as any as Expr,
-			})
-		}
-		env = env.withEvalDep(this)
-
 		let cache = this.evalCache.get(env)
 
 		if (!cache) {
+			if (evaluatingExprs.has(this)) {
+				return new EvalResult(unit).withLog({
+					level: 'error',
+					reason: 'Circular reference detected',
+					ref: this as any as Expr,
+				})
+			}
+
 			const {evaluate, infer, info} = createInnerEvalInfer(env)
 
-			cache = this.forceEval(env, evaluate, infer).withInfo(info)
+			try {
+				evaluatingExprs.add(this)
+				cache = this.forceEval(env, evaluate, infer).withInfo(info)
+			} finally {
+				evaluatingExprs.delete(this)
+			}
 
 			this.evalCache.set(env, cache)
 		}
@@ -182,21 +187,25 @@ export abstract class BaseExpr {
 	}
 
 	infer(env = Env.global): EvalResult<Value> {
-		if (env.hasInferDep(this)) {
-			return new EvalResult(unit).withLog({
-				level: 'error',
-				reason: 'Circular reference detected',
-				ref: this as any as Expr,
-			})
-		}
-		env = env.withInferDep(this)
-
 		let cache = this.inferCache.get(env)
 
 		if (!cache) {
+			if (inferringExprs.has(this)) {
+				return new EvalResult(unit).withLog({
+					level: 'error',
+					reason: 'Circular reference detected',
+					ref: this as any as Expr,
+				})
+			}
+
 			const {evaluate, infer, info} = createInnerEvalInfer(env)
 
-			cache = this.forceInfer(env, evaluate, infer).withInfo(info)
+			try {
+				inferringExprs.add(this)
+				cache = this.forceInfer(env, evaluate, infer).withInfo(info)
+			} finally {
+				inferringExprs.delete(this)
+			}
 
 			this.inferCache.set(env, cache)
 		}
