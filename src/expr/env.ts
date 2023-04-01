@@ -1,4 +1,3 @@
-import {EvalResult} from '../EvalResult'
 import {Value} from '../value'
 import type {BaseExpr} from '.'
 
@@ -11,8 +10,6 @@ import type {BaseExpr} from '.'
 export class Env {
 	#outer!: Env | undefined
 	#arg: Record<string, Value>
-	#evalCache: WeakMap<BaseExpr, EvalResult>
-	#inferCache: WeakMap<BaseExpr, EvalResult>
 
 	// Store the reference to Expr that have been traversed so far
 	// in the series of evaluation/inference processes.
@@ -23,15 +20,11 @@ export class Env {
 	private constructor(
 		outer: Env | undefined,
 		arg: Record<string, Value>,
-		evalCache: WeakMap<BaseExpr, EvalResult>,
-		inferCache: WeakMap<BaseExpr, EvalResult>,
 		evalDeps: Set<BaseExpr>,
 		inferDeps: Set<BaseExpr>
 	) {
 		this.#outer = outer
 		this.#arg = arg
-		this.#evalCache = evalCache
-		this.#inferCache = inferCache
 		this.#evalDeps = evalDeps
 		this.#inferDeps = inferDeps
 	}
@@ -41,14 +34,7 @@ export class Env {
 	}
 
 	push(arg: Record<string, Value> = {}) {
-		return new Env(
-			this,
-			arg,
-			new WeakMap(),
-			new WeakMap(),
-			this.#evalDeps,
-			this.#inferDeps
-		)
+		return new Env(this, arg, this.#evalDeps, this.#inferDeps)
 	}
 
 	pop() {
@@ -57,14 +43,7 @@ export class Env {
 
 	withEvalDep(expr: BaseExpr): Env {
 		const evalDeps = new Set([expr, ...this.#evalDeps])
-		return new Env(
-			this.#outer,
-			this.#arg,
-			this.#evalCache,
-			this.#inferCache,
-			evalDeps,
-			this.#inferDeps
-		)
+		return new Env(this.#outer, this.#arg, evalDeps, this.#inferDeps)
 	}
 
 	hasEvalDep(expr: BaseExpr): boolean {
@@ -73,14 +52,7 @@ export class Env {
 
 	withInferDep(expr: BaseExpr): Env {
 		const inferDeps = new Set([expr, ...this.#inferDeps])
-		return new Env(
-			this.#outer,
-			this.#arg,
-			this.#evalCache,
-			this.#inferCache,
-			this.#evalDeps,
-			inferDeps
-		)
+		return new Env(this.#outer, this.#arg, this.#evalDeps, inferDeps)
 	}
 
 	hasInferDep(expr: BaseExpr): boolean {
@@ -91,36 +63,5 @@ export class Env {
 		return this.#arg[name]
 	}
 
-	getEvalCache(expr: BaseExpr): EvalResult | null {
-		return this.#evalCache.get(expr) ?? null
-	}
-
-	setEvalCache(expr: BaseExpr, result: EvalResult) {
-		return this.#evalCache.set(expr, result)
-	}
-
-	clearEvalCache(expr: BaseExpr) {
-		return this.#evalCache.delete(expr)
-	}
-
-	getInferCache(expr: BaseExpr): EvalResult | null {
-		return this.#inferCache.get(expr) ?? null
-	}
-
-	setInferCache(expr: BaseExpr, type: EvalResult) {
-		return this.#inferCache.set(expr, type)
-	}
-
-	clearInferCache(expr: BaseExpr) {
-		return this.#inferCache.delete(expr)
-	}
-
-	static global = new Env(
-		undefined,
-		{},
-		new WeakMap(),
-		new WeakMap(),
-		new Set(),
-		new Set()
-	)
+	static global = new Env(undefined, {}, new Set(), new Set())
 }

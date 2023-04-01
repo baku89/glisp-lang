@@ -114,6 +114,9 @@ export abstract class BaseExpr {
 
 	dep = new Set<Symbol>()
 
+	evalCache = new WeakMap<Env, EvalResult>()
+	inferCache = new WeakMap<Env, EvalResult>()
+
 	abstract print(options?: PrintOptions): string
 
 	abstract forceEval(
@@ -163,14 +166,14 @@ export abstract class BaseExpr {
 		}
 		env = env.withEvalDep(this)
 
-		let cache = env.getEvalCache(this)
+		let cache = this.evalCache.get(env)
 
 		if (!cache) {
 			const {evaluate, infer, info} = createInnerEvalInfer(env)
 
 			cache = this.forceEval(env, evaluate, infer).withInfo(info)
 
-			env.setEvalCache(this, cache)
+			this.evalCache.set(env, cache)
 		}
 
 		this.evaluated = cache
@@ -188,14 +191,14 @@ export abstract class BaseExpr {
 		}
 		env = env.withInferDep(this)
 
-		let cache = env.getInferCache(this)
+		let cache = this.inferCache.get(env)
 
 		if (!cache) {
 			const {evaluate, infer, info} = createInnerEvalInfer(env)
 
 			cache = this.forceInfer(env, evaluate, infer).withInfo(info)
 
-			env.setInferCache(this, cache)
+			this.inferCache.set(env, cache)
 		}
 
 		this.inferred = cache
@@ -1489,8 +1492,8 @@ export class Scope extends BaseExpr {
 			let e: ParentExpr | Expr | null = expr
 			while (e !== null) {
 				if (e instanceof BaseExpr) {
-					Env.global.clearEvalCache(e)
-					Env.global.clearInferCache(e)
+					e.evalCache.delete(Env.global)
+					e.inferCache.delete(Env.global)
 				}
 				e = e.parent
 			}
