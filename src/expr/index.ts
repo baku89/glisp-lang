@@ -112,7 +112,7 @@ export abstract class BaseExpr {
 
 	parent: ParentExpr | null = null
 
-	deps = new Set<Symbol>()
+	dep = new Set<Symbol>()
 
 	abstract print(options?: PrintOptions): string
 
@@ -400,7 +400,7 @@ export class Symbol extends BaseExpr {
 		}
 
 		if (resolved.type === 'global') {
-			resolved.expr.deps.add(this)
+			resolved.expr.dep.add(this)
 		}
 
 		let value: Value
@@ -428,7 +428,7 @@ export class Symbol extends BaseExpr {
 		}
 
 		if (resolved.type === 'global') {
-			resolved.expr.deps.add(this)
+			resolved.expr.dep.add(this)
 		}
 
 		switch (resolved.type) {
@@ -1480,7 +1480,7 @@ export class Scope extends BaseExpr {
 		if (!(name in this.items)) throw new Error()
 
 		const oldExpr = this.items[name]
-		oldExpr.deps.forEach(clearAscendantCache)
+		oldExpr.dep.forEach(clearAscendantCache)
 
 		newExpr.parent = this
 		this.items = {...this.items, [name]: newExpr}
