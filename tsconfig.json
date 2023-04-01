@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"target": "es2021",
-		"module": "umd",
+		"module": "ESNext",
 		"strict": true,
 		"allowJs": true,
 		"moduleResolution": "node",
