@@ -80,8 +80,12 @@ export function useDrag(
 
 			dragDelayTimer = setTimeout(fireDragStart, dragDelaySeconds * 1000)
 
-			window.addEventListener('pointermove', onPointerMove)
-			window.addEventListener('pointerup', onPointerUp)
+			if (target.value) {
+				const t = target.value
+				t.setPointerCapture(event.pointerId)
+				t.addEventListener('pointermove', onPointerMove)
+				t.addEventListener('pointerup', onPointerUp)
+			}
 		}
 
 		function onPointerMove(event: PointerEvent) {
@@ -135,8 +139,13 @@ export function useDrag(
 			state.xy = vec2.create()
 			state.initial = vec2.create()
 			state.delta = vec2.create()
-			window.removeEventListener('pointermove', onPointerMove)
-			window.removeEventListener('pointerup', onPointerUp)
+
+			if (target.value) {
+				const t = target.value
+				t.releasePointerCapture(event.pointerId)
+				t.removeEventListener('pointermove', onPointerMove)
+				t.removeEventListener('pointerup', onPointerUp)
+			}
 		}
 	}
 
