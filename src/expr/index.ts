@@ -1267,17 +1267,15 @@ export class App extends BaseExpr {
 					if (aType.type !== 'Unit') {
 						const p = pType.print({omitMeta: true})
 						const a = aType.print({omitMeta: true})
-						const d = pType.defaultValue.print({omitMeta: true})
 						argLog.add({
 							level: 'error',
 							ref: this,
 							reason:
 								`Rest argument \`${name}\` expects type \`${p}\`, ` +
 								`but got \`${a}\`. ` +
-								`Uses a default value \`${d}\` instead`,
+								`Ignores the argument instead`,
 						})
 					}
-					args.push(pType.defaultValue)
 				}
 			}
 		}
