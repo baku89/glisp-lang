@@ -12,16 +12,16 @@ import type {ParentExpr} from './expr'
 import {Parser} from './parser'
 import {PreludeScope} from './std'
 
-export function tryParse(input: string, outer: ParentExpr = PreludeScope) {
+export function tryParse(input: string, parent: ParentExpr = PreludeScope) {
 	const expr = Parser.Program.tryParse(input)
-	expr.parent = outer
+	expr.parent = parent
 	return expr
 }
 
-export function parse(input: string, outer: ParentExpr = PreludeScope) {
+export function parse(input: string, parent: ParentExpr = PreludeScope) {
 	const result = Parser.Program.parse(input)
 	if (result.status) {
-		result.value.parent = outer
+		result.value.parent = parent
 	}
 	return result
 }
