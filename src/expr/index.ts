@@ -81,7 +81,7 @@ function createInnerEvalInfer(env: Env) {
 	}
 
 	function evaluate(e: Expr, _env: Env = env): Value {
-		const [value, i] = e.eval(_env).asArray
+		const {value, info: i} = e.eval(_env)
 		info.hasFreeVar ||= i.hasFreeVar
 		for (const l of i.log) {
 			info.log.add(l)
@@ -90,7 +90,7 @@ function createInnerEvalInfer(env: Env) {
 	}
 
 	function infer(e: Expr, _env: Env = env): Value {
-		const [value, i] = e.infer(_env).asArray
+		const {value, info: i} = e.infer(_env)
 		info.hasFreeVar ||= i.hasFreeVar
 		for (const l of i.log) {
 			info.log.add(l)
