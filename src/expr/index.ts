@@ -121,6 +121,7 @@ export abstract class BaseExpr {
 		evaluate: IEvalDep,
 		infer: IEvalDep
 	): EvalResult<Value>
+
 	abstract forceInfer(
 		env: Env,
 		evaluate: IEvalDep,
