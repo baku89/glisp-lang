@@ -646,7 +646,7 @@ export class Fn extends BaseValue implements IFnLike {
 			return valueContainer(this)
 		}
 
-		const {fnType} = this
+		const fnType = this.fnType
 
 		const typeVars: string[] = []
 		for (const tv of getTypeVars(fnType)) {

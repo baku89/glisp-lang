@@ -1199,7 +1199,7 @@ export class App extends BaseExpr {
 			return new EvalResult(fn)
 		}
 
-		const {fnType} = fn
+		const fnType = fn.fnType
 
 		// Start function application
 		const names = keys(fnType.params)

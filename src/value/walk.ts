@@ -50,7 +50,7 @@ export function createFoldFn<U>(
 	return (value: Val.Value) => fold(value)
 
 	function fold(value: Val.Value): U {
-		const {type} = value
+		const type = value.type
 
 		if (type in visitors) {
 			return (visitors[type] as any)(value, foldFn, fold)
