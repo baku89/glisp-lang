@@ -113,7 +113,8 @@ export abstract class BaseExpr {
 
 	parent: ParentExpr | null = null
 
-	dep = new Set<Symbol>()
+	evalDep = new Set<BaseExpr>()
+	inferDep = new Set<BaseExpr>()
 
 	evalCache = new WeakMap<Env, EvalResult>()
 	inferCache = new WeakMap<Env, EvalResult>()
@@ -169,6 +170,8 @@ export abstract class BaseExpr {
 				})
 			}
 
+			evaluatingExprs.forEach(e => this.evalDep.add(e))
+
 			const {evaluate, infer, info} = createInnerEvalInfer(env)
 
 			try {
@@ -197,6 +200,8 @@ export abstract class BaseExpr {
 					ref: this as any as Expr,
 				})
 			}
+
+			inferringExprs.forEach(e => e.inferDep.add(this))
 
 			const {evaluate, infer, info} = createInnerEvalInfer(env)
 
@@ -411,10 +416,6 @@ export class Symbol extends BaseExpr {
 			return new EvalResult(unit).withLog(resolved)
 		}
 
-		if (resolved.type === 'global') {
-			resolved.expr.dep.add(this)
-		}
-
 		let value: Value
 		if (resolved.type === 'arg') {
 			value = resolved.value
@@ -437,10 +438,6 @@ export class Symbol extends BaseExpr {
 
 		if ('level' in resolved) {
 			return new EvalResult(unit).withLog(resolved)
-		}
-
-		if (resolved.type === 'global') {
-			resolved.expr.dep.add(this)
 		}
 
 		switch (resolved.type) {
@@ -537,7 +534,7 @@ export class Literal extends BaseExpr {
 	}
 
 	forceInfer() {
-		return this.eval()
+		return this.forceEval()
 	}
 
 	resolveSymbol() {
@@ -705,8 +702,7 @@ export class FnDef extends BaseExpr {
 			let returnType: Value = all
 			if (this.returnType) {
 				// Paramの評価時にenvをPushするのは、型変数をデフォルト値にさせないため
-				const _returnType = evaluate(this.returnType, env.push())
-				returnType = _returnType
+				returnType = evaluate(this.returnType, env.push())
 			}
 
 			const fnType = new FnType(params, optionalPos, rest, returnType)
@@ -715,16 +711,16 @@ export class FnDef extends BaseExpr {
 		}
 	}
 
-	forceInfer(env: Env): EvalResult<FnType | All> {
+	forceInfer(env: Env, evaluate: IEvalDep): EvalResult<FnType | All> {
 		// To be honest, I wanted to infer the function type
 		// without evaluating it, but it works anyway and should be less buggy.
-		const [fn, info] = this.eval(env).asArray
+		const fn = evaluate(this)
 
 		return fn.type === 'Fn'
 			? // When the expression is function definition
-			  new EvalResult(fn.fnType, info)
+			  new EvalResult(fn.fnType)
 			: // Otherwise, the expression means function type definition
-			  new EvalResult(all, info)
+			  new EvalResult(all)
 	}
 
 	resolveSymbol(path: number | string): Expr | null {
@@ -1492,21 +1488,14 @@ export class Scope extends BaseExpr {
 		if (!(name in this.items)) throw new Error()
 
 		const oldExpr = this.items[name]
-		oldExpr.dep.forEach(clearAscendantCache)
+		this.evalDep.delete(oldExpr)
+		this.inferDep.delete(oldExpr)
 
+		oldExpr.evalDep.forEach(e => e.evalCache.delete(Env.global))
+		oldExpr.inferDep.forEach(e => e.inferCache.delete(Env.global))
+
+		this.items[name] = newExpr
 		newExpr.parent = this
-		this.items = {...this.items, [name]: newExpr}
-
-		function clearAscendantCache(expr: Expr) {
-			let e: ParentExpr | Expr | null = expr
-			while (e !== null) {
-				if (e instanceof BaseExpr) {
-					e.evalCache.delete(Env.global)
-					e.inferCache.delete(Env.global)
-				}
-				e = e.parent
-			}
-		}
 	}
 }
 export const scope = (items?: Record<string, Expr>, ret?: Expr) =>
@@ -1799,8 +1788,8 @@ export class ValueMeta extends BaseExpr {
 		return new EvalResult(value).withLog(...log)
 	}
 
-	forceInfer(env: Env) {
-		return this.expr.infer(env)
+	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep) {
+		return new EvalResult(infer(this.expr))
 	}
 
 	resolveSymbol(): null {
