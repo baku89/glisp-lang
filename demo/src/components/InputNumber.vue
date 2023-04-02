@@ -403,7 +403,7 @@ window.addEventListener('touchstart', (e: TouchEvent) => {
 	position relative
 	input('.tweaking')
 	font-family var(--font-code)
-	text-align right
+	text-align center
 	user-select none
 
 	&:not(:has(:disabled))

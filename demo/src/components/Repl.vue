@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import chroma from 'chroma-js'
 import * as G from 'glisp'
-import {computed, nextTick, ref, shallowReactive} from 'vue'
+import {computed, nextTick, ref} from 'vue'
 
 import ExprScope from './ExprScope.vue'
 import Surface from './Surface.vue'
@@ -90,9 +90,8 @@ const replScope = G.PreludeScope.extend({
 	clear: G.valueContainer(IO.of(clear)),
 })
 
-const projectScope = shallowReactive(
-	G.Parser.Scope.tryParse(
-		`
+const projectScope = G.Parser.Scope.tryParse(
+	`
 (let a: (+ b 2)
      b: 123
      c: "hello"
@@ -105,8 +104,7 @@ const projectScope = shallowReactive(
          (+ 1 2)
          "foo"]
      g: (sqrt 2)
-(- b))`.trim()
-	)
+(* a 2))`.trim()
 )
 projectScope.parent = replScope
 
@@ -170,12 +168,24 @@ function evaluate() {
 function clear() {
 	replLines.value = []
 }
+
+const evaluated = ref('')
+
+function updateEvaluated() {
+	evaluated.value = projectScope.eval().value.print()
+}
+updateEvaluated()
+
+projectScope.on('change', updateEvaluated)
+
+projectScope
 </script>
 
 <template>
 	<div class="Repl">
 		<Surface class="rawCode">
 			<pre><code>{{ projectScope.print() }}</code></pre>
+			<pre><code>{{ evaluated }}</code></pre>
 		</Surface>
 		<ExprScope class="projectScope" :expr="projectScope" />
 		<ul class="results">

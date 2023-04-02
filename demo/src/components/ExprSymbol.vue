@@ -33,5 +33,5 @@ const isSymbolNameInvalid = computed(() => {
 @import '@/common.styl'
 
 .ExprSymbol
-	text-align right
+	text-align center
 </style>
