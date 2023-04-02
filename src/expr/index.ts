@@ -155,9 +155,6 @@ export abstract class BaseExpr {
 	}
 	*/
 
-	evaluated: EvalResult<Value> | null = null
-	inferred: EvalResult<Value> | null = null
-
 	eval(env = Env.global): EvalResult<Value> {
 		let cache = this.evalCache.get(env)
 
@@ -183,8 +180,6 @@ export abstract class BaseExpr {
 
 			this.evalCache.set(env, cache)
 		}
-
-		this.evaluated = cache
 
 		return cache
 	}
@@ -214,8 +209,6 @@ export abstract class BaseExpr {
 
 			this.inferCache.set(env, cache)
 		}
-
-		this.inferred = cache
 
 		return cache
 	}
