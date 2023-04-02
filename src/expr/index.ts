@@ -1,3 +1,4 @@
+import EventEmitter from 'eventemitter3'
 import {entries, forOwn, fromPairs, keys, mapValues, values} from 'lodash'
 import ordinal from 'ordinal'
 
@@ -105,10 +106,14 @@ function createInnerEvalInfer(env: Env) {
 	}
 }
 
+interface ExprEventTypes {
+	change: () => void
+}
+
 /**
  * Base class for all kind of ASTs
  */
-export abstract class BaseExpr {
+export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	abstract readonly type: string
 
 	parent: ParentExpr | null = null
@@ -211,6 +216,14 @@ export abstract class BaseExpr {
 		}
 
 		return cache
+	}
+
+	clearEvalCache() {
+		this.evalCache.delete(Env.global)
+	}
+
+	clearInferCache() {
+		this.inferCache.delete(Env.global)
 	}
 }
 
@@ -1418,8 +1431,8 @@ export class Scope extends BaseExpr {
 		return new EvalResult(this.ret ? infer(this.ret) : unit)
 	}
 
-	forceEval(env: Env) {
-		return this.ret?.eval(env) ?? new EvalResult(unit)
+	forceEval(env: Env, evaluate: IEvalDep) {
+		return new EvalResult(this.ret ? evaluate(this.ret) : unit)
 	}
 
 	resolveSymbol(path: string | number): Expr | null {
@@ -1481,14 +1494,17 @@ export class Scope extends BaseExpr {
 		if (!(name in this.items)) throw new Error()
 
 		const oldExpr = this.items[name]
-		this.evalDep.delete(oldExpr)
-		this.inferDep.delete(oldExpr)
-
-		oldExpr.evalDep.forEach(e => e.evalCache.delete(Env.global))
-		oldExpr.inferDep.forEach(e => e.inferCache.delete(Env.global))
 
 		this.items[name] = newExpr
 		newExpr.parent = this
+
+		oldExpr.evalDep.forEach(e => e.clearEvalCache())
+		oldExpr.inferDep.forEach(e => e.clearInferCache())
+
+		oldExpr.evalDep.forEach(e => e.emit('change'))
+
+		oldExpr.evalDep.delete(this)
+		oldExpr.inferDep.delete(this)
 	}
 }
 export const scope = (items?: Record<string, Expr>, ret?: Expr) =>
