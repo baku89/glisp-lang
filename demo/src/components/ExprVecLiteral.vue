@@ -37,8 +37,8 @@ function setItemExpanded(index: number, expanded: boolean) {
 	}
 }
 
-function setChild(path: number, newExpr: G.Expr) {
-	props.expr.setChild(path, newExpr)
+function set(path: number, newExpr: G.Expr) {
+	props.expr.set(path, newExpr)
 	G.notifyChangedExprs()
 }
 </script>
@@ -55,7 +55,7 @@ function setChild(path: number, newExpr: G.Expr) {
 			<Expr
 				:expr="item"
 				:layout="expanded ? 'expanded' : 'collapsed'"
-				@update:expr="setChild(i, $event)"
+				@update:expr="set(i, $event)"
 			/>
 		</Row>
 	</div>
@@ -66,7 +66,7 @@ function setChild(path: number, newExpr: G.Expr) {
 			class="item"
 			:expr="item"
 			layout="minimal"
-			@update:expr="setChild(i, $event)"
+			@update:expr="set(i, $event)"
 		/>
 	</div>
 	<ExprMnimal v-else class="ExprVecLiteral--minimal" :expr="expr" />

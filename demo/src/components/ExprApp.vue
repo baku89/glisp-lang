@@ -46,8 +46,8 @@ const argNames = computed<[string, string][]>(() => {
 	return names
 })
 
-function setChild(path: number, newExpr: G.Expr) {
-	props.expr.setChild(path, newExpr)
+function set(path: number, newExpr: G.Expr) {
+	props.expr.set(path, newExpr)
 	G.notifyChangedExprs()
 }
 </script>
@@ -56,7 +56,7 @@ function setChild(path: number, newExpr: G.Expr) {
 	<div v-if="layout === 'expanded'" class="ExprApp--expanded">
 		<Row v-if="expr.fn" :expanded="false" :expandable="false">
 			<template #label>ƒ</template>
-			<Expr :expr="expr.fn" @update:expr="setChild(0, $event)" />
+			<Expr :expr="expr.fn" @update:expr="set(0, $event)" />
 		</Row>
 		<Row
 			v-for="(arg, i) in expr.args"
@@ -68,7 +68,7 @@ function setChild(path: number, newExpr: G.Expr) {
 				<span>{{ argNames[i][0] }}</span>
 				<span v-if="argNames[i][1]" class="suffix">@{{ argNames[i][1] }}</span>
 			</template>
-			<Expr :expr="arg" @update:expr="setChild(i + 1, $event)" />
+			<Expr :expr="arg" @update:expr="set(i + 1, $event)" />
 		</Row>
 	</div>
 	<div v-else-if="layout === 'collapsed'" class="ExprApp--collapsed">
@@ -76,7 +76,7 @@ function setChild(path: number, newExpr: G.Expr) {
 			v-if="expr.fn"
 			class="collapsed-fn"
 			:expr="expr.fn"
-			@update:expr="setChild(0, $event)"
+			@update:expr="set(0, $event)"
 		/>
 		<Expr
 			v-for="(item, i) in expr.args"
@@ -84,7 +84,7 @@ function setChild(path: number, newExpr: G.Expr) {
 			class="item"
 			:expr="item"
 			layout="minimal"
-			@update:expr="setChild(i + 1, $event)"
+			@update:expr="set(i + 1, $event)"
 		/>
 	</div>
 	<ExprMnimal v-else class="ExprApp--minimal" :expr="expr" />

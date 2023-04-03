@@ -147,13 +147,18 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	): EvalResult<Value>
 
 	// eslint-disable-next-line no-unused-vars
-	getChild(path: string | number): Expr | null {
+	get(path: string | number): Expr | null {
 		return null
 	}
 
+	/**
+	 * 編集関数
+	 * @see https://scrapbox.io/guiland/%E9%80%86%E6%93%8D%E4%BD%9C%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89
+	 * @returns 逆操作コマンド
+	 */
 	// eslint-disable-next-line no-unused-vars
-	setChild(path: string | number, expr: Expr) {
-		throw new Error(`Invalid call of setChild on \`${this.print()}\``)
+	set(path: string | number, expr: Expr) {
+		throw new Error(`Invalid call of set on \`${this.print()}\``)
 	}
 
 	/**
@@ -276,7 +281,7 @@ export class Program extends BaseExpr {
 		return new EvalResult(infer(this.expr))
 	}
 
-	getChild() {
+	get() {
 		return null
 	}
 
@@ -355,17 +360,17 @@ export class Symbol extends BaseExpr {
 			} else {
 				// path === NamePath || path === IndexPath
 				if (!isFirstPath) {
-					expr = expr.getChild(path)
+					expr = expr.get(path)
 				} else {
 					while (expr) {
 						if (expr.type === 'Scope' || expr.type === 'Match') {
-							const e: Expr | null = expr.getChild(path)
+							const e: Expr | null = expr.get(path)
 							if (e) {
 								expr = e
 								break
 							}
 						} else if (expr.type === 'FnDef') {
-							const e = expr.getChild(path)
+							const e = expr.get(path)
 							if (e) {
 								if (!isLastPath) {
 									return {
@@ -511,7 +516,7 @@ export class ValueContainer<V extends Value = Value> extends BaseExpr {
 		return new EvalResult(this.value)
 	}
 
-	getChild() {
+	get() {
 		return null
 	}
 
@@ -555,12 +560,8 @@ export class Literal extends BaseExpr {
 		return this.forceEval()
 	}
 
-	getChild() {
+	get() {
 		return null
-	}
-
-	setChild() {
-		throw new Error(`Invalid call of setChild on \`${this.print()}\``)
 	}
 
 	print() {
@@ -745,7 +746,7 @@ export class FnDef extends BaseExpr {
 			  new EvalResult(all)
 	}
 
-	getChild(path: number | string): Expr | null {
+	get(path: number | string): Expr | null {
 		if (typeof path === 'number') return null
 
 		const typeVar = this.typeVars?.get(path)
@@ -754,7 +755,7 @@ export class FnDef extends BaseExpr {
 			return new ValueContainer(typeVar)
 		}
 
-		return this.params.getChild(path)
+		return this.params.get(path)
 	}
 
 	print(options?: PrintOptions): string {
@@ -849,7 +850,7 @@ export class ParamsDef {
 		return {params, rest}
 	}
 
-	getChild(path: number | string): Expr | null {
+	get(path: number | string): Expr | null {
 		if (typeof path !== 'string') return null
 
 		return this.items[path] ?? null
@@ -1003,13 +1004,13 @@ export class VecLiteral extends BaseExpr {
 		return new EvalResult(vec(items))
 	}
 
-	getChild(path: number | string): Expr | null {
+	get(path: number | string): Expr | null {
 		if (typeof path === 'string') return null
 
 		return this.items[path] ?? null
 	}
 
-	setChild(path: string | number, newExpr: Expr): void {
+	set(path: number | string, expr: Expr) {
 		if (typeof path !== 'number') {
 			throw new Error('Invalid path: ' + path)
 		}
@@ -1017,10 +1018,9 @@ export class VecLiteral extends BaseExpr {
 			throw new Error('Index out of range')
 		}
 
-		const oldExpr = this.getChild(path)
-
-		this.items[path] = newExpr
-		newExpr.parent = this
+		const oldExpr = this.get(path)
+		this.items[path] = expr
+		expr.parent = this
 
 		if (oldExpr) {
 			clearEvalCaches(oldExpr)
@@ -1122,7 +1122,7 @@ export class DictLiteral extends BaseExpr {
 		return new EvalResult(dict(items))
 	}
 
-	getChild(path: string | number): Expr | null {
+	get(path: string | number): Expr | null {
 		if (typeof path === 'number') return null
 
 		return this.items[path] ?? null
@@ -1362,7 +1362,7 @@ export class App extends BaseExpr {
 		return new EvalResult(unifier.substitute(ty.fnType.ret, true))
 	}
 
-	getChild(path: string | number): Expr | null {
+	get(path: string | number): Expr | null {
 		if (!this.fn) return null
 		let index: number
 
@@ -1383,8 +1383,8 @@ export class App extends BaseExpr {
 		return (index === 0 ? this.fn : this.args[index - 1]) ?? null
 	}
 
-	setChild(path: string | number, newExpr: Expr): void {
-		const oldExpr = this.getChild(path)
+	set(path: string | number, newExpr: Expr): void {
+		const oldExpr = this.get(path)
 
 		let index: number
 
@@ -1486,7 +1486,7 @@ export class Scope extends BaseExpr {
 		return new EvalResult(this.ret ? evaluate(this.ret) : unit)
 	}
 
-	getChild(path: string | number): Expr | null {
+	get(path: string | number): Expr | null {
 		if (typeof path === 'number') return null
 
 		if (path === 'return') {
@@ -1496,8 +1496,8 @@ export class Scope extends BaseExpr {
 		}
 	}
 
-	setChild(path: string | number, newExpr: Expr): void {
-		const oldExpr = this.getChild(path)
+	set(path: string | number, newExpr: Expr): void {
+		const oldExpr = this.get(path)
 
 		if (path === 'return') {
 			this.ret = newExpr
@@ -1654,7 +1654,7 @@ export class Match extends BaseExpr {
 		return new EvalResult(type)
 	}
 
-	getChild(path: string | number): Expr | null {
+	get(path: string | number): Expr | null {
 		if (typeof path === 'string') {
 			if (path === this.captureName) {
 				return this.subject
@@ -1756,7 +1756,7 @@ export class InfixNumber extends BaseExpr {
 		return new EvalResult(infer(app))
 	}
 
-	getChild() {
+	get() {
 		return null
 	}
 
@@ -1856,7 +1856,7 @@ export class ValueMeta extends BaseExpr {
 		return new EvalResult(infer(this.expr))
 	}
 
-	getChild(): null {
+	get(): null {
 		throw new Error('Cannot resolve any symbol in withMeta expression')
 	}
 

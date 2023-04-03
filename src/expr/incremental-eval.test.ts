@@ -33,7 +33,7 @@ describe('incremental evaluation', () => {
 
 			target.eval()
 
-			target.setChild(name, newExpr)
+			target.set(name, newExpr)
 
 			const evaluated = target.eval().value
 
