@@ -1172,10 +1172,10 @@ export class App extends BaseExpr {
 		args.forEach(a => (a.parent = this))
 	}
 
-	#unify(env: Env, infer: IEvalDep): [Unifier, Value[]] {
+	#unify(env: Env, evaluate: IEvalDep, infer: IEvalDep): [Unifier, Value[]] {
 		if (!this.fn) throw new Error('Cannot unify unit literal')
 
-		const fn = this.fn.eval(env).value
+		const fn = evaluate(this.fn)
 
 		if (!('fnType' in fn)) return [new Unifier(), []]
 
@@ -1218,7 +1218,7 @@ export class App extends BaseExpr {
 		const params = values(fnType.params)
 
 		// Unify FnType and args
-		const [unifier, shadowedArgs] = this.#unify(env, infer)
+		const [unifier, shadowedArgs] = this.#unify(env, evaluate, infer)
 		const unifiedParams = params.map(p => unifier.substitute(p))
 		const unifiedArgs = shadowedArgs.map(a => unifier.substitute(a))
 
@@ -1320,7 +1320,7 @@ export class App extends BaseExpr {
 			.withLog(...argLog)
 	}
 
-	forceInfer(env: Env, _evaluate: IEvalDep, infer: IEvalDep): EvalResult {
+	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): EvalResult {
 		if (!this.fn) {
 			// Unit literal
 			return new EvalResult(unit)
@@ -1331,16 +1331,7 @@ export class App extends BaseExpr {
 			return new EvalResult(ty)
 		}
 
-		/**
-		 * A function type whose return type equals to All is type constructor
-		 * (e.g. 'struct' function), so it should be evaluated to infer a type of
-		 * the expression
-		 */
-		if (ty.fnType.ret.isEqualTo(all)) {
-			return this.eval(env)
-		}
-
-		const [unifier] = this.#unify(env, infer)
+		const [unifier] = this.#unify(env, evaluate, infer)
 		return new EvalResult(unifier.substitute(ty.fnType.ret, true))
 	}
 
@@ -1714,22 +1705,22 @@ export class InfixNumber extends BaseExpr {
 		this.args = args
 	}
 
-	forceEval(env: Env): EvalResult<Value> {
+	forceEval(env: Env, evaluate: IEvalDep): EvalResult<Value> {
 		const args = this.args.map(a => new Literal(a))
 
 		const app = new App(new Symbol('$' + this.op), ...args)
 		app.parent = this.parent
 
-		return app.eval(env).withRef(this)
+		return new EvalResult(evaluate(app))
 	}
 
-	forceInfer(env: Env): EvalResult<Value> {
+	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): EvalResult<Value> {
 		const args = this.args.map(a => new Literal(a))
 
 		const app = new App(new Symbol('$' + this.op), ...args)
 		app.parent = this.parent
 
-		return app.infer(env).withRef(this)
+		return new EvalResult(infer(app))
 	}
 
 	getChild() {
