@@ -11,4 +11,10 @@ interface DeleteAction {
 	path: string | number
 }
 
-export type Action = SetAction | DeleteAction
+interface RenameAction {
+	type: 'rename'
+	path: string | number
+	to: string
+}
+
+export type Action = SetAction | DeleteAction | RenameAction
