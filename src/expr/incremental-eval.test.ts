@@ -17,15 +17,21 @@ describe('incremental evaluation', () => {
 		{type: 'set', path: 'y', expr: $`20`},
 		$`21`
 	)
+	test($`(let x: 10 x)`, {type: 'delete', path: 'x'}, $`()`)
+	test($`(let 10)`, {type: 'delete', path: 'return'}, $`()`)
+	test($`(let x: 9 (+ x))`, {type: 'delete', path: 'x'}, $`0`)
+	test($`(let x: 7 y: (+ x) y)`, {type: 'delete', path: 'x'}, $`0`)
+	test($`(let x: 4 x)`, {type: 'delete', path: 'return'}, $`()`)
+
 	test($`(inc 10)`, {type: 'set', path: 1, expr: $`20`}, $`21`)
 	test($`(len [1 2])`, {type: 'set', path: 'x', expr: $`[1 2 3]`}, $`3`)
+
+	test($`[0 1 2]`, {type: 'set', path: 1, expr: $`"m"`}, $`[0 "m" 2]`)
 	test($`[0 1 2]`, {type: 'set', path: 1, expr: $`"m"`}, $`[0 "m" 2]`)
 
 	function test(src: Expr, action: Action, expected: Expr) {
 		it(`\`${src.print()}\` evaluates to \`${expected.print()}\``, () => {
 			const expectedValue = expected.eval().value
-
-			src.eval()
 
 			src.commit(action)
 

@@ -160,6 +160,8 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	commit(action: Action): Action {
 		if (action.type === 'set') {
 			return this.set(action.path, action.expr)
+		} else if (action.type === 'delete') {
+			return this.delete(action.path)
 		} else {
 			throw new Error('Not yet supported')
 		}
@@ -168,6 +170,11 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	// eslint-disable-next-line no-unused-vars
 	set(path: string | number, expr: Expr): Action {
 		throw new Error(`Invalid call of set on \`${this.print()}\``)
+	}
+
+	// eslint-disable-next-line no-unused-vars
+	delete(path: string | number): Action {
+		throw new Error(`Invalid call of delete on \`${this.print()}\``)
 	}
 
 	/**
@@ -1023,13 +1030,17 @@ export class VecLiteral extends BaseExpr {
 		if (typeof path !== 'number') {
 			throw new Error('Invalid path: ' + path)
 		}
-		if (path < 0 || this.items.length <= path) {
+
+		if (path < 0 || this.items.length < path) {
 			throw new Error('Index out of range')
 		}
 
 		const oldExpr = this.get(path)
 		this.items[path] = expr
 		expr.parent = this
+
+		clearEvalCaches(this)
+		clearInferCaches(this)
 
 		if (oldExpr) {
 			clearEvalCaches(oldExpr)
@@ -1529,6 +1540,22 @@ export class Scope extends BaseExpr {
 		} else {
 			return {type: 'delete', path}
 		}
+	}
+
+	delete(path: string | number): Action {
+		const oldExpr = this.get(path)
+
+		if (!oldExpr) throw new Error('Invalid action')
+
+		if (path === 'return') {
+			delete this.ret
+		} else {
+			delete this.items[path]
+		}
+
+		clearEvalCaches(oldExpr)
+		clearInferCaches(oldExpr)
+		return {type: 'set', path, expr: oldExpr}
 	}
 
 	print(options?: PrintOptions): string {
