@@ -203,7 +203,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 		let cache = this.evalCache.get(env)
 
 		if (!cache) {
-			if (evaluatingExprs.has(this)) {
+			if (evaluatingExprs.includes(this)) {
 				return new EvalResult(unit).withLog({
 					level: 'error',
 					reason: 'Circular reference detected',
@@ -214,10 +214,10 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 			const {evaluate, infer, info} = createInnerEvalInfer(this, env)
 
 			try {
-				evaluatingExprs.add(this)
+				evaluatingExprs.push(this)
 				cache = this.forceEval(env, evaluate, infer).withInfo(info)
 			} finally {
-				evaluatingExprs.delete(this)
+				evaluatingExprs.pop()
 			}
 
 			this.evalCache.set(env, cache)
@@ -232,7 +232,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 		let cache = this.inferCache.get(env)
 
 		if (!cache) {
-			if (inferringExprs.has(this)) {
+			if (inferringExprs.includes(this)) {
 				return new EvalResult(unit).withLog({
 					level: 'error',
 					reason: 'Circular reference detected',
@@ -243,10 +243,10 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 			const {evaluate, infer, info} = createInnerEvalInfer(this, env)
 
 			try {
-				inferringExprs.add(this)
+				inferringExprs.push(this)
 				cache = this.forceInfer(env, evaluate, infer).withInfo(info)
 			} finally {
-				inferringExprs.delete(this)
+				inferringExprs.pop()
 			}
 
 			this.inferCache.set(env, cache)
