@@ -4,15 +4,25 @@ import type {BaseExpr, Expr} from '.'
 export const evaluatingExprs = new Set<BaseExpr>()
 export const inferringExprs = new Set<BaseExpr>()
 
+export const changedExprs = new Set<BaseExpr>()
+
+export function notifyChangedExprs() {
+	try {
+		changedExprs.forEach(e => e.emit('change'))
+	} finally {
+		changedExprs.clear()
+	}
+}
+
 /**
  * 式の中で参照
  */
-export function clearCaches(expr: Expr, childExpr: Expr | null) {
-	if (!childExpr) return
+export function clearCaches(expr: Expr) {
+	if (!expr) return
 
-	childExpr.evalDep.forEach(e => e.clearEvalCache())
-	childExpr.inferDep.forEach(e => e.clearInferCache())
-
-	// NOTE: このタイミングで良いのかな?
-	childExpr.evalDep.forEach(e => e.emit('change'))
+	expr.evalDep.forEach(e => {
+		changedExprs.add(e)
+		e.clearEvalCache()
+	})
+	expr.inferDep.forEach(e => e.clearInferCache())
 }

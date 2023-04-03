@@ -42,6 +42,11 @@ function setItemExpanded(name: string, expanded: boolean) {
 }
 
 const retExpanded = ref(false)
+
+function setChild(path: string, newExpr: G.Expr) {
+	props.expr.setChild(path, newExpr)
+	G.notifyChangedExprs()
+}
 </script>
 
 <template>
@@ -59,7 +64,7 @@ const retExpanded = ref(false)
 					<Expr
 						:expr="e"
 						:layout="expanded ? 'expanded' : 'collapsed'"
-						@update:expr="expr.setChild(name, $event)"
+						@update:expr="setChild(name, $event)"
 					/>
 				</Row>
 			</div>
@@ -74,7 +79,7 @@ const retExpanded = ref(false)
 					class="value"
 					:expr="expr.ret"
 					:layout="retExpanded ? 'expanded' : 'collapsed'"
-					@update:expr="expr.setChild('return', $event)"
+					@update:expr="setChild('return', $event)"
 				/>
 			</Row>
 		</div>

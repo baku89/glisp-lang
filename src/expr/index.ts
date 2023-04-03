@@ -35,6 +35,8 @@ import {Env} from './env'
 import {createListDelimiters, insertDelimiters} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
 
+export {notifyChangedExprs} from './dep'
+
 /**
  * Used when evaluating other expressions that depend on it in forceEval.
  * The Log in the return value is collected responsibly by the caller
@@ -127,13 +129,13 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 
 	abstract print(options?: PrintOptions): string
 
-	abstract forceEval(
+	protected abstract forceEval(
 		env: Env,
 		evaluate: IEvalDep,
 		infer: IEvalDep
 	): EvalResult<Value>
 
-	abstract forceInfer(
+	protected abstract forceInfer(
 		env: Env,
 		evaluate: IEvalDep,
 		infer: IEvalDep
@@ -1386,7 +1388,7 @@ export class App extends BaseExpr {
 
 		newExpr.parent = this
 
-		clearCaches(this, oldExpr)
+		if (oldExpr) clearCaches(oldExpr)
 	}
 
 	print(options?: PrintOptions): string {
@@ -1478,7 +1480,7 @@ export class Scope extends BaseExpr {
 
 		newExpr.parent = this
 
-		clearCaches(this, oldExpr)
+		if (oldExpr) clearCaches(oldExpr)
 	}
 
 	print(options?: PrintOptions): string {
