@@ -104,7 +104,7 @@ const projectScope = G.Parser.Scope.tryParse(
          (+ 1 2)
          "foo"]
      g: (sqrt 2)
-(* a 2))`.trim()
+     a)`.trim()
 )
 projectScope.parent = replScope
 

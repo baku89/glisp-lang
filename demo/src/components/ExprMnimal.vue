@@ -1,18 +1,30 @@
 <script setup lang="ts">
 import * as G from 'glisp'
+import {ref, watchEffect} from 'vue'
 
 interface Props {
 	expr: G.Expr
 	valueType?: G.Value
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
 	valueType: () => G.all,
+})
+
+const evaluated = ref('')
+
+function updateEvaluated() {
+	evaluated.value = props.expr.eval().value.print()
+}
+updateEvaluated()
+
+watchEffect(() => {
+	props.expr.on('change', updateEvaluated)
 })
 </script>
 
 <template>
-	<div class="ExprMinimal">{{ expr.eval().value.print() }}</div>
+	<div class="ExprMinimal">{{ evaluated }}</div>
 </template>
 
 <style lang="stylus" scoped>

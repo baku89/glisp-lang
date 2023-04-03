@@ -36,18 +36,27 @@ function setItemExpanded(index: number, expanded: boolean) {
 		itemExpanded.value.delete(index)
 	}
 }
+
+function setChild(path: number, newExpr: G.Expr) {
+	props.expr.setChild(path, newExpr)
+	G.notifyChangedExprs()
+}
 </script>
 
 <template>
 	<div v-if="layout === 'expanded'" class="ExprVecLiteral--expanded">
 		<Row
-			v-for="[index, item, expandable, expanded] in items"
-			:key="index"
+			v-for="[i, item, expandable, expanded] in items"
+			:key="i"
 			:expandable="expandable"
 			:expanded="expanded"
-			@update:expanded="setItemExpanded(index, $event)"
+			@update:expanded="setItemExpanded(i, $event)"
 		>
-			<Expr :expr="item" :layout="expanded ? 'expanded' : 'collapsed'" />
+			<Expr
+				:expr="item"
+				:layout="expanded ? 'expanded' : 'collapsed'"
+				@update:expr="setChild(i, $event)"
+			/>
 		</Row>
 	</div>
 	<div v-else-if="layout === 'collapsed'" class="ExprVecLiteral--collapsed">
@@ -57,6 +66,7 @@ function setItemExpanded(index: number, expanded: boolean) {
 			class="item"
 			:expr="item"
 			layout="minimal"
+			@update:expr="setChild(i, $event)"
 		/>
 	</div>
 	<ExprMnimal v-else class="ExprVecLiteral--minimal" :expr="expr" />
