@@ -31,7 +31,7 @@ describe('incremental evaluation', () => {
 
 			scope.eval()
 
-			scope.replaceChild(name, newExpr)
+			scope.setChild(name, newExpr)
 
 			const evaluated = scope.eval().value
 
