@@ -30,6 +30,7 @@ import {
 	Value,
 	vec,
 } from '../value'
+import {Action} from './action'
 import {
 	clearEvalCaches,
 	clearInferCaches,
@@ -156,8 +157,16 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	 * @see https://scrapbox.io/guiland/%E9%80%86%E6%93%8D%E4%BD%9C%E3%82%B3%E3%83%9E%E3%83%B3%E3%83%89
 	 * @returns 逆操作コマンド
 	 */
+	commit(action: Action): Action {
+		if (action.type === 'set') {
+			return this.set(action.path, action.expr)
+		} else {
+			throw new Error('Not yet supported')
+		}
+	}
+
 	// eslint-disable-next-line no-unused-vars
-	set(path: string | number, expr: Expr) {
+	set(path: string | number, expr: Expr): Action {
 		throw new Error(`Invalid call of set on \`${this.print()}\``)
 	}
 
@@ -1010,7 +1019,7 @@ export class VecLiteral extends BaseExpr {
 		return this.items[path] ?? null
 	}
 
-	set(path: number | string, expr: Expr) {
+	set(path: number | string, expr: Expr): Action {
 		if (typeof path !== 'number') {
 			throw new Error('Invalid path: ' + path)
 		}
@@ -1025,6 +1034,9 @@ export class VecLiteral extends BaseExpr {
 		if (oldExpr) {
 			clearEvalCaches(oldExpr)
 			clearInferCaches(oldExpr)
+			return {type: 'set', path, expr: oldExpr}
+		} else {
+			return {type: 'delete', path}
 		}
 	}
 
@@ -1369,7 +1381,7 @@ export class App extends BaseExpr {
 		if (typeof path === 'string') {
 			// NOTE: 実引数として渡された関数の方ではなく、仮引数の方で名前を参照するべきなので、
 			// Env.globalのほうが良いのでは?
-			const fnType = this.fn.infer(Env.global).value
+			const fnType = this.fn.infer().value
 			if (fnType.type !== 'FnType') return null
 
 			const paramNames = keys(fnType.params)
@@ -1383,7 +1395,7 @@ export class App extends BaseExpr {
 		return (index === 0 ? this.fn : this.args[index - 1]) ?? null
 	}
 
-	set(path: string | number, newExpr: Expr): void {
+	set(path: string | number, newExpr: Expr): Action {
 		const oldExpr = this.get(path)
 
 		let index: number
@@ -1391,7 +1403,7 @@ export class App extends BaseExpr {
 		if (typeof path === 'string') {
 			if (!this.fn) throw new Error('Invalid')
 
-			const fnType = this.fn.infer(Env.global).value
+			const fnType = this.fn.infer().value
 			if (fnType.type !== 'FnType') throw new Error('Invalid')
 
 			const paramNames = keys(fnType.params)
@@ -1415,6 +1427,9 @@ export class App extends BaseExpr {
 		if (oldExpr) {
 			clearEvalCaches(oldExpr)
 			clearInferCaches(oldExpr)
+			return {type: 'set', path, expr: oldExpr}
+		} else {
+			return {type: 'delete', path}
 		}
 	}
 
@@ -1496,7 +1511,7 @@ export class Scope extends BaseExpr {
 		}
 	}
 
-	set(path: string | number, newExpr: Expr): void {
+	set(path: string | number, newExpr: Expr): Action {
 		const oldExpr = this.get(path)
 
 		if (path === 'return') {
@@ -1510,6 +1525,9 @@ export class Scope extends BaseExpr {
 		if (oldExpr) {
 			clearEvalCaches(oldExpr)
 			clearInferCaches(oldExpr)
+			return {type: 'set', path, expr: oldExpr}
+		} else {
+			return {type: 'delete', path}
 		}
 	}
 
