@@ -41,6 +41,11 @@ function setItemExpanded(name: string, expanded: boolean) {
 	}
 }
 
+const retExpandable = computed(() => {
+	const type = props.expr.ret?.type
+	return !(type === 'Literal' || type === 'Symbol')
+})
+
 const retExpanded = ref(false)
 
 function set(path: string, newExpr: G.Expr) {
@@ -72,7 +77,7 @@ function set(path: string, newExpr: G.Expr) {
 				v-if="expr.ret"
 				v-model:expanded="retExpanded"
 				class="ret"
-				:expandable="true"
+				:expandable="retExpandable"
 			>
 				<template #label>Return</template>
 				<Expr
@@ -83,7 +88,7 @@ function set(path: string, newExpr: G.Expr) {
 				/>
 			</Row>
 		</div>
-		<ExprMnimal v-else class="collapsed" :expr="expr" />
+		<ExprMnimal v-else :expr="expr" />
 	</div>
 </template>
 

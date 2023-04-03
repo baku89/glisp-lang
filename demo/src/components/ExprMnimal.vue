@@ -42,4 +42,7 @@ watchEffect(() => {
 	padding 0 var(--ui-input-horiz-padding)
 	font-family var(--font-code)
 	cursor inherit
+	white-space nowrap
+	overflow hidden
+	text-overflow ellipsis
 </style>
