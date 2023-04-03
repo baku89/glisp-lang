@@ -187,18 +187,8 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 
 	abstract clone(): AnyExpr
 
-	// #nodeMeta?: NodeMeta
-
-	/*
-	setNodeMeta(meta: NodeMeta) {
-		this.#nodeMeta = meta
-		this.#nodeMeta.attachedTo = this as any
-		return this
-	}
-	*/
-
 	eval(env = Env.global): EvalResult<Value> {
-		evaluatingExprs.forEach(e => this.evalDep.add(e))
+		const evalCallee = evaluatingExprs.at(-1)
 
 		let cache = this.evalCache.get(env)
 
@@ -1938,35 +1928,6 @@ export class ValueMeta extends BaseExpr {
  * Alias of ValueMeta constructor
  */
 export const valueMeta = (meta: Expr, value: Expr) => new ValueMeta(meta, value)
-
-/*
-export class NodeMeta {
-	get type() { return 'NodeMeta' as const }
-
-	public attachedTo!: Expr
-
-	constructor(
-		public fields: DictLiteral,
-		public extras?: {delimiter: string}
-	) {}
-
-	eval = this.fields.eval
-
-	print(options?: PrintOptions) {
-		if (!this.extras) {
-			this.extras = {delimiter: ''}
-		}
-
-		const fields = this.fields.print(options)
-
-		return this.extras.delimiter + '#' + fields
-	}
-
-	isSame = (expr: NodeMeta) {
-		return this.fields.isSameTo(b.fields)
-	}
-}
-*/
 
 export function isSame(a: Expr, b: Expr): boolean {
 	return a.isSameTo(b)
