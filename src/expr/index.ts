@@ -1,4 +1,5 @@
 import EventEmitter from 'eventemitter3'
+import {IterableWeakSet} from 'iterable-weak'
 import {entries, forOwn, fromPairs, keys, mapValues, values} from 'lodash'
 import ordinal from 'ordinal'
 
@@ -118,8 +119,8 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 
 	parent: ParentExpr | null = null
 
-	evalDep = new Set<BaseExpr>()
-	inferDep = new Set<BaseExpr>()
+	evalDep = new IterableWeakSet<BaseExpr>()
+	inferDep = new IterableWeakSet<BaseExpr>()
 
 	evalCache = new WeakMap<Env, EvalResult>()
 	inferCache = new WeakMap<Env, EvalResult>()

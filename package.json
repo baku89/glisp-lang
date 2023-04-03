@@ -24,6 +24,7 @@
 	"dependencies": {
 		"@types/parsimmon": "^1.10.6",
 		"eventemitter3": "^5.0.0",
+		"iterable-weak": "^1.0.4",
 		"lodash": "^4.17.21",
 		"ordinal": "^1.0.3",
 		"parsimmon": "^1.18.1"
