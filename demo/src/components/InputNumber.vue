@@ -468,10 +468,7 @@ window.addEventListener('touchstart', (e: TouchEvent) => {
 		width 1px
 		right -1px
 
-		&:before
-			content ''
-			position absolute
-			display block
+		box-before()
 			height 100%
 			left calc(var(--ui-input-height) / -2)
 			right @left
