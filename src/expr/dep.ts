@@ -21,13 +21,11 @@ export function clearEvalCaches(expr: BaseExpr) {
 	expr.evalDep.forEach(e => {
 		changedExprs.add(e)
 		e.clearEvalCache()
-		e.evalDep.forEach(clearEvalCaches)
 	})
 }
 
 export function clearInferCaches(expr: BaseExpr) {
 	expr.inferDep.forEach(e => {
 		e.clearInferCache()
-		e.inferDep.forEach(clearInferCaches)
 	})
 }

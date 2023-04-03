@@ -177,6 +177,8 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	*/
 
 	eval(env = Env.global): EvalResult<Value> {
+		evaluatingExprs.forEach(e => this.evalDep.add(e))
+
 		let cache = this.evalCache.get(env)
 
 		if (!cache) {
@@ -187,8 +189,6 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 					ref: this as any as Expr,
 				})
 			}
-
-			evaluatingExprs.forEach(e => this.evalDep.add(e))
 
 			const {evaluate, infer, info} = createInnerEvalInfer(this, env)
 
@@ -206,6 +206,8 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	}
 
 	infer(env = Env.global): EvalResult<Value> {
+		inferringExprs.forEach(e => e.inferDep.add(this))
+
 		let cache = this.inferCache.get(env)
 
 		if (!cache) {
@@ -216,8 +218,6 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 					ref: this as any as Expr,
 				})
 			}
-
-			inferringExprs.forEach(e => e.inferDep.add(this))
 
 			const {evaluate, infer, info} = createInnerEvalInfer(this, env)
 
@@ -1007,6 +1007,25 @@ export class VecLiteral extends BaseExpr {
 		if (typeof path === 'string') return null
 
 		return this.items[path] ?? null
+	}
+
+	setChild(path: string | number, newExpr: Expr): void {
+		if (typeof path !== 'number') {
+			throw new Error('Invalid path: ' + path)
+		}
+		if (path < 0 || this.items.length <= path) {
+			throw new Error('Index out of range')
+		}
+
+		const oldExpr = this.getChild(path)
+
+		this.items[path] = newExpr
+		newExpr.parent = this
+
+		if (oldExpr) {
+			clearEvalCaches(oldExpr)
+			clearInferCaches(oldExpr)
+		}
 	}
 
 	print(options?: PrintOptions): string {
