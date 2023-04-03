@@ -29,7 +29,7 @@ import {
 	Value,
 	vec,
 } from '../value'
-import {evaluatingExprs, inferringExprs} from './dep'
+import {clearCaches, evaluatingExprs, inferringExprs} from './dep'
 import {Env} from './env'
 import {createListDelimiters, insertDelimiters} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
@@ -138,7 +138,15 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 		infer: IEvalDep
 	): EvalResult<Value>
 
-	abstract resolveSymbol(path: string | number): Expr | null
+	// eslint-disable-next-line no-unused-vars
+	getChild(path: string | number): Expr | null {
+		return null
+	}
+
+	// eslint-disable-next-line no-unused-vars
+	setChild(path: string | number, expr: Expr) {
+		throw new Error(`Invalid call of setChild on \`${this.print()}\``)
+	}
 
 	/**
 	 * 式が全く同じ構造かどうかを比較する
@@ -245,7 +253,7 @@ export class Program extends BaseExpr {
 		if (this.expr) this.expr.parent = this
 	}
 
-	forceEval(env: Env, evaluate: IEvalDep) {
+	forceEval(_env: Env, evaluate: IEvalDep) {
 		if (!this.expr) {
 			return new EvalResult(unit).withLog({
 				level: 'error',
@@ -255,12 +263,12 @@ export class Program extends BaseExpr {
 		return new EvalResult(evaluate(this.expr))
 	}
 
-	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep) {
+	forceInfer(_env: Env, _evaluate: IEvalDep, infer: IEvalDep) {
 		if (!this.expr) return new EvalResult(unit)
 		return new EvalResult(infer(this.expr))
 	}
 
-	resolveSymbol() {
+	getChild() {
 		return null
 	}
 
@@ -339,17 +347,17 @@ export class Symbol extends BaseExpr {
 			} else {
 				// path === NamePath || path === IndexPath
 				if (!isFirstPath) {
-					expr = expr.resolveSymbol(path)
+					expr = expr.getChild(path)
 				} else {
 					while (expr) {
 						if (expr.type === 'Scope' || expr.type === 'Match') {
-							const e: Expr | null = expr.resolveSymbol(path)
+							const e: Expr | null = expr.getChild(path)
 							if (e) {
 								expr = e
 								break
 							}
 						} else if (expr.type === 'FnDef') {
-							const e = expr.resolveSymbol(path)
+							const e = expr.getChild(path)
 							if (e) {
 								if (!isLastPath) {
 									return {
@@ -457,10 +465,6 @@ export class Symbol extends BaseExpr {
 		}
 	}
 
-	resolveSymbol() {
-		return null
-	}
-
 	print() {
 		return this.paths.join('/')
 	}
@@ -499,7 +503,7 @@ export class ValueContainer<V extends Value = Value> extends BaseExpr {
 		return new EvalResult(this.value)
 	}
 
-	resolveSymbol() {
+	getChild() {
 		return null
 	}
 
@@ -543,8 +547,12 @@ export class Literal extends BaseExpr {
 		return this.forceEval()
 	}
 
-	resolveSymbol() {
+	getChild() {
 		return null
+	}
+
+	setChild() {
+		throw new Error(`Invalid call of setChild on \`${this.print()}\``)
 	}
 
 	print() {
@@ -717,7 +725,7 @@ export class FnDef extends BaseExpr {
 		}
 	}
 
-	forceInfer(env: Env, evaluate: IEvalDep): EvalResult<FnType | All> {
+	forceInfer(_env: Env, evaluate: IEvalDep): EvalResult<FnType | All> {
 		// To be honest, I wanted to infer the function type
 		// without evaluating it, but it works anyway and should be less buggy.
 		const fn = evaluate(this)
@@ -729,7 +737,7 @@ export class FnDef extends BaseExpr {
 			  new EvalResult(all)
 	}
 
-	resolveSymbol(path: number | string): Expr | null {
+	getChild(path: number | string): Expr | null {
 		if (typeof path === 'number') return null
 
 		const typeVar = this.typeVars?.get(path)
@@ -738,17 +746,7 @@ export class FnDef extends BaseExpr {
 			return new ValueContainer(typeVar)
 		}
 
-		return this.params.resolveSymbol(path)
-
-		// switch (path) {
-		// 	// TODO: Add a path to refer params
-		// 	case 'returnType':
-		// 		return this.returnType ?? null
-		// 	case 'body':
-		// 		return this.body ?? null
-		// 	default:
-		// 		return null
-		// }
+		return this.params.getChild(path)
 	}
 
 	print(options?: PrintOptions): string {
@@ -843,7 +841,7 @@ export class ParamsDef {
 		return {params, rest}
 	}
 
-	resolveSymbol(path: number | string): Expr | null {
+	getChild(path: number | string): Expr | null {
 		if (typeof path !== 'string') return null
 
 		return this.items[path] ?? null
@@ -981,14 +979,14 @@ export class VecLiteral extends BaseExpr {
 			throw new Error('Invalid optionalPos: ' + optionalPos)
 	}
 
-	forceEval(env: Env, evaluate: IEvalDep): EvalResult {
+	forceEval(_env: Env, evaluate: IEvalDep): EvalResult {
 		const items = this.items.map(i => evaluate(i))
 		const rest = this.rest ? evaluate(this.rest) : undefined
 
 		return new EvalResult(vec(items, this.optionalPos, rest))
 	}
 
-	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep) {
+	forceInfer(_env: Env, _evaluate: IEvalDep, infer: IEvalDep) {
 		if (this.rest || this.items.length < this.optionalPos) {
 			// When it's type
 			return new EvalResult(all)
@@ -997,7 +995,7 @@ export class VecLiteral extends BaseExpr {
 		return new EvalResult(vec(items))
 	}
 
-	resolveSymbol(path: number | string): Expr | null {
+	getChild(path: number | string): Expr | null {
 		if (typeof path === 'string') return null
 
 		return this.items[path] ?? null
@@ -1079,7 +1077,7 @@ export class DictLiteral extends BaseExpr {
 		return this.optionalKeys.has(key)
 	}
 
-	forceEval(env: Env, evaluate: IEvalDep): EvalResult {
+	forceEval(_env: Env, evaluate: IEvalDep): EvalResult {
 		const items = mapValues(this.items, i => evaluate(i))
 		const rest = this.rest ? evaluate(this.rest) : undefined
 		return new EvalResult(dict(items, this.optionalKeys, rest))
@@ -1087,7 +1085,7 @@ export class DictLiteral extends BaseExpr {
 
 	eval!: (env?: Env) => EvalResult<Dict>
 
-	forceInfer(env: Env, evalute: IEvalDep, infer: IEvalDep): EvalResult {
+	forceInfer(_env: Env, _evalute: IEvalDep, infer: IEvalDep): EvalResult {
 		if (this.optionalKeys.size > 0 || this.rest) {
 			// When it's type
 			return new EvalResult(all)
@@ -1097,7 +1095,7 @@ export class DictLiteral extends BaseExpr {
 		return new EvalResult(dict(items))
 	}
 
-	resolveSymbol(path: string | number): Expr | null {
+	getChild(path: string | number): Expr | null {
 		if (typeof path === 'number') return null
 
 		return this.items[path] ?? null
@@ -1161,8 +1159,8 @@ export class App extends BaseExpr {
 		return 'App' as const
 	}
 
-	readonly fn?: Expr
-	readonly args: Expr[]
+	fn?: Expr
+	args: Expr[]
 
 	constructor(fn?: Expr, ...args: Expr[]) {
 		super()
@@ -1322,7 +1320,7 @@ export class App extends BaseExpr {
 			.withLog(...argLog)
 	}
 
-	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): EvalResult {
+	forceInfer(env: Env, _evaluate: IEvalDep, infer: IEvalDep): EvalResult {
 		if (!this.fn) {
 			// Unit literal
 			return new EvalResult(unit)
@@ -1346,9 +1344,9 @@ export class App extends BaseExpr {
 		return new EvalResult(unifier.substitute(ty.fnType.ret, true))
 	}
 
-	resolveSymbol(path: string | number): Expr | null {
+	getChild(path: string | number): Expr | null {
 		if (!this.fn) return null
-		let index
+		let index: number
 
 		if (typeof path === 'string') {
 			// NOTE: 実引数として渡された関数の方ではなく、仮引数の方で名前を参照するべきなので、
@@ -1365,6 +1363,38 @@ export class App extends BaseExpr {
 
 		// index begins like (fn=0 arg0=1 arg2=2 ...)
 		return (index === 0 ? this.fn : this.args[index - 1]) ?? null
+	}
+
+	setChild(path: string | number, newExpr: Expr): void {
+		const oldExpr = this.getChild(path)
+
+		let index: number
+
+		if (typeof path === 'string') {
+			if (!this.fn) throw new Error('Invalid')
+
+			const fnType = this.fn.infer(Env.global).value
+			if (fnType.type !== 'FnType') throw new Error('Invalid')
+
+			const paramNames = keys(fnType.params)
+			index = paramNames.indexOf(path) + 1
+
+			if (index <= 0) throw new Error('Invalid path:' + path)
+		} else {
+			index = path
+		}
+
+		if (index === 0) {
+			this.fn = newExpr
+		} else if (index <= this.args.length) {
+			this.args[index - 1] = newExpr
+		} else {
+			throw new Error('Index exceeds')
+		}
+
+		newExpr.parent = this
+
+		clearCaches(this, oldExpr)
 	}
 
 	print(options?: PrintOptions): string {
@@ -1414,7 +1444,7 @@ export class Scope extends BaseExpr {
 	}
 
 	public items: Record<string, Expr>
-	public readonly ret?: Expr
+	public ret?: Expr
 
 	constructor(items: Record<string, Expr> = {}, ret?: Expr) {
 		super()
@@ -1427,18 +1457,36 @@ export class Scope extends BaseExpr {
 		this.ret = ret
 	}
 
-	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): EvalResult {
+	forceInfer(_env: Env, _evaluate: IEvalDep, infer: IEvalDep): EvalResult {
 		return new EvalResult(this.ret ? infer(this.ret) : unit)
 	}
 
-	forceEval(env: Env, evaluate: IEvalDep) {
+	forceEval(_env: Env, evaluate: IEvalDep) {
 		return new EvalResult(this.ret ? evaluate(this.ret) : unit)
 	}
 
-	resolveSymbol(path: string | number): Expr | null {
+	getChild(path: string | number): Expr | null {
 		if (typeof path === 'number') return null
 
-		return this.items[path] ?? null
+		if (path === 'return') {
+			return this.ret ?? null
+		} else {
+			return this.items[path] ?? null
+		}
+	}
+
+	setChild(path: string | number, newExpr: Expr): void {
+		const oldExpr = this.getChild(path)
+
+		if (path === 'return') {
+			this.ret = newExpr
+		} else {
+			this.items[path] = newExpr
+		}
+
+		newExpr.parent = this
+
+		clearCaches(this, oldExpr)
 	}
 
 	print(options?: PrintOptions): string {
@@ -1489,23 +1537,6 @@ export class Scope extends BaseExpr {
 
 		delete this.extras
 	}
-
-	replaceChild(name: string, newExpr: Expr) {
-		if (!(name in this.items)) throw new Error()
-
-		const oldExpr = this.items[name]
-
-		this.items[name] = newExpr
-		newExpr.parent = this
-
-		oldExpr.evalDep.forEach(e => e.clearEvalCache())
-		oldExpr.inferDep.forEach(e => e.clearInferCache())
-
-		oldExpr.evalDep.forEach(e => e.emit('change'))
-
-		oldExpr.evalDep.delete(this)
-		oldExpr.inferDep.delete(this)
-	}
 }
 export const scope = (items?: Record<string, Expr>, ret?: Expr) =>
 	new Scope(items, ret)
@@ -1552,7 +1583,7 @@ export class Match extends BaseExpr {
 		}
 	}
 
-	forceEval(env: Env, evaluate: IEvalDep): EvalResult {
+	forceEval(_env: Env, evaluate: IEvalDep): EvalResult {
 		// First, evaluate the capture expression
 		const subject = evaluate(this.subject)
 
@@ -1575,7 +1606,7 @@ export class Match extends BaseExpr {
 		})
 	}
 
-	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): EvalResult {
+	forceInfer(_env: Env, evaluate: IEvalDep, infer: IEvalDep): EvalResult {
 		let type: Value = never
 		let remainingSubjectType = infer(this.subject)
 
@@ -1599,7 +1630,7 @@ export class Match extends BaseExpr {
 		return new EvalResult(type)
 	}
 
-	resolveSymbol(path: string | number): Expr | null {
+	getChild(path: string | number): Expr | null {
 		if (typeof path === 'string') {
 			if (path === this.captureName) {
 				return this.subject
@@ -1701,7 +1732,7 @@ export class InfixNumber extends BaseExpr {
 		return app.infer(env).withRef(this)
 	}
 
-	resolveSymbol() {
+	getChild() {
 		return null
 	}
 
@@ -1751,7 +1782,7 @@ export class ValueMeta extends BaseExpr {
 		expr.parent = this
 	}
 
-	forceEval(env: Env, evaluate: IEvalDep): EvalResult<Value> {
+	forceEval(_env: Env, evaluate: IEvalDep): EvalResult<Value> {
 		const fields = evaluate(this.fields)
 		let value = evaluate(this.expr)
 
@@ -1797,11 +1828,11 @@ export class ValueMeta extends BaseExpr {
 		return new EvalResult(value).withLog(...log)
 	}
 
-	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep) {
+	forceInfer(_env: Env, _evaluate: IEvalDep, infer: IEvalDep) {
 		return new EvalResult(infer(this.expr))
 	}
 
-	resolveSymbol(): null {
+	getChild(): null {
 		throw new Error('Cannot resolve any symbol in withMeta expression')
 	}
 
