@@ -3,8 +3,6 @@ import {useElementBounding, useFocus, useKeyModifier} from '@vueuse/core'
 import {useWheel} from '@vueuse/gesture'
 import {clamp} from 'lodash'
 import {computed, ref, watch, watchEffect} from 'vue'
-import IconDec from 'vue-material-design-icons/Minus.vue'
-import IconInc from 'vue-material-design-icons/Plus.vue'
 
 import {useDrag} from '../use/useDrag'
 import {fit, smoothstep, toFixedWithNoTrailingZeros, unsignedMod} from '../util'
@@ -88,7 +86,7 @@ const pointerSize = ref(0)
 let resetTweakModeTimer = -1
 const tweakMode = ref<null | 'value' | 'speed'>(null)
 
-const {dragging: tweaking, pointerLocked} = useDrag(root, {
+const {dragging: tweaking} = useDrag(root, {
 	lockPointer: true,
 	disabled: computed(() => props.disabled || useFocus(input).focused.value),
 	onClick() {
@@ -360,22 +358,19 @@ window.addEventListener('touchstart', (e: TouchEvent) => {
 			@keydown.up.prevent="increment(1)"
 			@keydown.down.prevent="increment(-1)"
 		/>
-		<div
-			v-if="tweaking"
-			class="cursor"
-			:class="{floating: !pointerLocked}"
-			:style="cursorStyle"
-		>
-			<IconDec
-				class="dec"
+		<div v-if="tweaking" class="signs" :style="cursorStyle">
+			<span
+				class="dec material-symbols-rounded"
 				:class="{active: tweakMode === 'value' && tweakDirection < 0}"
-				:size="height"
-			/>
-			<IconInc
-				class="inc"
+			>
+				remove
+			</span>
+			<span
+				class="inc material-symbols-rounded"
 				:class="{active: tweakMode === 'value' && tweakDirection > 0}"
-				:size="height"
-			/>
+			>
+				add
+			</span>
 		</div>
 		<div v-if="hasRange" class="slider">
 			<div class="fill" :style="fillStyle">
@@ -402,53 +397,51 @@ window.addEventListener('touchstart', (e: TouchEvent) => {
 .InputNumber
 	position relative
 	input('.tweaking')
-	font-family var(--font-code)
 	text-align center
 	user-select none
+	width 100%
 
 	&:not(:has(:disabled))
 		cursor col-resize
 
-	input
+	.input
 		pointer-events none
+		font-family var(--font-code)
 
 		&:focus
 			pointer-events auto
 
-.cursor
+.signs
 	position absolute
-	inset 0
+	inset 1px
+	overflow hidden
+	border-radius var(--ui-input-border-radius)
+	color var(--color-outline-variant)
 
 	&:not(.floating)
 		width auto !important
 		opacity 1 !important
 
-	.dec, .inc
-		position absolute
-		aspect-ratio 1
-		height 100%
-		text-align center
-		font-family var(--font-code)
-		color var(--color-outline-variant)
-		transition .2s ease color
-		transform scale(.75)
+.dec, .inc
+	display block
+	position absolute
+	width var(--ui-inspector-tree-icon-size)
+	height 100%
+	text-align center
+	transition .2s ease color
+	font-size var(--ui-inspector-tree-icon-size)
+	line-height calc(var(--ui-input-height) - 2px)
+	font-smooth never
+	-webkit-font-smoothing none
 
-	.active
-		color var(--color-primary)
+.active
+	color var(--color-primary)
 
-	.dec
-		right 100%
+.dec
+	left 0
 
-	.inc
-		left 100%
-
-	&.floating
-		inset auto
-		top 0
-		bottom 0
-		left 50%
-		margin-left calc(-1 * var(--height))
-		input-transition(width, margin-left)
+.inc
+	right 0
 
 .slider
 	position absolute

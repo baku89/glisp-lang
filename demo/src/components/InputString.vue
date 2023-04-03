@@ -1,11 +1,10 @@
 <template>
 	<div class="InputString" :class="{invalid}">
 		<input
-			class="InputString__input"
+			class="input"
 			type="text"
 			:value="modelValue"
 			:disabled="disabled"
-			@focus="onFocus"
 			@input="onInput"
 		/>
 	</div>
@@ -27,10 +26,6 @@ withDefaults(
 const emits = defineEmits<{
 	(e: 'update:modelValue', value: string): void
 }>()
-
-function onFocus(e: Event) {
-	;(e.target as HTMLInputElement).select()
-}
 
 function onInput(e: Event) {
 	const newValue = (e.target as HTMLInputElement).value
