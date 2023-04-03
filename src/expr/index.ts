@@ -30,7 +30,12 @@ import {
 	Value,
 	vec,
 } from '../value'
-import {clearCaches, evaluatingExprs, inferringExprs} from './dep'
+import {
+	clearEvalCaches,
+	clearInferCaches,
+	evaluatingExprs,
+	inferringExprs,
+} from './dep'
 import {Env} from './env'
 import {createListDelimiters, insertDelimiters} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
@@ -78,7 +83,7 @@ export interface PrintOptions {
 	omitMeta?: boolean
 }
 
-function createInnerEvalInfer(env: Env) {
+function createInnerEvalInfer(expr: BaseExpr, env: Env) {
 	const info: EvalInfo = {
 		hasFreeVar: false,
 		log: new Set(),
@@ -185,7 +190,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 
 			evaluatingExprs.forEach(e => this.evalDep.add(e))
 
-			const {evaluate, infer, info} = createInnerEvalInfer(env)
+			const {evaluate, infer, info} = createInnerEvalInfer(this, env)
 
 			try {
 				evaluatingExprs.add(this)
@@ -214,7 +219,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 
 			inferringExprs.forEach(e => e.inferDep.add(this))
 
-			const {evaluate, infer, info} = createInnerEvalInfer(env)
+			const {evaluate, infer, info} = createInnerEvalInfer(this, env)
 
 			try {
 				inferringExprs.add(this)
@@ -1388,7 +1393,10 @@ export class App extends BaseExpr {
 
 		newExpr.parent = this
 
-		if (oldExpr) clearCaches(oldExpr)
+		if (oldExpr) {
+			clearEvalCaches(oldExpr)
+			clearInferCaches(oldExpr)
+		}
 	}
 
 	print(options?: PrintOptions): string {
@@ -1480,7 +1488,10 @@ export class Scope extends BaseExpr {
 
 		newExpr.parent = this
 
-		if (oldExpr) clearCaches(oldExpr)
+		if (oldExpr) {
+			clearEvalCaches(oldExpr)
+			clearInferCaches(oldExpr)
+		}
 	}
 
 	print(options?: PrintOptions): string {

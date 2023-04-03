@@ -1,4 +1,4 @@
-import type {BaseExpr, Expr} from '.'
+import type {BaseExpr} from '.'
 
 // Stores currently evaluating/inferring exprs to detect circular reference
 export const evaluatingExprs = new Set<BaseExpr>()
@@ -17,12 +17,17 @@ export function notifyChangedExprs() {
 /**
  * 式の中で参照
  */
-export function clearCaches(expr: Expr) {
-	if (!expr) return
-
+export function clearEvalCaches(expr: BaseExpr) {
 	expr.evalDep.forEach(e => {
 		changedExprs.add(e)
 		e.clearEvalCache()
+		e.evalDep.forEach(clearEvalCaches)
 	})
-	expr.inferDep.forEach(e => e.clearInferCache())
+}
+
+export function clearInferCaches(expr: BaseExpr) {
+	expr.inferDep.forEach(e => {
+		e.clearInferCache()
+		e.inferDep.forEach(clearInferCaches)
+	})
 }
