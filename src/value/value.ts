@@ -55,7 +55,7 @@ type Atomic =
 	| Vec
 	| Dict
 
-abstract class BaseValue {
+export abstract class BaseValue {
 	constructor() {
 		return this
 	}
