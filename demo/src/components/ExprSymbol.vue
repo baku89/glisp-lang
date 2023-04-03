@@ -13,19 +13,29 @@ const props = withDefaults(defineProps<Props>(), {
 	valueType: () => G.all,
 })
 
+const emits = defineEmits<{
+	(e: 'update:expr', newExpr: G.Expr): void
+}>()
+
 const symbolName = ref(props.expr.print())
 
 const isSymbolNameInvalid = computed(() => {
 	const ret = G.Parser.Symbol.parse(symbolName.value)
 	return ret.status === false
 })
+
+function onInput(value: string) {
+	const newExpr = G.Parser.Symbol.tryParse(value)
+	emits('update:expr', newExpr)
+}
 </script>
 
 <template>
 	<InputString
-		v-model="symbolName"
+		:modelValue="symbolName"
 		class="ExprSymbol"
 		:invalid="isSymbolNameInvalid"
+		@update:modelValue="onInput"
 	/>
 </template>
 
