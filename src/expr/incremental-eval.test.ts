@@ -1,41 +1,35 @@
-import type {ParentExpr} from '..'
 import {Parser, PreludeScope} from '..'
+import type {Expr} from '.'
+import {Action} from './action'
 
-export function tryParseExpr(input: string, parent: ParentExpr = PreludeScope) {
-	const {expr} = Parser.Program.tryParse(input)
+export function $(input: TemplateStringsArray) {
+	const {expr} = Parser.Program.tryParse(input[0])
 	if (!expr) throw new Error('Whitespace only')
-	expr.parent = parent
+	expr.parent = PreludeScope
 	return expr
 }
 
-type Action = {
-	path: string | number
-	expr: string
-}
-
 describe('incremental evaluation', () => {
-	testIncrementalEval('(let x: 10 x)', {path: 'x', expr: '20'}, '20')
-	testIncrementalEval('(let x: 10 (** x 2))', {path: 'x', expr: '20'}, '400')
-	testIncrementalEval('(let x: (+ 1 y) y: 10 x)', {path: 'y', expr: '20'}, '21')
-	testIncrementalEval('(inc 10)', {path: 1, expr: '20'}, '21')
-	testIncrementalEval('(len [1 2])', {path: 'x', expr: '[1 2 3]'}, '3')
+	test($`(let x: 10 x)`, {type: 'set', path: 'x', expr: $`20`}, $`20`)
+	test($`(let x: 10 (** x 2))`, {type: 'set', path: 'x', expr: $`20`}, $`400`)
+	test(
+		$`(let x: (+ 1 y) y: 10 x)`,
+		{type: 'set', path: 'y', expr: $`20`},
+		$`21`
+	)
+	test($`(inc 10)`, {type: 'set', path: 1, expr: $`20`}, $`21`)
+	test($`(len [1 2])`, {type: 'set', path: 'x', expr: $`[1 2 3]`}, $`3`)
+	test($`[0 1 2]`, {type: 'set', path: 1, expr: $`"m"`}, $`[0 "m" 2]`)
 
-	function testIncrementalEval(
-		input: string,
-		{path: name, expr}: Action,
-		expected: string
-	) {
-		it(`${input}, (${name} -> ${expr}) evaluates to ${expected}`, () => {
-			const target = tryParseExpr(input)
-			target.parent = PreludeScope
-			const newExpr = tryParseExpr(expr)
-			const expectedValue = tryParseExpr(expected).eval().value
+	function test(src: Expr, action: Action, expected: Expr) {
+		it(`\`${src.print()}\` evaluates to \`${expected.print()}\``, () => {
+			const expectedValue = expected.eval().value
 
-			target.eval()
+			src.eval()
 
-			target.set(name, newExpr)
+			src.commit(action)
 
-			const evaluated = target.eval().value
+			const evaluated = src.eval().value
 
 			if (!evaluated.isEqualTo(expectedValue)) {
 				throw new Error(`Got=${evaluated.print()}`)
