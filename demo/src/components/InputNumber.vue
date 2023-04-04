@@ -33,6 +33,7 @@ const props = withDefaults(
 
 const emits = defineEmits<{
 	(e: 'update:modelValue', value: number): void
+	(e: 'confirm'): void
 }>()
 
 const root = ref()
@@ -172,6 +173,7 @@ const {dragging: tweaking} = useDrag(root, {
 		)
 		tweakMode.value = null
 		speedMultiplierGesture.value = 1
+		confirm()
 	},
 })
 
@@ -187,106 +189,6 @@ useWheel(
 	},
 	{domTarget: root, eventOptions: {passive: false}}
 )
-
-let hasChanged = false
-let initialDisplay = ''
-
-const onFocus = (e: FocusEvent) => {
-	const el = e.target as HTMLInputElement
-	el.select()
-	hasChanged = false
-	initialDisplay = display.value
-}
-
-const onInput = (e: Event) => {
-	const el = e.target as HTMLInputElement
-
-	display.value = el.value
-
-	const value = parseFloat(el.value)
-	if (isNaN(value)) return
-
-	local.value = clamp(value, validMin.value, validMax.value)
-	hasChanged = true
-
-	emits('update:modelValue', local.value)
-}
-
-const increment = (delta: number) => {
-	const prec = Math.max(
-		getDisplayPrecision(),
-		-Math.log10(speedMultiplierKey.value)
-	)
-	local.value += delta * speedMultiplierKey.value
-	local.value = clamp(local.value, validMin.value, validMax.value)
-	display.value = toFixedWithNoTrailingZeros(local.value, prec)
-	hasChanged = true
-	emits('update:modelValue', local.value)
-}
-
-const onBlur = () => {
-	if (hasChanged) {
-		display.value = props.modelValue.toString()
-	} else {
-		// 変な文字を打ったときはhasChanged === falseなので、これでリセットをかける
-		display.value = initialDisplay
-	}
-}
-
-watchEffect(() => {
-	if (tweaking.value) {
-		display.value = props.modelValue.toFixed(tweakPrecision.value)
-	}
-})
-
-const fillStyle = computed(() => {
-	const w =
-		width.value * ((props.modelValue - props.min) / (props.max - props.min))
-
-	return {width: w + 'px'}
-})
-
-const scaleOffset = ref(0)
-
-const overlayTranslate = computed(() => {
-	const tx = left.value + width.value / 2 + scaleOffset.value
-	const ty = top.value + height.value / 2
-
-	return `translate(${tx}, ${ty})`
-})
-
-const scaleAttrs = (offset: number) => {
-	const precision = unsignedMod(
-		-Math.log10(speedMultiplierGesture.value) + offset,
-		3
-	)
-	const halfWidth = (width.value + height.value * 20) / 2
-
-	const opacity = smoothstep(1, 2, precision)
-
-	return {
-		x1: -halfWidth,
-		x2: halfWidth,
-		style: {
-			strokeDashoffset: -halfWidth,
-			strokeDasharray: `0 ${Math.pow(10, precision)}`,
-			opacity,
-		},
-	}
-}
-
-const cursorStyle = computed(() => {
-	return {
-		transform: `translateX(${scaleOffset.value}px)`,
-		width: `${pointerSize.value}px`,
-		marginLeft: `${pointerSize.value / -2}px`,
-		opacity: smoothstep(
-			width.value * 0.5,
-			width.value * 0.6,
-			Math.abs(scaleOffset.value)
-		),
-	}
-})
 
 // For iPad. Swiping with second finger to change the drag speed
 window.addEventListener('touchstart', (e: TouchEvent) => {
@@ -334,6 +236,118 @@ window.addEventListener('touchstart', (e: TouchEvent) => {
 		window.removeEventListener('touchend', onSecondTouchEnd)
 	}
 })
+
+let hasChanged = false
+let initialDisplay = ''
+
+const onFocus = (e: FocusEvent) => {
+	const el = e.target as HTMLInputElement
+	el.select()
+	hasChanged = false
+	initialDisplay = display.value
+}
+
+const onInput = (e: Event) => {
+	const el = e.target as HTMLInputElement
+
+	display.value = el.value
+
+	const value = parseFloat(el.value)
+	if (isNaN(value)) return
+
+	local.value = clamp(value, validMin.value, validMax.value)
+	hasChanged = true
+
+	emits('update:modelValue', local.value)
+}
+
+function increment(delta: number) {
+	const prec = Math.max(
+		getDisplayPrecision(),
+		-Math.log10(speedMultiplierKey.value)
+	)
+	local.value += delta * speedMultiplierKey.value
+	local.value = clamp(local.value, validMin.value, validMax.value)
+	display.value = toFixedWithNoTrailingZeros(local.value, prec)
+	hasChanged = true
+	emits('update:modelValue', local.value)
+}
+
+function onBlur() {
+	if (hasChanged) {
+		display.value = props.modelValue.toString()
+		confirm()
+	} else {
+		// 変な文字を打ったときはhasChanged === falseなので、これでリセットをかける
+		display.value = initialDisplay
+	}
+}
+
+function confirm() {
+	console.log('confirm')
+	emits('confirm')
+}
+
+watchEffect(() => {
+	local.value = props.modelValue
+})
+
+watchEffect(() => {
+	if (tweaking.value) {
+		display.value = props.modelValue.toFixed(tweakPrecision.value)
+	} else {
+		display.value = local.value.toString()
+	}
+})
+
+const sliderFillStyle = computed(() => {
+	const w =
+		width.value * ((props.modelValue - props.min) / (props.max - props.min))
+
+	return {width: w + 'px'}
+})
+
+const scaleOffset = ref(0)
+
+const overlayTranslate = computed(() => {
+	const tx = left.value + width.value / 2 + scaleOffset.value
+	const ty = top.value + height.value / 2
+
+	return `translate(${tx}, ${ty})`
+})
+
+const scaleAttrs = (offset: number) => {
+	const precision = unsignedMod(
+		-Math.log10(speedMultiplierGesture.value) + offset,
+		3
+	)
+	const halfWidth = (width.value + height.value * 20) / 2
+
+	const opacity = smoothstep(1, 2, precision)
+
+	return {
+		x1: -halfWidth,
+		x2: halfWidth,
+		style: {
+			strokeDashoffset: -halfWidth,
+			strokeDasharray: `0 ${Math.pow(10, precision)}`,
+			opacity,
+		},
+	}
+}
+
+const cursorStyle = computed(() => {
+	return {
+		transform: `translateX(${scaleOffset.value}px)`,
+		width: `${pointerSize.value}px`,
+		marginLeft: `${pointerSize.value / -2}px`,
+		opacity: smoothstep(
+			width.value * 0.5,
+			width.value * 0.6,
+			Math.abs(scaleOffset.value)
+		),
+	}
+})
 </script>
 
 <template>
@@ -373,7 +387,7 @@ window.addEventListener('touchstart', (e: TouchEvent) => {
 			</span>
 		</div>
 		<div v-if="hasRange" class="slider">
-			<div class="fill" :style="fillStyle">
+			<div class="fill" :style="sliderFillStyle">
 				<div class="tip" />
 			</div>
 		</div>
