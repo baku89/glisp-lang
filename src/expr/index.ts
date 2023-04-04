@@ -1580,9 +1580,9 @@ export class Scope extends BaseExpr {
 	}
 
 	public items: Record<string, Expr>
-	public ret?: Expr
+	public ret: Expr | null
 
-	constructor(items: Record<string, Expr> = {}, ret?: Expr) {
+	constructor(items: Record<string, Expr> = {}, ret: Expr | null = null) {
 		super()
 
 		// Set parent
@@ -1637,7 +1637,7 @@ export class Scope extends BaseExpr {
 		if (!oldExpr) throw new Error('Invalid action')
 
 		if (path === 'return') {
-			delete this.ret
+			this.ret = null
 		} else {
 			delete this.items[path]
 		}
