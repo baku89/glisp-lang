@@ -12,10 +12,7 @@ export function createListDelimiters(count: number): string[] {
 }
 
 export function insertDelimiters(elements: string[], delimiters: string[]) {
-	if (
-		elements.length + 1 !== delimiters.length &&
-		elements.length !== delimiters.length
-	) {
+	if (elements.length + 1 !== delimiters.length) {
 		throw new Error(
 			'Invalid length of delimiters. elements=' +
 				JSON.stringify(elements) +
