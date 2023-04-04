@@ -118,6 +118,7 @@ function createInnerEvalInfer(expr: BaseExpr, env: Env) {
 
 interface ExprEventTypes {
 	change: () => void
+	edit: () => void
 }
 
 /**
@@ -196,6 +197,16 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	// eslint-disable-next-line no-unused-vars
 	rename(path: string | number, to: string): Action {
 		throw new Error(`Invalid call of rename on \`${this.print()}\``)
+	}
+
+	protected dispatchEditEvents() {
+		// Emit 'edit' events
+		let e: BaseExpr | ParamsDef | null = this
+		do {
+			if (e instanceof EventEmitter) {
+				e.emit('edit')
+			}
+		} while ((e = e.parent))
 	}
 
 	/**
@@ -1094,6 +1105,8 @@ export class VecLiteral extends BaseExpr {
 
 		if (oldExpr) {
 			oldExpr.clearCache()
+
+			this.dispatchEditEvents()
 			return {type: 'set', path, expr: oldExpr}
 		} else {
 			// When appended to the last element
@@ -1107,6 +1120,8 @@ export class VecLiteral extends BaseExpr {
 			}
 
 			this.failedResolution.clearCache(path)
+
+			this.dispatchEditEvents()
 			return {type: 'delete', path}
 		}
 	}
@@ -1135,6 +1150,7 @@ export class VecLiteral extends BaseExpr {
 		}
 
 		if (path === this.items.length) {
+			this.dispatchEditEvents()
 			return {type: 'set', path, expr: deletedExpr}
 		} else {
 			throw new Error('Not yet implemented')
@@ -1527,8 +1543,10 @@ export class App extends BaseExpr {
 
 		if (oldExpr) {
 			oldExpr.clearCache()
+			this.dispatchEditEvents()
 			return {type: 'set', path, expr: oldExpr}
 		} else {
+			this.dispatchEditEvents()
 			return {type: 'delete', path}
 		}
 	}
@@ -1624,6 +1642,7 @@ export class Scope extends BaseExpr {
 
 		if (oldExpr) {
 			oldExpr.clearCache()
+			this.dispatchEditEvents()
 			return {type: 'set', path, expr: oldExpr}
 		} else {
 			if (this.extras) {
@@ -1634,6 +1653,7 @@ export class Scope extends BaseExpr {
 			}
 
 			this.failedResolution.clearCache(path)
+			this.dispatchEditEvents()
 			return {type: 'delete', path}
 		}
 	}
@@ -1663,6 +1683,7 @@ export class Scope extends BaseExpr {
 			}
 		}
 
+		this.dispatchEditEvents()
 		return {type: 'set', path, expr: oldExpr}
 	}
 
@@ -1689,6 +1710,8 @@ export class Scope extends BaseExpr {
 		expr.clearCache()
 
 		this.failedResolution.clearCache(to)
+
+		this.dispatchEditEvents()
 
 		return {type: 'rename', path: to, to: path}
 	}

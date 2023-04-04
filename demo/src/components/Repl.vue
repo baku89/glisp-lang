@@ -169,13 +169,16 @@ function clear() {
 	replLines.value = []
 }
 
-const evaluated = ref('')
+const printed = ref(projectScope.print())
+function updatePrinted() {
+	printed.value = projectScope.print()
+}
+projectScope.on('edit', updatePrinted)
 
+const evaluated = ref(projectScope.eval().value.print())
 function updateEvaluated() {
 	evaluated.value = projectScope.eval().value.print()
 }
-updateEvaluated()
-
 projectScope.on('change', updateEvaluated)
 
 projectScope
@@ -184,8 +187,8 @@ projectScope
 <template>
 	<div class="Repl">
 		<Surface class="rawCode">
-			<pre><code>{{ projectScope.print() }}</code></pre>
-			<pre><code>{{ evaluated }}</code></pre>
+			<pre><code>{{ printed }}</code></pre>
+			<pre><code>--> {{ evaluated }}</code></pre>
 		</Surface>
 		<ExprScope class="projectScope" :expr="projectScope" />
 		<ul class="results">

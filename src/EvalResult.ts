@@ -82,7 +82,7 @@ export class EvalResult<T = Value> {
 	 * 配列の中身を f::m a -> b で移す
 	 */
 	static map<T, U>(
-		arr: T[],
+		arr: readonly T[],
 		f: (v: T, index: number) => EvalResult<U>
 	): EvalResult<U[]> {
 		const writers = arr.map(f)
