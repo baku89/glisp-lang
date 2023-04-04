@@ -59,7 +59,7 @@ describe('incremental evaluation', () => {
 				src.commit(action)
 
 				// Print the modified AST to make sure delimiters are still valid
-				// src.print()
+				src.print()
 
 				const evaluated = src.eval().value
 

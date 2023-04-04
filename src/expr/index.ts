@@ -34,7 +34,12 @@ import {Action} from './action'
 import {changedExprs, evaluatingExprs, inferringExprs} from './dep'
 import {Env} from './env'
 import {FailedResolution} from './FailedResolution'
-import {createListDelimiters, insertDelimiters} from './PrintUtil'
+import {
+	createListDelimiters,
+	increaseDelimiter,
+	insertDelimiters,
+	removeDelimiter,
+} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
 
 export {notifyChangedExprs} from './dep'
@@ -1098,12 +1103,7 @@ export class VecLiteral extends BaseExpr {
 			}
 
 			if (this.extras) {
-				const {delimiters} = this.extras
-				if (delimiters.length === 2) {
-					delimiters.splice(1, 0, ' ')
-				} else {
-					delimiters.splice(-1, 0, delimiters.at(-2) as string)
-				}
+				increaseDelimiter(this.extras.delimiters)
 			}
 
 			this.failedResolution.clearCache(path)
@@ -1626,6 +1626,13 @@ export class Scope extends BaseExpr {
 			oldExpr.clearCache()
 			return {type: 'set', path, expr: oldExpr}
 		} else {
+			if (this.extras) {
+				increaseDelimiter(this.extras.delimiters)
+				if (path !== 'return') {
+					increaseDelimiter(this.extras.delimiters)
+				}
+			}
+
 			this.failedResolution.clearCache(path)
 			return {type: 'delete', path}
 		}
@@ -1636,13 +1643,25 @@ export class Scope extends BaseExpr {
 
 		if (!oldExpr) throw new Error('Invalid action')
 
+		let index: number
+		const names = keys(this.items)
+
 		if (path === 'return') {
 			this.ret = null
+			index = names.length + 1
 		} else {
 			delete this.items[path]
+			index = names.indexOf(path as string) + 1
 		}
 
 		oldExpr.clearCache()
+
+		if (this.extras) {
+			removeDelimiter(this.extras.delimiters, index)
+			if (path !== 'return') {
+				removeDelimiter(this.extras.delimiters, index)
+			}
+		}
 
 		return {type: 'set', path, expr: oldExpr}
 	}
