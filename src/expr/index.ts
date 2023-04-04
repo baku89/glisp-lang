@@ -31,13 +31,9 @@ import {
 	vec,
 } from '../value'
 import {Action} from './action'
-import {
-	clearEvalCaches,
-	clearInferCaches,
-	evaluatingExprs,
-	inferringExprs,
-} from './dep'
+import {changedExprs, evaluatingExprs, inferringExprs} from './dep'
 import {Env} from './env'
+import {FailedResolution} from './FailedResolution'
 import {createListDelimiters, insertDelimiters} from './PrintUtil'
 import {shadowTypeVars, Unifier} from './unify'
 
@@ -127,8 +123,21 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 
 	parent: ParentExpr | null = null
 
+	/**
+	 * 現在の式の評価値が変わることで、再評価が必要になる式
+	 */
 	evalDep = new IterableWeakSet<BaseExpr>()
+
+	/**
+	 * 現在の式の評価値が変わることで、再度型推論が必要になる式
+	 */
 	inferDep = new IterableWeakSet<BaseExpr>()
+
+	/**
+	 * シンボル解決中に、現在の式に存在しないパスを参照された場合に記録する
+	 * TODO: 値を弱参照にする
+	 */
+	failedResolution = new FailedResolution()
 
 	evalCache = new WeakMap<Env, EvalResult>()
 	inferCache = new WeakMap<Env, EvalResult>()
@@ -162,6 +171,8 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 			return this.set(action.path, action.expr)
 		} else if (action.type === 'delete') {
 			return this.delete(action.path)
+		} else if (action.type === 'rename') {
+			return this.rename(action.path, action.to)
 		} else {
 			throw new Error('Not yet supported')
 		}
@@ -177,6 +188,11 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 		throw new Error(`Invalid call of delete on \`${this.print()}\``)
 	}
 
+	// eslint-disable-next-line no-unused-vars
+	rename(path: string | number, to: string): Action {
+		throw new Error(`Invalid call of rename on \`${this.print()}\``)
+	}
+
 	/**
 	 * 式が全く同じ構造かどうかを比較する
 	 * メタデータ、シンボルの記法等は区別する
@@ -189,6 +205,13 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 
 	eval(env = Env.global): EvalResult<Value> {
 		const evalCallee = evaluatingExprs.at(-1)
+		if (evalCallee) {
+			this.evalDep.add(evalCallee)
+		}
+		const inferCallee = inferringExprs.at(-1)
+		if (inferCallee) {
+			this.inferDep.add(inferCallee)
+		}
 
 		let cache = this.evalCache.get(env)
 
@@ -217,7 +240,10 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	}
 
 	infer(env = Env.global): EvalResult<Value> {
-		inferringExprs.forEach(e => e.inferDep.add(this))
+		const inferCallee = inferringExprs.at(-1)
+		if (inferCallee) {
+			this.inferDep.add(inferCallee)
+		}
 
 		let cache = this.inferCache.get(env)
 
@@ -245,12 +271,21 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 		return cache
 	}
 
-	clearEvalCache() {
-		this.evalCache.delete(Env.global)
+	clearCache() {
+		this.#clearEvalCache()
+		this.#clearInferCache()
 	}
 
-	clearInferCache() {
+	#clearEvalCache() {
+		// console.log('clearing eval cache of:' + this.print())
+		changedExprs.add(this)
+		this.evalCache.delete(Env.global)
+		this.evalDep.forEach(e => e.#clearEvalCache())
+	}
+
+	#clearInferCache() {
 		this.inferCache.delete(Env.global)
+		this.inferDep.forEach(e => e.#clearInferCache())
 	}
 }
 
@@ -287,10 +322,6 @@ export class Program extends BaseExpr {
 		return new EvalResult(infer(this.expr))
 	}
 
-	get() {
-		return null
-	}
-
 	print(options?: PrintOptions): string {
 		if (this.expr) {
 			return this.before + this.expr.print(options) + this.after
@@ -315,6 +346,11 @@ export type NamePath = string
 export type IndexPath = number
 export type Path = typeof UpPath | typeof CurrentPath | NamePath | IndexPath
 
+type ResolveResult =
+	| {type: 'global' | 'param'; expr: Expr}
+	| {type: 'arg'; value: Value}
+	| Log
+
 /**
  * AST representing any identifier
  */
@@ -334,12 +370,10 @@ export class Symbol extends BaseExpr {
 		this.paths = paths
 	}
 
-	resolve(
-		env: Env = Env.global
-	):
-		| {type: 'global' | 'param'; expr: Expr}
-		| {type: 'arg'; value: Value}
-		| Log {
+	#resolved: ResolveResult | null = null
+	resolve(env: Env = Env.global): ResolveResult {
+		if (this.#resolved) return this.#resolved
+
 		let expr: Expr | ParamsDef | Program | null = this.parent
 		let isFirstPath = true
 
@@ -347,7 +381,15 @@ export class Symbol extends BaseExpr {
 			const path = this.paths[i]
 			const isLastPath = i === this.paths.length - 1
 
-			while (expr && (expr.type === 'Program' || expr.type === 'ValueMeta')) {
+			while (expr) {
+				if (
+					expr.type !== 'Program' &&
+					expr.type !== 'ValueMeta' &&
+					expr.type !== 'ParamsDef'
+				) {
+					break
+				}
+
 				expr = expr.parent
 			}
 
@@ -366,7 +408,13 @@ export class Symbol extends BaseExpr {
 			} else {
 				// path === NamePath || path === IndexPath
 				if (!isFirstPath) {
-					expr = expr.get(path)
+					const e: Expr | null = expr.get(path)
+					if (e) {
+						expr = e
+					} else {
+						expr.failedResolution.set(path, this)
+						expr = null
+					}
 				} else {
 					while (expr) {
 						if (expr.type === 'Scope' || expr.type === 'Match') {
@@ -374,6 +422,8 @@ export class Symbol extends BaseExpr {
 							if (e) {
 								expr = e
 								break
+							} else {
+								expr.failedResolution.set(path, this)
 							}
 						} else if (expr.type === 'FnDef') {
 							const e = expr.get(path)
@@ -405,6 +455,8 @@ export class Symbol extends BaseExpr {
 										throw new Error()
 									}
 								}
+							} else {
+								expr.failedResolution.set(path, this)
 							}
 
 							env = env.pop()
@@ -494,6 +546,11 @@ export class Symbol extends BaseExpr {
 
 	clone() {
 		return new Symbol(...this.paths)
+	}
+
+	clearCache(): void {
+		super.clearCache()
+		this.#resolved = null
 	}
 }
 
@@ -964,7 +1021,7 @@ export class VecLiteral extends BaseExpr {
 	}
 
 	public readonly items: Expr[]
-	public readonly optionalPos: number
+	public optionalPos: number
 	public readonly rest?: Expr
 
 	constructor(
@@ -1021,6 +1078,7 @@ export class VecLiteral extends BaseExpr {
 			throw new Error('Invalid path: ' + path)
 		}
 
+		// Allows path === items.length to push a new element
 		if (path < 0 || this.items.length < path) {
 			throw new Error('Index out of range')
 		}
@@ -1029,15 +1087,57 @@ export class VecLiteral extends BaseExpr {
 		this.items[path] = expr
 		expr.parent = this
 
-		clearEvalCaches(this)
-		clearInferCaches(this)
-
 		if (oldExpr) {
-			clearEvalCaches(oldExpr)
-			clearInferCaches(oldExpr)
+			oldExpr.clearCache()
 			return {type: 'set', path, expr: oldExpr}
 		} else {
+			// When appended to the last element
+
+			if (this.optionalPos === this.items.length - 1) {
+				this.optionalPos++
+			}
+
+			if (this.extras) {
+				const {delimiters} = this.extras
+				if (delimiters.length === 2) {
+					delimiters.splice(1, 0, ' ')
+				} else {
+					delimiters.splice(-1, 0, delimiters.at(-2) as string)
+				}
+			}
+
+			this.failedResolution.clearCache(path)
 			return {type: 'delete', path}
+		}
+	}
+
+	delete(path: string | number): Action {
+		if (typeof path !== 'number') {
+			throw new Error('Invalid path: ' + path)
+		}
+
+		if (path < 0 || this.items.length <= path) {
+			throw new Error('Index out of range')
+		}
+
+		// 削除する要素とそれ以降の式に依存する式のキャッシュを削除
+		this.items.slice(path).forEach(it => it.clearCache())
+
+		const [deletedExpr] = this.items.splice(path, 1)
+
+		if (path < this.optionalPos) {
+			this.optionalPos--
+		}
+
+		if (this.extras) {
+			const {delimiters} = this.extras
+			delimiters.splice(path + 1, 1)
+		}
+
+		if (path === this.items.length) {
+			return {type: 'set', path, expr: deletedExpr}
+		} else {
+			throw new Error('Not yet implemented')
 		}
 	}
 
@@ -1426,8 +1526,7 @@ export class App extends BaseExpr {
 		newExpr.parent = this
 
 		if (oldExpr) {
-			clearEvalCaches(oldExpr)
-			clearInferCaches(oldExpr)
+			oldExpr.clearCache()
 			return {type: 'set', path, expr: oldExpr}
 		} else {
 			return {type: 'delete', path}
@@ -1524,10 +1623,10 @@ export class Scope extends BaseExpr {
 		newExpr.parent = this
 
 		if (oldExpr) {
-			clearEvalCaches(oldExpr)
-			clearInferCaches(oldExpr)
+			oldExpr.clearCache()
 			return {type: 'set', path, expr: oldExpr}
 		} else {
+			this.failedResolution.clearCache(path)
 			return {type: 'delete', path}
 		}
 	}
@@ -1543,9 +1642,36 @@ export class Scope extends BaseExpr {
 			delete this.items[path]
 		}
 
-		clearEvalCaches(oldExpr)
-		clearInferCaches(oldExpr)
+		oldExpr.clearCache()
+
 		return {type: 'set', path, expr: oldExpr}
+	}
+
+	rename(path: string | number, to: string): Action {
+		if (path === 'return' || to === 'return') {
+			throw new Error('return expression cannot be renamed')
+		}
+
+		if (typeof path === 'number') {
+			throw new Error('Invalid rename path')
+		}
+
+		if (this.items[to]) {
+			throw new Error('Already exists')
+		}
+
+		const expr = this.items[path]
+
+		if (!expr) throw new Error('Invalid action')
+
+		delete this.items[path]
+		this.items[to] = expr
+
+		expr.clearCache()
+
+		this.failedResolution.clearCache(to)
+
+		return {type: 'rename', path: to, to: path}
 	}
 
 	print(options?: PrintOptions): string {

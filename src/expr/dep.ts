@@ -13,21 +13,3 @@ export function notifyChangedExprs() {
 		changedExprs.clear()
 	}
 }
-
-/**
- * 式の中で参照
- */
-export function clearEvalCaches(expr: BaseExpr) {
-	expr.evalDep.forEach(e => {
-		changedExprs.add(e)
-		e.clearEvalCache()
-		clearEvalCaches(e)
-	})
-}
-
-export function clearInferCaches(expr: BaseExpr) {
-	expr.inferDep.forEach(e => {
-		e.clearInferCache()
-		clearInferCaches(e)
-	})
-}
