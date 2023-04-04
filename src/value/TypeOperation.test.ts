@@ -162,7 +162,7 @@ function permutation<T>(inputArr: T[]) {
 	return result
 }
 
-function throwError(result: Value, orderedTypes: Value[]): never {
+function throwError(result: Value, orderedTypes: readonly Value[]): never {
 	const v = result.print()
 	const ord = orderedTypes.map(o => o.print()).join(', ')
 	throw new Error(`Got '${v}' in order '${ord}'`)

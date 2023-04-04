@@ -38,7 +38,7 @@ describe('getTypeVars', () => {
 	run(unionType(T, U), [T, U])
 	run(ft([BooleanType, T, T], U), [T, U])
 
-	function run(ty: Value, expected: TypeVar[]) {
+	function run(ty: Value, expected: readonly TypeVar[]) {
 		const eString = '{' + expected.map(e => e.print()).join(', ') + '}'
 
 		test(`FV(${ty.print()}) equals to ${eString}`, () => {
@@ -97,7 +97,7 @@ describe('unifyTypeVars', () => {
 		})
 	}
 
-	function printConsts(consts: Const[]) {
+	function printConsts(consts: readonly Const[]) {
 		const strs = consts
 			.map(([s, R, t]) => [s.print(), R, t.print()].join(' '))
 			.join(', ')

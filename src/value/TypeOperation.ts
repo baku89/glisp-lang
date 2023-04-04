@@ -2,7 +2,7 @@ import {differenceWith, remove} from 'lodash'
 
 import {All, isEqual, Never, UnionType, Value} from './value'
 
-function asUnion<T extends Value>(ty: T): (T | Value)[] {
+function asUnion<T extends Value>(ty: T): readonly (T | Value)[] {
 	return ty.type === 'UnionType' ? ty.types : [ty]
 }
 
@@ -54,7 +54,7 @@ export function unionType(...types: Value[]): Value {
 
 export function differenceType(original: Value, ...types: Value[]) {
 	// Prefix 'o' and 's' means O(riginal) - S(ubtrahead)
-	let oTypes: Value[] = asUnion(original)
+	let oTypes: readonly Value[] = asUnion(original)
 	const sTypes = asUnion(unionType(...types))
 
 	/**

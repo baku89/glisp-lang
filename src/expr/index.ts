@@ -364,9 +364,9 @@ export class Symbol extends BaseExpr {
 		return 'Symbol' as const
 	}
 
-	public readonly paths: Path[]
+	public readonly paths: readonly Path[]
 
-	constructor(...paths: Path[]) {
+	constructor(...paths: readonly Path[]) {
 		super()
 
 		if (paths.length === 0) {
@@ -559,7 +559,7 @@ export class Symbol extends BaseExpr {
 	}
 }
 
-export const symbol = (...paths: Path[]) => new Symbol(...paths)
+export const symbol = (...paths: readonly Path[]) => new Symbol(...paths)
 
 /**
  * AST to directry store a value that cannot be parsed from string
@@ -992,7 +992,7 @@ export const paramsDef = (
 export class TypeVarsDef {
 	readonly typeVars: Record<string, TypeVar>
 
-	constructor(readonly names: string[]) {
+	constructor(readonly names: readonly string[]) {
 		this.typeVars = fromPairs(names.map(name => [name, typeVar(name)]))
 	}
 

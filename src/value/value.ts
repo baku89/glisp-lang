@@ -314,7 +314,7 @@ export class Prim<T = any> extends BaseValue {
 		return valueContainer(this)
 	}
 
-	isEqualTo(value: Value) {
+	isEqualTo(value: Value): boolean {
 		return (
 			this.type === value.type &&
 			this.value === value.value &&
@@ -497,7 +497,7 @@ export class EnumType extends BaseValue {
 	public readonly name: string
 	public readonly types: Enum[]
 
-	constructor(name: string, labels: string[]) {
+	constructor(name: string, labels: readonly string[]) {
 		super()
 
 		if (labels.length === 0) throw new Error('Zero-length enum')
@@ -558,7 +558,7 @@ export class EnumType extends BaseValue {
 	}
 }
 
-export const enumType = (name: string, labels: string[]) =>
+export const enumType = (name: string, labels: readonly string[]) =>
 	new EnumType(name, labels)
 
 export const BooleanType = new EnumType('Boolean', ['false', 'true'])
@@ -883,11 +883,11 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 		return All.instance
 	}
 
-	public readonly items: V[]
+	public readonly items: readonly V[]
 	public readonly optionalPos: number
 	public readonly rest?: Value
 
-	constructor(items?: V[], optionalPos?: number, rest?: Value) {
+	constructor(items?: readonly V[], optionalPos?: number, rest?: Value) {
 		super()
 
 		items ??= []
@@ -1144,7 +1144,7 @@ export class UnionType extends BaseValue {
 		return All.instance
 	}
 
-	constructor(public types: Value[]) {
+	constructor(public types: readonly Value[]) {
 		super()
 		if (types.length < 2) throw new Error('Too few types to create union type')
 	}
@@ -1173,7 +1173,8 @@ export class UnionType extends BaseValue {
 	isSubtypeOf(type: Value): boolean {
 		if (this.superType.isSubtypeOf(type)) return true
 
-		const types: Value[] = type.type === 'UnionType' ? type.types : [type]
+		const types: UnionType['types'] =
+			type.type === 'UnionType' ? type.types : [type]
 		return this.types.every(s => types.some(s.isSubtypeOf.bind(s)))
 	}
 
@@ -1199,7 +1200,7 @@ export class UnionType extends BaseValue {
 	/**
 	 * Creates an union type as it is with no type overwrapping detection.
 	 */
-	static fromTypesUnsafe(types: Value[]) {
+	static fromTypesUnsafe(types: readonly Value[]) {
 		return new UnionType(types)
 	}
 
