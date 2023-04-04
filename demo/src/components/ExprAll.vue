@@ -22,6 +22,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits<{
 	(e: 'update:expr', expr: G.Expr): void
+	(e: 'confirm'): void
 }>()
 
 const exprComponent = computed(() => {
@@ -53,6 +54,7 @@ const exprComponent = computed(() => {
 		:layout="layout"
 		v-bind="$attrs"
 		@update:expr="$emit('update:expr', $event)"
+		@confirm="$emit('confirm')"
 	/>
 	<div v-else class="text">
 		{{ expr.print() }} -> {{ expr.eval().value.print() }}

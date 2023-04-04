@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import chroma from 'chroma-js'
+import {useMagicKeys} from '@vueuse/core'
 import * as G from 'glisp'
 import {computed, nextTick, ref} from 'vue'
 
+import {IO, projectScope, replScope} from '../ProjectScope'
+import {useGlispUndoRedo} from '../use/useGlispUndoRedo'
 import ExprScope from './ExprScope.vue'
 import Surface from './Surface.vue'
 
@@ -36,77 +38,6 @@ interface ReplLine {
 }
 
 const replLines = ref<ReplLine[]>([])
-
-const IO = G.primType('IO', () => {
-	return
-})
-
-const Color = G.primType('Color', chroma('black'))
-
-const replScope = G.PreludeScope.extend({
-	IO: G.valueContainer(IO),
-	Color: G.valueContainer(Color),
-	rgba: G.valueContainer(
-		G.fn(
-			G.fnType(
-				{
-					red: G.NumberType,
-					green: G.NumberType,
-					blue: G.NumberType,
-					alpha: G.NumberType,
-				},
-				Color
-			),
-			(red: G.Number, green: G.Number, blue: G.Number, alpha: G.Number) => {
-				return new G.EvalResult(
-					Color.of(chroma([red.value, green.value, blue.value, alpha.value]))
-				)
-			}
-		)
-	),
-	def: G.valueContainer(
-		G.fn(
-			G.fnType({name: G.StringType, value: G.all}, IO),
-			(name: G.String, value: G.Value) => {
-				const _name = name.value
-
-				const symbol = G.Parser.Symbol.parse(_name)
-				if (!symbol.status) {
-					return new G.EvalResult(G.unit).withLog({
-						level: 'error',
-						reason: `\`${_name}\` cannot be used as a symbol name`,
-						ref: G.valueContainer(G.unit),
-					})
-				}
-
-				return new G.EvalResult(
-					IO.of(() => {
-						projectScope.defs({[_name]: value.toExpr()})
-					})
-				)
-			}
-		)
-	),
-	clear: G.valueContainer(IO.of(clear)),
-})
-
-const projectScope = G.Parser.Scope.tryParse(
-	`
-(let a: (+ b 2)
-     b: 123
-     c: "hello"
-     d: (let TAU: (* PI 2)
-             E: 2.71828
-             (+ TAU b))
-     v: [1
-         [0 (** 2 3) ()]
-         (let y: 20 y)
-         (+ 1 2)
-         "foo"]
-     g: (sqrt 2)
-     a)`.trim()
-)
-projectScope.parent = replScope
 
 const appEl = document.getElementById('app') as HTMLElement
 
@@ -165,9 +96,7 @@ function evaluate() {
 	input.value = ''
 }
 
-function clear() {
-	replLines.value = []
-}
+replScope.set('clear!', G.valueContainer(IO.of(() => (replLines.value = []))))
 
 const printed = ref(projectScope.print())
 function updatePrinted() {
@@ -176,12 +105,24 @@ function updatePrinted() {
 projectScope.on('edit', updatePrinted)
 
 const evaluated = ref(projectScope.eval().value.print())
+
 function updateEvaluated() {
 	evaluated.value = projectScope.eval().value.print()
 }
+
 projectScope.on('change', updateEvaluated)
 
-projectScope
+const {undo} = useGlispUndoRedo()
+
+useMagicKeys({
+	passive: false,
+	onEventFired(e) {
+		if (e.metaKey && e.key === 'z' && e.type === 'keydown') {
+			e.preventDefault()
+			undo()
+		}
+	},
+})
 </script>
 
 <template>

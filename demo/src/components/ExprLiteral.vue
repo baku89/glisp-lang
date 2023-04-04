@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import * as G from 'glisp'
-import {computed, ref} from 'vue'
+import {computed, ref, watchEffect} from 'vue'
 
 import InputNumber from './InputNumber.vue'
 import InputString from './InputString.vue'
@@ -16,9 +16,14 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emits = defineEmits<{
 	(e: 'update:expr', newExpr: G.Expr): void
+	(e: 'confirm'): void
 }>()
 
 const value = ref(props.expr.value)
+
+watchEffect(() => {
+	value.value = props.expr.value
+})
 
 const inputComponent = computed(() => {
 	switch (typeof value.value) {
@@ -44,6 +49,7 @@ function onInput(newValue: number | string) {
 		:modelValue="value"
 		class="ExprLiteral"
 		@update:modelValue="onInput"
+		@confirm="$emit('confirm')"
 	/>
 </template>
 

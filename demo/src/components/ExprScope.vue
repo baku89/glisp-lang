@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import * as G from 'glisp'
 import {entries} from 'lodash'
-import {computed, ref} from 'vue'
+import {computed, ref, shallowRef, triggerRef} from 'vue'
 
+import {injectGlispUndoRedo} from '../use/useGlispUndoRedo'
 import Expr from './ExprAll.vue'
 import ExprMnimal from './ExprMnimal.vue'
 import Row from './Row.vue'
@@ -18,13 +19,19 @@ const props = withDefaults(defineProps<Props>(), {
 	layout: 'expanded',
 })
 
+const exprRef = shallowRef(props.expr)
+
+exprRef.value.on('edit', () => {
+	triggerRef(exprRef)
+})
+
 const items = computed(() => {
-	return entries(props.expr.items).map(([name, expr]) => {
-		const expandable = !(expr.type === 'Literal' || expr.type === 'Symbol')
+	return entries(exprRef.value.items).map(([name, e]) => {
+		const expandable = !(e.type === 'Literal' || e.type === 'Symbol')
 
 		return [
 			name,
-			expr,
+			e,
 			expandable,
 			itemExpanded.value.has(name) && expandable,
 		] as const
@@ -42,15 +49,16 @@ function setItemExpanded(name: string, expanded: boolean) {
 }
 
 const retExpandable = computed(() => {
-	const type = props.expr.ret?.type
+	const type = exprRef.value.ret?.type
 	return !(type === 'Literal' || type === 'Symbol')
 })
 
 const retExpanded = ref(false)
 
-function set(path: string, newExpr: G.Expr) {
-	props.expr.set(path, newExpr)
-	G.notifyChangedExprs()
+const {commit, tagHistory} = injectGlispUndoRedo()
+
+function set(path: string, expr: G.Expr) {
+	commit(props.expr, {type: 'set', path, expr})
 }
 </script>
 
@@ -59,17 +67,18 @@ function set(path: string, newExpr: G.Expr) {
 		<div v-if="layout === 'expanded'" class="expanded">
 			<div class="items">
 				<Row
-					v-for="[name, e, expandable, expanded] in items"
-					:key="name"
+					v-for="[path, e, expandable, expanded] in items"
+					:key="path"
 					:expanded="expanded"
 					:expandable="expandable"
-					@update:expanded="setItemExpanded(name, $event)"
+					@update:expanded="setItemExpanded(path, $event)"
 				>
-					<template #label>{{ name }}:</template>
+					<template #label>{{ path }}:</template>
 					<Expr
 						:expr="e"
 						:layout="expanded ? 'expanded' : 'collapsed'"
-						@update:expr="set(name, $event)"
+						@update:expr="set(path, $event)"
+						@confirm="tagHistory"
 					/>
 				</Row>
 			</div>
@@ -85,6 +94,7 @@ function set(path: string, newExpr: G.Expr) {
 					:expr="expr.ret"
 					:layout="retExpanded ? 'expanded' : 'collapsed'"
 					@update:expr="set('return', $event)"
+					@confirm="tagHistory"
 				/>
 			</Row>
 		</div>

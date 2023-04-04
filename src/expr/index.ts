@@ -31,7 +31,7 @@ import {
 	vec,
 } from '../value'
 import {Action} from './action'
-import {changedExprs, evaluatingExprs, inferringExprs} from './dep'
+import {changedExprs, editedExprs, evaluatingExprs, inferringExprs} from './dep'
 import {Env} from './env'
 import {FailedResolution} from './FailedResolution'
 import {
@@ -43,6 +43,7 @@ import {
 import {shadowTypeVars, Unifier} from './unify'
 
 export {notifyChangedExprs} from './dep'
+export type {Action} from './action'
 
 /**
  * Used when evaluating other expressions that depend on it in forceEval.

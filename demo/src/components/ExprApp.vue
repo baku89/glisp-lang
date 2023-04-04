@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import * as G from 'glisp'
 import {keys} from 'lodash'
-import {computed} from 'vue'
+import {computed, shallowRef, triggerRef} from 'vue'
 
+import {injectGlispUndoRedo} from '../use/useGlispUndoRedo'
 import Expr from './ExprAll.vue'
 import ExprMnimal from './ExprMnimal.vue'
 import Row from './Row.vue'
@@ -19,8 +20,12 @@ const props = withDefaults(
 	}
 )
 
+const exprRef = shallowRef(props.expr)
+
+exprRef.value.on('edit', () => triggerRef(exprRef))
+
 const argNames = computed<[string, string][]>(() => {
-	const {fn} = props.expr
+	const {fn} = exprRef.value
 
 	if (!fn) return []
 
@@ -34,7 +39,7 @@ const argNames = computed<[string, string][]>(() => {
 
 	if (fnType.rest) {
 		const restName = fnType.rest.name
-		const restArgNum = props.expr.args.length - names.length
+		const restArgNum = exprRef.value.args.length - names.length
 
 		names.push(
 			...Array(restArgNum)
@@ -46,20 +51,26 @@ const argNames = computed<[string, string][]>(() => {
 	return names
 })
 
-function set(path: number, newExpr: G.Expr) {
-	props.expr.set(path, newExpr)
-	G.notifyChangedExprs()
+const {commit, tagHistory} = injectGlispUndoRedo()
+
+function set(path: number, expr: G.Expr) {
+	if (!commit) throw new Error()
+	commit(props.expr, {type: 'set', path, expr})
 }
 </script>
 
 <template>
 	<div v-if="layout === 'expanded'" class="ExprApp--expanded">
-		<Row v-if="expr.fn" :expanded="false" :expandable="false">
+		<Row v-if="exprRef.fn" :expanded="false" :expandable="false">
 			<template #label>ƒ</template>
-			<Expr :expr="expr.fn" @update:expr="set(0, $event)" />
+			<Expr
+				:expr="exprRef.fn"
+				@update:expr="set(0, $event)"
+				@confirm="tagHistory"
+			/>
 		</Row>
 		<Row
-			v-for="(arg, i) in expr.args"
+			v-for="(arg, i) in exprRef.args"
 			:key="i"
 			:expanded="false"
 			:expandable="false"
@@ -68,23 +79,29 @@ function set(path: number, newExpr: G.Expr) {
 				<span>{{ argNames[i][0] }}</span>
 				<span v-if="argNames[i][1]" class="suffix">@{{ argNames[i][1] }}</span>
 			</template>
-			<Expr :expr="arg" @update:expr="set(i + 1, $event)" />
+			<Expr
+				:expr="arg"
+				@update:expr="set(i + 1, $event)"
+				@confirm="tagHistory"
+			/>
 		</Row>
 	</div>
 	<div v-else-if="layout === 'collapsed'" class="ExprApp--collapsed">
 		<Expr
-			v-if="expr.fn"
+			v-if="exprRef.fn"
 			class="collapsed-fn"
-			:expr="expr.fn"
+			:expr="exprRef.fn"
 			@update:expr="set(0, $event)"
+			@confirm="tagHistory"
 		/>
 		<Expr
-			v-for="(item, i) in expr.args"
+			v-for="(item, i) in exprRef.args"
 			:key="i"
 			class="item"
 			:expr="item"
 			layout="minimal"
 			@update:expr="set(i + 1, $event)"
+			@confirm="tagHistory"
 		/>
 	</div>
 	<ExprMnimal v-else class="ExprApp--minimal" :expr="expr" />
