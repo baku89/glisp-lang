@@ -204,7 +204,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 		let e: BaseExpr | ParamsDef | null = this
 		do {
 			if (e instanceof EventEmitter) {
-				e.emit('edit')
+				editedExprs.add(e)
 			}
 		} while ((e = e.parent))
 	}
