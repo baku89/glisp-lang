@@ -151,7 +151,7 @@ describe('parsing scope', () => {
 	testParsing('(let x: 1)', scope({x: literal(1)}))
 	testParsing('(let x: (let x: 1))', scope({x: scope({x: literal(1)})}))
 	testParsing('(let (let 1))', scope({}, scope({}, literal(1))))
-	testParsing('(let x:[]y:[]z)', scope({x: vec(), y: vec()}, symbol('z')))
+	testParsing('(let x:[] y:[] z)', scope({x: vec(), y: vec()}, symbol('z')))
 
 	testParsing('(let+ 20)', app(symbol('let+'), literal(20)))
 

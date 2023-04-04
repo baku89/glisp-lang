@@ -121,6 +121,18 @@ const followedByColon = <T>(parser: P.Parser<T>): P.Parser<T> => {
 	return P.seqMap(parser, P.string(':'), p => p)
 }
 
+const sepBy1__ = <T>(parser: P.Parser<T>): P.Parser<[T[], string[]]> => {
+	return P.seq(
+		// First element
+		parser,
+		// rest elements
+		P.seq(__, parser).many()
+	).map(([first, restPart]) => {
+		const [__s, rest] = zip(restPart)
+		return [[first, ...rest], __s]
+	})
+}
+
 const Reserved = new Set([
 	'=>',
 	'let',
@@ -152,7 +164,7 @@ interface IParser {
 	Expr: Expr
 	NumberLiteral: Literal
 	StringLiteral: Literal
-	ScopeEntry: [string, string, Expr, string]
+	ScopeEntry: [string, string, Expr]
 	Scope: Scope
 	Match: Match
 	TypeVarsDef: TypeVarsDef
@@ -325,8 +337,8 @@ export const Parser = P.createLanguage<IParser>({
 			.desc('function application')
 	},
 	ScopeEntry(r) {
-		return P.seq(followedByColon(r.NamePath), _, r.Expr, _).map(
-			([name, _0, expr, _1]) => [name, _0, expr, _1]
+		return P.seq(followedByColon(r.NamePath), _, r.Expr).map(
+			([name, _0, expr]) => [name, _0, expr]
 		)
 	},
 	Scope(r) {
@@ -334,35 +346,43 @@ export const Parser = P.createLanguage<IParser>({
 			_,
 			P.string('let'),
 			// Key-value pairs part
-			opt(P.seq(__, r.ScopeEntry.many())),
+			opt(P.seq(__, sepBy1__(r.ScopeEntry))),
 			// Return value part
-			opt(P.seq(r.Expr, _))
+			opt(P.seq(__, r.Expr)),
+			_
 		)
 			.wrap(P.string('('), P.string(')'))
-			.map(([_0, , itemsPart, retPart]) => {
+			.map(([_0, , itemsPart, retPart, _4]) => {
 				const items: Scope['items'] = {}
 				const delimiters = [_0]
 
 				if (itemsPart) {
-					const [__1, entries] = itemsPart
+					const [__1, [entries, __2bs]] = itemsPart
 
 					delimiters.push(__1)
 
-					for (const [name, _2a, expr, __2b] of entries) {
+					entries.forEach(([name, _2a, expr], i) => {
 						if (name in items) {
 							throw new Error(`Duplicated symbol name: '${name}'`)
 						}
 
 						items[name] = expr
-						delimiters.push(_2a, __2b)
-					}
+						delimiters.push(_2a)
+
+						if (i < __2bs.length) {
+							delimiters.push(__2bs[i])
+						}
+					})
 				}
 
-				let ret: Expr | undefined
+				let ret: Scope['ret'] = null
 				if (retPart) {
-					ret = retPart[0]
-					delimiters.push(retPart[1])
+					const [__3, ret_] = retPart
+					ret = ret_
+					delimiters.push(__3)
 				}
+
+				delimiters.push(_4)
 
 				const expr = new Scope(items, ret)
 				expr.extras = {delimiters}
