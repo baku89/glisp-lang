@@ -202,8 +202,8 @@ export class All extends BaseValue {
 	}
 
 	#defaultValue?: Atomic
-	get defaultValue() {
-		return (this.#defaultValue ??= Unit.instance)
+	get defaultValue(): Atomic {
+		return this.#defaultValue ?? Unit.instance
 	}
 
 	get initialDefaultValue() {
@@ -290,16 +290,13 @@ export class Prim<T = any> extends BaseValue {
 		return 'Prim' as const
 	}
 
-	constructor(value: T, superType: PrimType | All = All.instance) {
+	constructor(value: T, superType: PrimType<T>) {
 		super()
-		this.#superType = superType
+		this.superType = superType
 		this.value = value
 	}
 
-	readonly #superType!: PrimType | All
-	get superType() {
-		return this.#superType
-	}
+	readonly superType: PrimType<T>
 
 	readonly value: T
 
@@ -311,83 +308,50 @@ export class Prim<T = any> extends BaseValue {
 	}
 
 	protected toExprExceptMeta(): Expr {
-		return valueContainer(this)
+		return this.superType.option.primToExpr(this)
 	}
 
 	isEqualTo(value: Value): boolean {
 		return (
 			this.type === value.type &&
-			this.value === value.value &&
-			this.superType.isEqualTo(value.superType)
+			this.superType.isEqualTo(value.superType) &&
+			this.superType.option.primEqual(this.value, value.value)
 		)
 	}
 
-	clone() {
-		const value = new Prim(this.value, this.superType)
-		value.meta = this.meta
-		return value
+	clone(): Prim<T> {
+		const clonedValue = this.superType.option.primClone(this.value)
+
+		const prim = new Prim<T>(clonedValue, this.superType)
+		prim.meta = this.meta
+
+		return prim
 	}
 }
 
-export class Number extends Prim<number> {
-	constructor(value: number) {
-		super(value)
-	}
-
-	get superType() {
-		return NumberType
-	}
-
-	isEqualTo(value: Value) {
-		return (
-			this.type === value.type &&
-			((isNaN(this.value) && isNaN(value.value)) || this.value === value.value)
-		)
-	}
-
-	protected toExprExceptMeta() {
-		return literal(this.value)
-	}
+interface PrimTypeOption<T> {
+	primToExpr: (prim: Prim<T>) => Expr
+	primEqual: (a: T, b: T) => boolean
+	primClone: (value: T) => T
 }
-
-export const number = (value: number) => new Number(value)
-
-export class String extends Prim<string> {
-	constructor(value: string) {
-		super(value)
-	}
-
-	get superType() {
-		return StringType
-	}
-
-	toString() {
-		return this.value
-	}
-
-	protected toExprExceptMeta() {
-		return literal(this.value)
-	}
-}
-
-export const string = (value: string) => new String(value)
 
 export class PrimType<T = any> extends BaseValue {
 	get type() {
 		return 'PrimType' as const
 	}
 
-	constructor(private readonly name: string, initialDefaultValue: T) {
+	constructor(
+		private readonly name: string,
+		initialDefaultValue: T,
+		public option: PrimTypeOption<T> = {
+			primToExpr: valueContainer,
+			primEqual: (a, b) => a === b,
+			primClone: v => v,
+		}
+	) {
 		super()
 
-		if (
-			initialDefaultValue instanceof Number ||
-			initialDefaultValue instanceof String
-		) {
-			this.#initialDefaultValue = initialDefaultValue
-		} else {
-			this.#initialDefaultValue = new Prim(initialDefaultValue, this)
-		}
+		this.#initialDefaultValue = new Prim(initialDefaultValue, this)
 
 		return this
 	}
@@ -396,13 +360,13 @@ export class PrimType<T = any> extends BaseValue {
 		return All.instance
 	}
 
-	#defaultValue?: Number | String | Prim
-	get defaultValue() {
+	#defaultValue?: Prim<T>
+	get defaultValue(): Prim<T> {
 		return (this.#defaultValue ??= this.#initialDefaultValue)
 	}
 
-	#initialDefaultValue!: Number | String | Prim
-	get initialDefaultValue() {
+	#initialDefaultValue: Prim<T>
+	get initialDefaultValue(): Prim<T> {
 		return this.#initialDefaultValue
 	}
 
@@ -428,7 +392,12 @@ export class PrimType<T = any> extends BaseValue {
 	}
 
 	clone() {
-		const value = new PrimType(this.name, this.#initialDefaultValue)
+		const value = new PrimType<T>(
+			this.name,
+			this.#initialDefaultValue.value,
+			this.option
+		)
+
 		value.#defaultValue = this.#defaultValue
 		value.meta = this.meta
 		return value
@@ -439,12 +408,33 @@ export class PrimType<T = any> extends BaseValue {
 	}
 }
 
-export const primType = <T>(name: string, initialDefaultValue: T) =>
-	new PrimType(name, initialDefaultValue)
+export function primType<T>(name: string, initialDefaultValue: T) {
+	return new PrimType(name, initialDefaultValue)
+}
 
-export const NumberType = new PrimType('Number', new Number(0))
+export type Number = Prim<number>
+export type String = Prim<string>
 
-export const StringType = new PrimType('String', new String(''))
+export const NumberType = new PrimType('Number', 0, {
+	primToExpr(prim) {
+		return literal(prim.value)
+	},
+	primEqual(a, b) {
+		return a === b || (isNaN(a) && isNaN(b))
+	},
+	primClone: v => v,
+})
+
+export const StringType = new PrimType('String', '', {
+	primToExpr(prim) {
+		return literal(prim.value)
+	},
+	primEqual: (a, b) => a === b,
+	primClone: v => v,
+})
+
+export const number: (value: number) => Number = NumberType.of.bind(NumberType)
+export const string: (value: string) => String = StringType.of.bind(StringType)
 
 export class Enum extends BaseValue {
 	get type() {
