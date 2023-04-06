@@ -324,7 +324,7 @@ export class Program extends BaseExpr {
 		if (this.expr) this.expr.parent = this
 	}
 
-	forceEval(_env: Env, evaluate: IEvalDep) {
+	protected forceEval(env: Env, evaluate: IEvalDep) {
 		if (!this.expr) {
 			return new EvalResult(unit).withLog({
 				level: 'error',
@@ -334,7 +334,7 @@ export class Program extends BaseExpr {
 		return new EvalResult(evaluate(this.expr))
 	}
 
-	forceInfer(_env: Env, _evaluate: IEvalDep, infer: IEvalDep) {
+	protected forceInfer(env: Env, _evaluate: IEvalDep, infer: IEvalDep) {
 		if (!this.expr) return new EvalResult(unit)
 		return new EvalResult(infer(this.expr))
 	}
@@ -511,7 +511,7 @@ export class Symbol extends BaseExpr {
 		return {type: 'global', expr}
 	}
 
-	forceEval(env: Env, evaluate: IEvalDep): EvalResult {
+	protected forceEval(env: Env, evaluate: IEvalDep): EvalResult {
 		const resolved = this.resolve(env)
 
 		if ('level' in resolved) {
@@ -535,7 +535,11 @@ export class Symbol extends BaseExpr {
 		}
 	}
 
-	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): EvalResult {
+	protected forceInfer(
+		env: Env,
+		evaluate: IEvalDep,
+		infer: IEvalDep
+	): EvalResult {
 		const resolved = this.resolve(env)
 
 		if ('level' in resolved) {
@@ -586,11 +590,11 @@ export class ValueContainer<V extends Value = Value> extends BaseExpr {
 		super()
 	}
 
-	forceEval() {
+	protected forceEval() {
 		return new EvalResult(this.value)
 	}
 
-	forceInfer() {
+	protected forceInfer() {
 		if (this.value.isType) return new EvalResult(all)
 		if (this.value.type === 'Fn') return new EvalResult(this.value.fnType)
 		return new EvalResult(this.value)
@@ -630,13 +634,13 @@ export class Literal extends BaseExpr {
 		super()
 	}
 
-	forceEval() {
+	protected forceEval() {
 		return new EvalResult(
 			typeof this.value === 'number' ? number(this.value) : string(this.value)
 		)
 	}
 
-	forceInfer() {
+	protected forceInfer() {
 		return this.forceEval()
 	}
 
@@ -723,7 +727,7 @@ export class FnDef extends BaseExpr {
 		if (this.body) this.body.parent = this
 	}
 
-	forceEval(
+	protected forceEval(
 		env: Env,
 		evaluate: IEvalDep,
 		infer: IEvalDep
@@ -814,7 +818,7 @@ export class FnDef extends BaseExpr {
 		}
 	}
 
-	forceInfer(_env: Env, evaluate: IEvalDep): EvalResult<FnType | All> {
+	protected forceInfer(env: Env, evaluate: IEvalDep): EvalResult<FnType | All> {
 		// To be honest, I wanted to infer the function type
 		// without evaluating it, but it works anyway and should be less buggy.
 		const fn = evaluate(this)
@@ -1068,14 +1072,14 @@ export class VecLiteral extends BaseExpr {
 			throw new Error('Invalid optionalPos: ' + optionalPos)
 	}
 
-	forceEval(_env: Env, evaluate: IEvalDep): EvalResult {
+	protected forceEval(env: Env, evaluate: IEvalDep): EvalResult {
 		const items = this.items.map(i => evaluate(i))
 		const rest = this.rest ? evaluate(this.rest) : undefined
 
 		return new EvalResult(vec(items, this.optionalPos, rest))
 	}
 
-	forceInfer(_env: Env, _evaluate: IEvalDep, infer: IEvalDep) {
+	protected forceInfer(env: Env, _evaluate: IEvalDep, infer: IEvalDep) {
 		if (this.rest || this.items.length < this.optionalPos) {
 			// When it's type
 			return new EvalResult(all)
@@ -1234,7 +1238,7 @@ export class DictLiteral extends BaseExpr {
 		return this.optionalKeys.has(key)
 	}
 
-	forceEval(_env: Env, evaluate: IEvalDep): EvalResult {
+	protected forceEval(env: Env, evaluate: IEvalDep): EvalResult {
 		const items = mapValues(this.items, i => evaluate(i))
 		const rest = this.rest ? evaluate(this.rest) : undefined
 		return new EvalResult(dict(items, this.optionalKeys, rest))
@@ -1242,7 +1246,11 @@ export class DictLiteral extends BaseExpr {
 
 	eval!: (env?: Env) => EvalResult<Dict>
 
-	forceInfer(_env: Env, _evalute: IEvalDep, infer: IEvalDep): EvalResult {
+	protected forceInfer(
+		env: Env,
+		_evalute: IEvalDep,
+		infer: IEvalDep
+	): EvalResult {
 		if (this.optionalKeys.size > 0 || this.rest) {
 			// When it's type
 			return new EvalResult(all)
@@ -1357,7 +1365,11 @@ export class App extends BaseExpr {
 		return [unifier, shadowedArgs]
 	}
 
-	forceEval(env: Env, evaluate: IEvalDep, infer: IEvalDep): EvalResult {
+	protected forceEval(
+		env: Env,
+		evaluate: IEvalDep,
+		infer: IEvalDep
+	): EvalResult {
 		if (!this.fn) return new EvalResult(unit)
 
 		// Evaluate the function itself at first
@@ -1477,7 +1489,11 @@ export class App extends BaseExpr {
 			.withLog(...argLog)
 	}
 
-	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): EvalResult {
+	protected forceInfer(
+		env: Env,
+		evaluate: IEvalDep,
+		infer: IEvalDep
+	): EvalResult {
 		if (!this.fn) {
 			// Unit literal
 			return new EvalResult(unit)
@@ -1612,11 +1628,15 @@ export class Scope extends BaseExpr {
 		this.ret = ret
 	}
 
-	forceInfer(_env: Env, _evaluate: IEvalDep, infer: IEvalDep): EvalResult {
+	protected forceInfer(
+		env: Env,
+		_evaluate: IEvalDep,
+		infer: IEvalDep
+	): EvalResult {
 		return new EvalResult(this.ret ? infer(this.ret) : unit)
 	}
 
-	forceEval(_env: Env, evaluate: IEvalDep) {
+	protected forceEval(env: Env, evaluate: IEvalDep) {
 		return new EvalResult(this.ret ? evaluate(this.ret) : unit)
 	}
 
@@ -1811,7 +1831,7 @@ export class Match extends BaseExpr {
 		}
 	}
 
-	forceEval(_env: Env, evaluate: IEvalDep): EvalResult {
+	protected forceEval(env: Env, evaluate: IEvalDep): EvalResult {
 		// First, evaluate the capture expression
 		const subject = evaluate(this.subject)
 
@@ -1834,7 +1854,11 @@ export class Match extends BaseExpr {
 		})
 	}
 
-	forceInfer(_env: Env, evaluate: IEvalDep, infer: IEvalDep): EvalResult {
+	protected forceInfer(
+		env: Env,
+		evaluate: IEvalDep,
+		infer: IEvalDep
+	): EvalResult {
 		let type: Value = never
 		let remainingSubjectType = infer(this.subject)
 
@@ -1942,7 +1966,7 @@ export class InfixNumber extends BaseExpr {
 		this.args = args
 	}
 
-	forceEval(env: Env, evaluate: IEvalDep): EvalResult<Value> {
+	protected forceEval(env: Env, evaluate: IEvalDep): EvalResult<Value> {
 		const args = this.args.map(a => new Literal(a))
 
 		const app = new App(new Symbol('$' + this.op), ...args)
@@ -1951,7 +1975,11 @@ export class InfixNumber extends BaseExpr {
 		return new EvalResult(evaluate(app))
 	}
 
-	forceInfer(env: Env, evaluate: IEvalDep, infer: IEvalDep): EvalResult<Value> {
+	protected forceInfer(
+		env: Env,
+		evaluate: IEvalDep,
+		infer: IEvalDep
+	): EvalResult<Value> {
 		const args = this.args.map(a => new Literal(a))
 
 		const app = new App(new Symbol('$' + this.op), ...args)
@@ -2010,7 +2038,7 @@ export class ValueMeta extends BaseExpr {
 		expr.parent = this
 	}
 
-	forceEval(_env: Env, evaluate: IEvalDep): EvalResult<Value> {
+	protected forceEval(env: Env, evaluate: IEvalDep): EvalResult<Value> {
 		const fields = evaluate(this.fields)
 		let value = evaluate(this.expr)
 
@@ -2056,7 +2084,7 @@ export class ValueMeta extends BaseExpr {
 		return new EvalResult(value).withLog(...log)
 	}
 
-	forceInfer(_env: Env, _evaluate: IEvalDep, infer: IEvalDep) {
+	protected forceInfer(env: Env, _evaluate: IEvalDep, infer: IEvalDep) {
 		return new EvalResult(infer(this.expr))
 	}
 
