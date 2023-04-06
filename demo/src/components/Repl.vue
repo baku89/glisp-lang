@@ -96,7 +96,7 @@ function evaluate() {
 	input.value = ''
 }
 
-replScope.set('clear!', G.valueContainer(IO.of(() => (replLines.value = []))))
+replScope.set('clear!', G.container(IO.of(() => (replLines.value = []))))
 
 const printed = ref(projectScope.print())
 function updatePrinted() {

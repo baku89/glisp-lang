@@ -12,6 +12,7 @@ import {EvalResult} from '../EvalResult'
 import {
 	App,
 	app,
+	container,
 	DictLiteral,
 	dictLiteral,
 	Expr,
@@ -21,7 +22,6 @@ import {
 	paramsDef,
 	PrintOptions,
 	symbol,
-	valueContainer,
 	valueMeta,
 	vecLiteral,
 } from '../expr'
@@ -343,7 +343,7 @@ export class PrimType<T = any> extends BaseValue {
 		private readonly name: string,
 		initialDefaultValue: T,
 		public option: PrimTypeOption<T> = {
-			primToExpr: valueContainer,
+			primToExpr: container,
 			primEqual: (a, b) => a === b,
 		}
 	) {
@@ -633,7 +633,7 @@ export class Fn extends BaseValue implements IFnLike {
 	protected toExprExceptMeta(): Expr {
 		if (!this.body) {
 			// It means the function is defined in JS natively
-			return valueContainer(this)
+			return container(this)
 		}
 
 		const fnType = this.fnType

@@ -16,9 +16,9 @@ export const Color = G.primType('Color', chroma('black'), {
 })
 
 export const replScope = G.PreludeScope.extend({
-	IO: G.valueContainer(IO),
-	Color: G.valueContainer(Color),
-	rgba: G.valueContainer(
+	IO: G.container(IO),
+	Color: G.container(Color),
+	rgba: G.container(
 		G.fn(
 			G.fnType(
 				{
@@ -36,7 +36,7 @@ export const replScope = G.PreludeScope.extend({
 			}
 		)
 	),
-	'set!': G.valueContainer(
+	'set!': G.container(
 		G.fn(
 			G.fnType({name: G.StringType, value: G.all}, IO),
 			(name: G.String, value: G.Value) => {
@@ -47,7 +47,7 @@ export const replScope = G.PreludeScope.extend({
 					return new G.EvalResult(G.unit).withLog({
 						level: 'error',
 						reason: `\`${_name}\` cannot be used as a symbol name`,
-						ref: G.valueContainer(G.unit),
+						ref: G.container(G.unit),
 					})
 				}
 
@@ -59,7 +59,7 @@ export const replScope = G.PreludeScope.extend({
 			}
 		)
 	),
-	'delete!': G.valueContainer(
+	'delete!': G.container(
 		G.fn(G.fnType({name: G.StringType}, IO), (name: G.String) => {
 			const _name = name.value
 
@@ -68,7 +68,7 @@ export const replScope = G.PreludeScope.extend({
 				return new G.EvalResult(G.unit).withLog({
 					level: 'error',
 					reason: `\`${_name}\` cannot be used as a symbol name`,
-					ref: G.valueContainer(G.unit),
+					ref: G.container(G.unit),
 				})
 			}
 

@@ -66,7 +66,7 @@ export type AnyExpr = AtomExpr | ParentExpr
 /**
  * ASTs that cannot have child elements
  */
-export type AtomExpr = Symbol | ValueContainer | Literal | InfixNumber
+export type AtomExpr = Symbol | Container | Literal | InfixNumber
 
 /**
  * expressions that can contain other experssions
@@ -460,10 +460,7 @@ export class Symbol extends BaseExpr {
 									return {type: 'param', expr: e}
 								} else {
 									// 型変数は環境にセットされないので、そのまま返す
-									if (
-										e.type === 'ValueContainer' &&
-										e.value.type === 'TypeVar'
-									) {
+									if (e.type === 'Container' && e.value.type === 'TypeVar') {
 										return {type: 'arg', value: e.value}
 									}
 
@@ -583,9 +580,9 @@ export const symbol = (...paths: readonly Path[]) => new Symbol(...paths)
  * AST to directry store a value that cannot be parsed from string
  * e.g. DOM，Image
  */
-export class ValueContainer<V extends Value = Value> extends BaseExpr {
+export class Container<V extends Value = Value> extends BaseExpr {
 	get type() {
-		return 'ValueContainer' as const
+		return 'Container' as const
 	}
 
 	constructor(public readonly value: V) {
@@ -617,12 +614,12 @@ export class ValueContainer<V extends Value = Value> extends BaseExpr {
 	}
 
 	clone() {
-		return new ValueContainer(this.value)
+		return new Container(this.value)
 	}
 }
 
-export const valueContainer = <V extends Value = Value>(value: V) =>
-	new ValueContainer(value)
+export const container = <V extends Value = Value>(value: V) =>
+	new Container(value)
 
 /**
  * AST representing numeric literal
@@ -838,7 +835,7 @@ export class FnDef extends BaseExpr {
 		const typeVar = this.typeVars?.get(path)
 
 		if (typeVar) {
-			return new ValueContainer(typeVar)
+			return new Container(typeVar)
 		}
 
 		return this.params.get(path)

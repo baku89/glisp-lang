@@ -176,7 +176,7 @@ describe('resolving path symbols', () => {
 		if (
 			!i ||
 			i.type === 'Literal' ||
-			i.type === 'ValueContainer' ||
+			i.type === 'Container' ||
 			i.type === 'Symbol' ||
 			i.type === 'InfixNumber'
 		) {

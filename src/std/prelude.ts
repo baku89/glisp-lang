@@ -1,7 +1,7 @@
 import {range} from 'lodash'
 
 import {EvalResult, Log} from '../EvalResult'
-import {scope, ValueContainer, valueContainer} from '../expr'
+import {Container, container, scope} from '../expr'
 import {parse, parseModule} from '../parser'
 import {
 	All,
@@ -32,12 +32,12 @@ interface Defn {
 		type: string,
 		f: (...args: any[]) => Value,
 		options?: {lazy?: false; writeLog?: false}
-	): ValueContainer
+	): Container
 	(
 		type: string,
 		f: (...args: any[]) => ReturnType<IFn>,
 		options?: {lazy?: false; writeLog?: true}
-	): ValueContainer
+	): Container
 }
 
 const defn: Defn = (type, f, {writeLog = false} = {}) => {
@@ -55,16 +55,16 @@ const defn: Defn = (type, f, {writeLog = false} = {}) => {
 
 	const _fn = fn(fnType, _f)
 
-	return valueContainer(_fn)
+	return container(_fn)
 }
 
 export const PreludeScope = scope({
-	Number: valueContainer(NumberType),
-	String: valueContainer(StringType),
-	Boolean: valueContainer(BooleanType),
-	_: valueContainer(All.instance),
-	All: valueContainer(All.instance),
-	Never: valueContainer(Never.instance),
+	Number: container(NumberType),
+	String: container(StringType),
+	Boolean: container(BooleanType),
+	_: container(All.instance),
+	All: container(All.instance),
+	Never: container(Never.instance),
 })
 
 PreludeScope.defs({
@@ -74,8 +74,8 @@ PreludeScope.defs({
 })
 
 PreludeScope.defs({
-	true: valueContainer(True),
-	false: valueContainer(False),
+	true: container(True),
+	false: container(False),
 	log: defn(
 		'(=> (T) [value:T level:(union "error" "warn" "info") reason:String]: T)',
 		(value: Value, level: String, reason: String) =>
