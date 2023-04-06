@@ -408,8 +408,12 @@ export class PrimType<T = any> extends BaseValue {
 	}
 }
 
-export function primType<T>(name: string, initialDefaultValue: T) {
-	return new PrimType(name, initialDefaultValue)
+export function primType<T>(
+	name: string,
+	initialDefaultValue: T,
+	option?: PrimTypeOption<T>
+) {
+	return new PrimType(name, initialDefaultValue, option)
 }
 
 export type Number = Prim<number>
