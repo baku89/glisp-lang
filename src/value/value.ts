@@ -320,9 +320,7 @@ export class Prim<T = any> extends BaseValue {
 	}
 
 	clone(): Prim<T> {
-		const clonedValue = this.superType.option.primClone(this.value)
-
-		const prim = new Prim<T>(clonedValue, this.superType)
+		const prim = new Prim<T>(this.value, this.superType)
 		prim.meta = this.meta
 
 		return prim
@@ -332,7 +330,6 @@ export class Prim<T = any> extends BaseValue {
 interface PrimTypeOption<T> {
 	primToExpr: (prim: Prim<T>) => Expr
 	primEqual: (a: T, b: T) => boolean
-	primClone: (value: T) => T
 }
 
 export class PrimType<T = any> extends BaseValue {
@@ -346,7 +343,6 @@ export class PrimType<T = any> extends BaseValue {
 		public option: PrimTypeOption<T> = {
 			primToExpr: valueContainer,
 			primEqual: (a, b) => a === b,
-			primClone: v => v,
 		}
 	) {
 		super()
@@ -426,7 +422,6 @@ export const NumberType = new PrimType('Number', 0, {
 	primEqual(a, b) {
 		return a === b || (isNaN(a) && isNaN(b))
 	},
-	primClone: v => v,
 })
 
 export const StringType = new PrimType('String', '', {
@@ -434,7 +429,6 @@ export const StringType = new PrimType('String', '', {
 		return literal(prim.value)
 	},
 	primEqual: (a, b) => a === b,
-	primClone: v => v,
 })
 
 export const number: (value: number) => Number = NumberType.of.bind(NumberType)
