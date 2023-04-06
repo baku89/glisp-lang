@@ -4,7 +4,7 @@ import {entries, forOwn, fromPairs, keys, mapValues, values} from 'lodash'
 import ordinal from 'ordinal'
 
 import {EvalError} from '../EvalError'
-import {EvalInfo, EvalResult, Log} from '../EvalResult'
+import {Log} from '../Log'
 import {fromKeysValues} from '../util/fromKeysValues'
 import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
@@ -46,14 +46,6 @@ export {notifyChangedExprs} from './dep'
 export type {Action} from './action'
 
 /**
- * Used when evaluating other expressions that depend on it in forceEval.
- * The Log in the return value is collected responsibly by the caller
- * , and it will be combined with the Log of forceEval,
- * so there is no need to collect Log within forceEval.
- */
-type IEvalDep = (expr: Expr, env?: Env) => Value
-
-/**
  * ASTs that have eval, infer as normal
  */
 export type Expr = Exclude<AnyExpr, ParamsDef>
@@ -86,37 +78,6 @@ export interface PrintOptions {
 	omitMeta?: boolean
 }
 
-function createInnerEvalInfer(expr: BaseExpr, env: Env) {
-	const info: EvalInfo = {
-		hasFreeVar: false,
-		log: new Set(),
-	}
-
-	function evaluate(e: Expr, _env: Env = env): Value {
-		const {value, info: i} = e.eval(_env)
-		info.hasFreeVar ||= i.hasFreeVar
-		for (const l of i.log) {
-			info.log.add(l)
-		}
-		return value
-	}
-
-	function infer(e: Expr, _env: Env = env): Value {
-		const {value, info: i} = e.infer(_env)
-		info.hasFreeVar ||= i.hasFreeVar
-		for (const l of i.log) {
-			info.log.add(l)
-		}
-		return value
-	}
-
-	return {
-		evaluate,
-		infer,
-		info,
-	}
-}
-
 interface ExprEventTypes {
 	change: () => void
 	edit: () => void
@@ -146,22 +107,14 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	 */
 	failedResolution = new FailedResolution()
 
-	evalCache = new WeakMap<Env, EvalResult>()
-	inferCache = new WeakMap<Env, EvalResult>()
+	evalCache = new WeakMap<Env, Value>()
+	inferCache = new WeakMap<Env, Value>()
 
 	abstract print(options?: PrintOptions): string
 
-	protected abstract forceEval(
-		env: Env,
-		evaluate: IEvalDep,
-		infer: IEvalDep
-	): EvalResult<Value>
+	protected abstract forceEval(env: Env): Value
 
-	protected abstract forceInfer(
-		env: Env,
-		evaluate: IEvalDep,
-		infer: IEvalDep
-	): EvalResult<Value>
+	protected abstract forceInfer(env: Env): Value
 
 	// eslint-disable-next-line no-unused-vars
 	get(path: string | number): Expr | null {
@@ -220,7 +173,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 
 	abstract clone(): AnyExpr
 
-	eval(env = Env.global): EvalResult<Value> {
+	eval(env = Env.global): Value {
 		const evalCallee = evaluatingExprs.at(-1)
 		if (evalCallee) {
 			this.evalDep.add(evalCallee)
@@ -234,23 +187,21 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 
 		if (!cache) {
 			if (evaluatingExprs.includes(this)) {
-				return new EvalResult(unit).withLog({
+				return unit.withLog({
 					level: 'error',
 					reason: 'Circular reference detected',
 					ref: this as any as Expr,
 				})
 			}
 
-			const {evaluate, infer, info} = createInnerEvalInfer(this, env)
-
 			try {
 				evaluatingExprs.push(this)
-				cache = this.forceEval(env, evaluate, infer).withInfo(info)
+				cache = this.forceEval(env)
 			} finally {
 				evaluatingExprs.pop()
 			}
 
-			cache.value.source = this as any as Expr
+			cache.source = this as any as Expr
 
 			this.evalCache.set(env, cache)
 		}
@@ -258,7 +209,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 		return cache
 	}
 
-	infer(env = Env.global): EvalResult<Value> {
+	infer(env = Env.global): Value {
 		const inferCallee = inferringExprs.at(-1)
 		if (inferCallee) {
 			this.inferDep.add(inferCallee)
@@ -268,18 +219,16 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 
 		if (!cache) {
 			if (inferringExprs.includes(this)) {
-				return new EvalResult(unit).withLog({
+				return unit.withLog({
 					level: 'error',
 					reason: 'Circular reference detected',
 					ref: this as any as Expr,
 				})
 			}
 
-			const {evaluate, infer, info} = createInnerEvalInfer(this, env)
-
 			try {
 				inferringExprs.push(this)
-				cache = this.forceInfer(env, evaluate, infer).withInfo(info)
+				cache = this.forceInfer(env)
 			} finally {
 				inferringExprs.pop()
 			}
@@ -326,19 +275,19 @@ export class Program extends BaseExpr {
 		if (this.expr) this.expr.parent = this
 	}
 
-	protected forceEval(env: Env, evaluate: IEvalDep) {
+	protected forceEval(env: Env) {
 		if (!this.expr) {
-			return new EvalResult(unit).withLog({
+			return unit.withLog({
 				level: 'error',
 				reason: 'Empty program',
 			})
 		}
-		return new EvalResult(evaluate(this.expr))
+		return this.expr.eval(env)
 	}
 
-	protected forceInfer(env: Env, _evaluate: IEvalDep, infer: IEvalDep) {
-		if (!this.expr) return new EvalResult(unit)
-		return new EvalResult(infer(this.expr))
+	protected forceInfer(env: Env) {
+		if (!this.expr) return unit
+		return this.expr.infer(env)
 	}
 
 	print(options?: PrintOptions): string {
@@ -510,49 +459,45 @@ export class Symbol extends BaseExpr {
 		return {type: 'global', expr}
 	}
 
-	protected forceEval(env: Env, evaluate: IEvalDep): EvalResult {
+	protected forceEval(env: Env): Value {
 		const resolved = this.resolve(env)
 
 		if ('level' in resolved) {
-			return new EvalResult(unit).withLog(resolved)
+			return unit.withLog(resolved)
 		}
 
 		let value: Value
 		if (resolved.type === 'arg') {
 			value = resolved.value
 		} else {
-			value = evaluate(resolved.expr)
+			value = resolved.expr.eval(env)
 		}
 
 		// 仮引数を参照しており、かつそれが関数呼び出し時ではなく
 		// 束縛されている値が環境に見当たらない場合、自由変数なんでデフォルト値を返す
 		// ただし、型変数は除く
 		if (resolved.type === 'param') {
-			return new EvalResult(value.defaultValue).withFreeVar()
+			return value.defaultValue.withFreeVar()
 		} else {
-			return new EvalResult(value)
+			return value
 		}
 	}
 
-	protected forceInfer(
-		env: Env,
-		evaluate: IEvalDep,
-		infer: IEvalDep
-	): EvalResult {
+	protected forceInfer(env: Env): Value {
 		const resolved = this.resolve(env)
 
 		if ('level' in resolved) {
-			return new EvalResult(unit).withLog(resolved)
+			return unit.withLog(resolved)
 		}
 
 		switch (resolved.type) {
 			case 'global':
-				return new EvalResult(infer(resolved.expr))
+				return resolved.expr.infer(env)
 			case 'param': {
-				return new EvalResult(evaluate(resolved.expr))
+				return resolved.expr.eval(env)
 			}
 			case 'arg':
-				return new EvalResult(resolved.value)
+				return resolved.value
 		}
 	}
 
@@ -590,13 +535,13 @@ export class Container<V extends Value = Value> extends BaseExpr {
 	}
 
 	protected forceEval() {
-		return new EvalResult(this.value)
+		return this.value
 	}
 
 	protected forceInfer() {
-		if (this.value.isType) return new EvalResult(all)
-		if (this.value.type === 'Fn') return new EvalResult(this.value.fnType)
-		return new EvalResult(this.value)
+		if (this.value.isType) return all
+		if (this.value.type === 'Fn') return this.value.fnType
+		return this.value
 	}
 
 	get() {
@@ -634,9 +579,9 @@ export class Literal extends BaseExpr {
 	}
 
 	protected forceEval() {
-		return new EvalResult(
-			typeof this.value === 'number' ? number(this.value) : string(this.value)
-		)
+		return typeof this.value === 'number'
+			? number(this.value)
+			: string(this.value)
 	}
 
 	protected forceInfer() {
@@ -726,14 +671,10 @@ export class FnDef extends BaseExpr {
 		if (this.body) this.body.parent = this
 	}
 
-	protected forceEval(
-		env: Env,
-		evaluate: IEvalDep,
-		infer: IEvalDep
-	): EvalResult<FnType | Fn> {
+	protected forceEval(env: Env): FnType | Fn {
 		// In either case, params need to be evaluated
 		// Paramの評価時にenvをPushするのは、型変数をデフォルト値にさせないため
-		const {params, rest} = this.params.forceEvalChildren(env.push(), evaluate)
+		const {params, rest} = this.params.forceEvalChildren(env.push())
 		const {optionalPos} = this.params
 
 		const log = new Set<Log>()
@@ -749,7 +690,7 @@ export class FnDef extends BaseExpr {
 			}
 
 			const innerEnv = env.push(arg)
-			let returnType = infer(body, innerEnv)
+			let returnType = body.infer(innerEnv)
 
 			// When there's explicit notation for return type,
 			// check if inferredReturnType <: returnType is true.
@@ -758,7 +699,7 @@ export class FnDef extends BaseExpr {
 			let shouldReturnDefaultValue = false
 
 			if (this.returnType) {
-				const annotatedReturnType = evaluate(this.returnType)
+				const annotatedReturnType = this.returnType.eval(env)
 
 				if (!returnType.isSubtypeOf(annotatedReturnType)) {
 					shouldReturnDefaultValue = true
@@ -778,7 +719,7 @@ export class FnDef extends BaseExpr {
 			let fnObj: IFn
 
 			if (shouldReturnDefaultValue) {
-				fnObj = () => new EvalResult(returnType.defaultValue)
+				fnObj = () => returnType.defaultValue
 				body = returnType.defaultValue.toExpr()
 			} else {
 				const {names, restName} = this.params.getNames()
@@ -800,7 +741,7 @@ export class FnDef extends BaseExpr {
 
 			const fn = new Fn(fnType, fnObj, body)
 
-			return new EvalResult(fn).withLog(...log)
+			return fn.withLog(...log)
 		} else {
 			// Returns a function type if there's no function body
 
@@ -808,25 +749,23 @@ export class FnDef extends BaseExpr {
 			let returnType: Value = all
 			if (this.returnType) {
 				// Paramの評価時にenvをPushするのは、型変数をデフォルト値にさせないため
-				returnType = evaluate(this.returnType, env.push())
+				returnType = this.returnType.eval(env.push())
 			}
 
 			const fnType = new FnType(params, optionalPos, rest, returnType)
 
-			return new EvalResult(fnType).withLog(...log)
+			return fnType.withLog(...log)
 		}
 	}
 
-	protected forceInfer(env: Env, evaluate: IEvalDep): EvalResult<FnType | All> {
+	protected forceInfer(env: Env): FnType | All {
 		// To be honest, I wanted to infer the function type
 		// without evaluating it, but it works anyway and should be less buggy.
-		const fn = evaluate(this)
+		const fn = this.eval(env)
 
 		return fn.type === 'Fn'
-			? // When the expression is function definition
-			  new EvalResult(fn.fnType)
-			: // Otherwise, the expression means function type definition
-			  new EvalResult(all)
+			? fn.fnType // When the expression is function definition
+			: all // Otherwise, the expression means function type definition
 	}
 
 	get(path: number | string): Expr | null {
@@ -921,12 +860,12 @@ export class ParamsDef {
 		if (this.rest) this.rest.expr.parent = this
 	}
 
-	forceEvalChildren(env: Env, evaluate: IEvalDep) {
-		const params = mapValues(this.items, it => evaluate(it, env))
+	forceEvalChildren(env: Env) {
+		const params = mapValues(this.items, it => it.eval(env))
 
 		let rest: FnType['rest']
 		if (this.rest) {
-			const value = evaluate(this.rest.expr, env)
+			const value = this.rest.expr.eval(env)
 			rest = {name: this.rest.name, value}
 		}
 
@@ -1071,20 +1010,20 @@ export class VecLiteral extends BaseExpr {
 			throw new Error('Invalid optionalPos: ' + optionalPos)
 	}
 
-	protected forceEval(env: Env, evaluate: IEvalDep): EvalResult {
-		const items = this.items.map(i => evaluate(i))
-		const rest = this.rest ? evaluate(this.rest) : undefined
+	protected forceEval(env: Env): Value {
+		const items = this.items.map(it => it.eval(env))
+		const rest = this.rest?.eval(env)
 
-		return new EvalResult(vec(items, this.optionalPos, rest))
+		return vec(items, this.optionalPos, rest)
 	}
 
-	protected forceInfer(env: Env, _evaluate: IEvalDep, infer: IEvalDep) {
+	protected forceInfer(env: Env): Value {
 		if (this.rest || this.items.length < this.optionalPos) {
 			// When it's type
-			return new EvalResult(all)
+			return all
 		}
-		const items = this.items.map(it => infer(it))
-		return new EvalResult(vec(items))
+		const items = this.items.map(it => it.infer(env))
+		return vec(items)
 	}
 
 	get(path: number | string): Expr | null {
@@ -1237,26 +1176,22 @@ export class DictLiteral extends BaseExpr {
 		return this.optionalKeys.has(key)
 	}
 
-	protected forceEval(env: Env, evaluate: IEvalDep): EvalResult {
-		const items = mapValues(this.items, i => evaluate(i))
-		const rest = this.rest ? evaluate(this.rest) : undefined
-		return new EvalResult(dict(items, this.optionalKeys, rest))
+	protected forceEval(env: Env): Value {
+		const items = mapValues(this.items, it => it.eval(env))
+		const rest = this.rest?.eval(env)
+		return dict(items, this.optionalKeys, rest)
 	}
 
-	eval!: (env?: Env) => EvalResult<Dict>
+	eval!: (env?: Env) => Dict
 
-	protected forceInfer(
-		env: Env,
-		_evalute: IEvalDep,
-		infer: IEvalDep
-	): EvalResult {
+	protected forceInfer(env: Env): Value {
 		if (this.optionalKeys.size > 0 || this.rest) {
 			// When it's type
-			return new EvalResult(all)
+			return all
 		}
 
-		const items = mapValues(this.items, it => infer(it))
-		return new EvalResult(dict(items))
+		const items = mapValues(this.items, it => it.infer(env))
+		return dict(items)
 	}
 
 	get(path: string | number): Expr | null {
@@ -1336,10 +1271,10 @@ export class App extends BaseExpr {
 		args.forEach(a => (a.parent = this))
 	}
 
-	#unify(env: Env, evaluate: IEvalDep, infer: IEvalDep): [Unifier, Value[]] {
+	#unify(env: Env): [Unifier, Value[]] {
 		if (!this.fn) throw new Error('Cannot unify unit literal')
 
-		const fn = evaluate(this.fn)
+		const fn = this.fn.eval(env)
 
 		if (!('fnType' in fn)) return [new Unifier(), []]
 
@@ -1353,7 +1288,7 @@ export class App extends BaseExpr {
 		// 実引数をshadowする必要があるのは、(id id) のように多相関数の引数として
 		// 自らを渡した際に、仮引数と実引数とで型変数が被るのを防ぐため
 		const shadowedArgs = args.map(a => {
-			return shadowTypeVars(infer(a))
+			return shadowTypeVars(a.infer(env))
 		})
 
 		const paramsType = vec(params, fnType.optionalPos, fnType.rest?.value)
@@ -1364,19 +1299,15 @@ export class App extends BaseExpr {
 		return [unifier, shadowedArgs]
 	}
 
-	protected forceEval(
-		env: Env,
-		evaluate: IEvalDep,
-		infer: IEvalDep
-	): EvalResult {
-		if (!this.fn) return new EvalResult(unit)
+	protected forceEval(env: Env): Value {
+		if (!this.fn) return unit
 
 		// Evaluate the function itself at first
-		const fn = evaluate(this.fn)
+		const fn = this.fn.eval(env)
 
 		// Check if it's not a function
 		if (!('fn' in fn)) {
-			return new EvalResult(fn)
+			return fn
 		}
 
 		const fnType = fn.fnType
@@ -1386,7 +1317,7 @@ export class App extends BaseExpr {
 		const params = values(fnType.params)
 
 		// Unify FnType and args
-		const [unifier, shadowedArgs] = this.#unify(env, evaluate, infer)
+		const [unifier, shadowedArgs] = this.#unify(env)
 		const unifiedParams = params.map(p => unifier.substitute(p))
 		const unifiedArgs = shadowedArgs.map(a => unifier.substitute(a))
 
@@ -1411,7 +1342,7 @@ export class App extends BaseExpr {
 
 			if (aType.isSubtypeOf(pType)) {
 				// Type matched
-				return evaluate(this.args[i])
+				return this.args[i].eval(env)
 			} else {
 				// Type mismatched
 				if (aType.type !== 'Unit') {
@@ -1441,7 +1372,7 @@ export class App extends BaseExpr {
 
 				if (aType.isSubtypeOf(pType)) {
 					// Type matched
-					const a = evaluate(this.args[i])
+					const a = this.args[i].eval(env)
 					args.push(a)
 				} else {
 					// Type mismatched
@@ -1462,7 +1393,7 @@ export class App extends BaseExpr {
 		}
 
 		// Call the function
-		let result: EvalResult
+		let result: Value
 		try {
 			result = fn.fn(...args)
 		} catch (err) {
@@ -1482,29 +1413,25 @@ export class App extends BaseExpr {
 			throw new EvalError(this, message)
 		}
 
-		return result
-			.map(value => unifier.substitute(value, true))
-			.withRef(this)
-			.withLog(...argLog)
+		result = unifier.substitute(result, true)
+		// result = result.withRef(this)
+
+		return result.withLog(...argLog)
 	}
 
-	protected forceInfer(
-		env: Env,
-		evaluate: IEvalDep,
-		infer: IEvalDep
-	): EvalResult {
+	protected forceInfer(env: Env): Value {
 		if (!this.fn) {
 			// Unit literal
-			return new EvalResult(unit)
+			return unit
 		}
 
-		const ty = infer(this.fn)
+		const ty = this.fn.infer(env)
 		if (!('fnType' in ty)) {
-			return new EvalResult(ty)
+			return ty
 		}
 
-		const [unifier] = this.#unify(env, evaluate, infer)
-		return new EvalResult(unifier.substitute(ty.fnType.ret, true))
+		const [unifier] = this.#unify(env)
+		return unifier.substitute(ty.fnType.ret, true)
 	}
 
 	get(path: string | number): Expr | null {
@@ -1514,7 +1441,7 @@ export class App extends BaseExpr {
 		if (typeof path === 'string') {
 			// NOTE: 実引数として渡された関数の方ではなく、仮引数の方で名前を参照するべきなので、
 			// Env.globalのほうが良いのでは?
-			const fnType = this.fn.infer().value
+			const fnType = this.fn.infer()
 			if (fnType.type !== 'FnType') return null
 
 			const paramNames = keys(fnType.params)
@@ -1536,7 +1463,7 @@ export class App extends BaseExpr {
 		if (typeof path === 'string') {
 			if (!this.fn) throw new Error('Invalid')
 
-			const fnType = this.fn.infer().value
+			const fnType = this.fn.infer()
 			if (fnType.type !== 'FnType') throw new Error('Invalid')
 
 			const paramNames = keys(fnType.params)
@@ -1627,16 +1554,12 @@ export class Scope extends BaseExpr {
 		this.ret = ret
 	}
 
-	protected forceInfer(
-		env: Env,
-		_evaluate: IEvalDep,
-		infer: IEvalDep
-	): EvalResult {
-		return new EvalResult(this.ret ? infer(this.ret) : unit)
+	protected forceInfer(env: Env): Value {
+		return this.ret ? this.ret.infer(env) : unit
 	}
 
-	protected forceEval(env: Env, evaluate: IEvalDep) {
-		return new EvalResult(this.ret ? evaluate(this.ret) : unit)
+	protected forceEval(env: Env) {
+		return this.ret ? this.ret.eval(env) : unit
 	}
 
 	get(path: string | number): Expr | null {
@@ -1830,47 +1753,43 @@ export class Match extends BaseExpr {
 		}
 	}
 
-	protected forceEval(env: Env, evaluate: IEvalDep): EvalResult {
+	protected forceEval(env: Env): Value {
 		// First, evaluate the capture expression
-		const subject = evaluate(this.subject)
+		const subject = this.subject.eval(env)
 
 		// Try to match the pattern in order
 		// and evaluate ret expression if matched
 		for (const [pattern, then] of this.cases) {
-			if (subject.isSubtypeOf(evaluate(pattern))) {
-				return new EvalResult(evaluate(then))
+			if (subject.isSubtypeOf(pattern.eval(env))) {
+				return then.eval(env)
 			}
 		}
 
 		if (this.otherwise) {
-			return new EvalResult(evaluate(this.otherwise))
+			return this.otherwise.eval(env)
 		}
 
-		return new EvalResult(unit).withLog({
+		return unit.withLog({
 			level: 'error',
 			reason: 'No pattern has matched',
 			ref: this,
 		})
 	}
 
-	protected forceInfer(
-		env: Env,
-		evaluate: IEvalDep,
-		infer: IEvalDep
-	): EvalResult {
+	protected forceInfer(env: Env): Value {
 		let type: Value = never
-		let remainingSubjectType = infer(this.subject)
+		let remainingSubjectType = this.subject.infer(env)
 
 		for (const [_pattern, _then] of this.cases ?? []) {
-			const pattern = evaluate(_pattern)
-			const then = infer(_then)
+			const pattern = _pattern.eval(env)
+			const then = _then.infer(env)
 
 			type = unionType(type, then)
 			remainingSubjectType = differenceType(remainingSubjectType, pattern)
 		}
 
 		if (this.otherwise) {
-			type = unionType(type, infer(this.otherwise))
+			type = unionType(type, this.otherwise.infer(env))
 			remainingSubjectType = never
 		}
 
@@ -1878,7 +1797,7 @@ export class Match extends BaseExpr {
 			type = unionType(type, unit)
 		}
 
-		return new EvalResult(type)
+		return type
 	}
 
 	get(path: string | number): Expr | null {
@@ -1965,26 +1884,22 @@ export class InfixNumber extends BaseExpr {
 		this.args = args
 	}
 
-	protected forceEval(env: Env, evaluate: IEvalDep): EvalResult<Value> {
+	protected forceEval(env: Env): Value {
 		const args = this.args.map(a => new Literal(a))
 
 		const app = new App(new Symbol('$' + this.op), ...args)
 		app.parent = this.parent
 
-		return new EvalResult(evaluate(app))
+		return app.eval(env)
 	}
 
-	protected forceInfer(
-		env: Env,
-		evaluate: IEvalDep,
-		infer: IEvalDep
-	): EvalResult<Value> {
+	protected forceInfer(env: Env): Value {
 		const args = this.args.map(a => new Literal(a))
 
 		const app = new App(new Symbol('$' + this.op), ...args)
 		app.parent = this.parent
 
-		return new EvalResult(infer(app))
+		return app.infer(env)
 	}
 
 	get() {
@@ -2037,9 +1952,9 @@ export class ValueMeta extends BaseExpr {
 		expr.parent = this
 	}
 
-	protected forceEval(env: Env, evaluate: IEvalDep): EvalResult<Value> {
-		const fields = evaluate(this.fields)
-		let value = evaluate(this.expr)
+	protected forceEval(env: Env): Value {
+		const fields = this.fields.eval(env)
+		let value = this.expr.eval(env)
 
 		const log = new Set<Log>()
 
@@ -2055,7 +1970,7 @@ export class ValueMeta extends BaseExpr {
 			})
 
 			// Just returns a value with logs
-			return new EvalResult(value)
+			return value
 		}
 
 		const meta: Meta = {...fields.items}
@@ -2080,11 +1995,11 @@ export class ValueMeta extends BaseExpr {
 			value = value.withMeta(meta)
 		}
 
-		return new EvalResult(value).withLog(...log)
+		return value.withLog(...log)
 	}
 
-	protected forceInfer(env: Env, _evaluate: IEvalDep, infer: IEvalDep) {
-		return new EvalResult(infer(this.expr))
+	protected forceInfer(env: Env): Value {
+		return this.expr.infer(env)
 	}
 
 	get(): null {

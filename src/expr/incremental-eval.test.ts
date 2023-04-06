@@ -52,7 +52,7 @@ describe('incremental evaluation', () => {
 				printAction(action) +
 				`) evaluates to \`${expected.print()}\``,
 			() => {
-				const expectedValue = expected.eval().value
+				const expectedValue = expected.eval()
 
 				src.eval()
 
@@ -61,7 +61,7 @@ describe('incremental evaluation', () => {
 				// Print the modified AST to make sure delimiters are still valid
 				src.print()
 
-				const evaluated = src.eval().value
+				const evaluated = src.eval()
 
 				if (!evaluated.isEqualTo(expectedValue)) {
 					throw new Error(`Got=${evaluated.print()}`)

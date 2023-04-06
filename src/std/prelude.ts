@@ -1,7 +1,7 @@
 import {range} from 'lodash'
 
-import {EvalResult, Log} from '../EvalResult'
-import {Container, container, scope} from '../expr'
+import {container, scope} from '../expr'
+import {Log} from '../Log'
 import {parse, parseModule} from '../parser'
 import {
 	All,
@@ -27,33 +27,12 @@ import {
 	vec,
 } from '../value'
 
-interface Defn {
-	(
-		type: string,
-		f: (...args: any[]) => Value,
-		options?: {lazy?: false; writeLog?: false}
-	): Container
-	(
-		type: string,
-		f: (...args: any[]) => ReturnType<IFn>,
-		options?: {lazy?: false; writeLog?: true}
-	): Container
-}
-
-const defn: Defn = (type, f, {writeLog = false} = {}) => {
-	const fnType = parse(type, PreludeScope).eval().value
+function defn(type: string, f: IFn) {
+	const fnType = parse(type, PreludeScope).eval()
 
 	if (fnType.type !== 'FnType') throw new Error('Not a fnType:' + type)
 
-	let _f: IFn
-
-	if (writeLog) {
-		_f = (...args) => f(...args) as ReturnType<IFn>
-	} else {
-		_f = (...args) => new EvalResult(f(...args) as Value)
-	}
-
-	const _fn = fn(fnType, _f)
+	const _fn = fn(fnType, f)
 
 	return container(_fn)
 }
@@ -79,11 +58,10 @@ PreludeScope.defs({
 	log: defn(
 		'(=> (T) [value:T level:(union "error" "warn" "info") reason:String]: T)',
 		(value: Value, level: String, reason: String) =>
-			new EvalResult(value).withLog({
+			value.withLog({
 				level: level.value as Log['level'],
 				reason: reason.value,
-			}),
-		{writeLog: true}
+			})
 	),
 	'+': defn('(=> [...xs:Number]: Number)', (...xs: Number[]) =>
 		number(xs.reduce((sum, x) => sum + x.value, 0))
@@ -161,16 +139,14 @@ PreludeScope.defs({
 	map: defn(
 		'(=> (T U) [f: (=> [t:T]: U) coll:[...T]]: [...U])',
 		(f: Fn, coll: Vec) => {
-			const [items, info] = EvalResult.map(coll.items, f.fn).asArray
-			return new EvalResult(vec(items), info)
-		},
-		{writeLog: true}
+			return vec(coll.items.map(f.fn))
+		}
 	),
 	filter: defn(
 		'(=> (T) [pred: (=> [x: T]: Boolean) coll: [...T]]: [...T])',
 		(f: Fn, coll: Vec) => {
 			const items = coll.items.filter(it => {
-				return f.fn(it).value.isEqualTo(True)
+				return f.fn(it).isEqualTo(True)
 			})
 			return vec(items)
 		}
@@ -179,7 +155,7 @@ PreludeScope.defs({
 		'(=> (T U) [f: (=> [u:U t:T]: U) coll: [...T] initial: U]: U)',
 		(f: Fn, coll: Vec, initial: Value) => {
 			return coll.items.reduce(
-				(prev: Value, curt: Value) => f.fn(prev, curt).value,
+				(prev: Value, curt: Value) => f.fn(prev, curt),
 				initial
 			)
 		}

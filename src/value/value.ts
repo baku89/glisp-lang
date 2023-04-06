@@ -8,7 +8,6 @@ import {
 	values,
 } from 'lodash'
 
-import {EvalResult} from '../EvalResult'
 import {
 	App,
 	app,
@@ -26,6 +25,7 @@ import {
 	vecLiteral,
 } from '../expr'
 import {getTypeVars} from '../expr/unify'
+import {Log} from '../Log'
 import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
 import {isEqualSet} from '../util/isEqualSet'
@@ -94,6 +94,23 @@ export abstract class BaseValue {
 
 	source?: Expr
 
+	hasFreeVar?: boolean
+	log?: Set<Log>
+
+	withLog(...logs: Log[]): Value {
+		const value = this.clone()
+		if (logs.length > 0) {
+			value.log = new Set([...(this.log ?? []), ...logs])
+		}
+		return value
+	}
+
+	withFreeVar() {
+		const value = this.clone()
+		value.hasFreeVar = true
+		return value
+	}
+
 	protected abstract toExprExceptMeta(): Expr
 
 	toExpr(): Expr {
@@ -144,7 +161,7 @@ export abstract class BaseValue {
 	abstract clone(): Value
 }
 
-export type IFn = (...params: any[]) => EvalResult
+export type IFn = (...params: any[]) => Value
 
 interface IFnType {
 	fnType: FnType
@@ -445,7 +462,7 @@ export class Enum extends BaseValue {
 		super()
 	}
 
-	readonly superType!: EnumType
+	superType!: EnumType
 
 	get defaultValue() {
 		return this
@@ -470,6 +487,7 @@ export class Enum extends BaseValue {
 
 	clone() {
 		const value = new Enum(this.name)
+		value.superType = this.superType
 		value.meta = this.meta
 		return value
 	}
@@ -494,7 +512,7 @@ export class EnumType extends BaseValue {
 
 		this.name = name
 		this.types = labels.map(l => new Enum(l))
-		this.types.forEach(t => ((t.superType as EnumType) = this))
+		this.types.forEach(t => (t.superType = this))
 	}
 
 	get superType() {
@@ -626,6 +644,9 @@ export class Fn extends BaseValue implements IFnLike {
 		return this
 	}
 
+	withLog!: (...logs: Log[]) => Fn
+	withFreeVar!: () => Fn
+
 	isEqualTo(value: Value) {
 		return this === value
 	}
@@ -727,6 +748,9 @@ export class FnType extends BaseValue implements IFnType {
 		return this
 	}
 
+	withLog!: (...logs: Log[]) => FnType
+	withFreeVar!: () => FnType
+
 	#defaultValue?: Fn
 	get defaultValue() {
 		return (this.#defaultValue ??= this.initialDefaultValue)
@@ -735,7 +759,7 @@ export class FnType extends BaseValue implements IFnType {
 	#initialDefaultValue?: Fn
 	get initialDefaultValue(): Fn {
 		if (!this.#initialDefaultValue) {
-			const fnObj = () => new EvalResult(this.ret.defaultValue)
+			const fnObj = () => this.ret.defaultValue
 			const fn = new Fn(this, fnObj, this.ret.defaultValue.toExpr())
 			this.#initialDefaultValue = fn
 		}
@@ -978,13 +1002,13 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 		if (i < 0 || this.items.length <= i) {
 			i = Math.max(0, Math.min(i, this.items.length - 1))
 
-			return new EvalResult(this.items[i]).withLog({
+			return this.items[i].withLog({
 				level: 'warn',
 				reason: 'Index out of range',
 			})
 		}
 
-		return new EvalResult(this.items[i])
+		return this.items[i]
 	}
 
 	get fn(): IFn {
