@@ -250,6 +250,8 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 				evaluatingExprs.pop()
 			}
 
+			cache.value.source = this as any as Expr
+
 			this.evalCache.set(env, cache)
 		}
 

@@ -92,6 +92,8 @@ export abstract class BaseValue {
 		return isType(this as any)
 	}
 
+	source?: Expr
+
 	protected abstract toExprExceptMeta(): Expr
 
 	toExpr(): Expr {
