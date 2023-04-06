@@ -5,7 +5,15 @@ export const IO = G.primType('IO', () => {
 	return
 })
 
-export const Color = G.primType('Color', chroma('black'))
+export const Color = G.primType('Color', chroma('black'), {
+	primToExpr(prim) {
+		const rgba = prim.value.rgba().map(G.literal)
+		return G.app(G.symbol('rgba'), ...rgba)
+	},
+	primEqual(a, b) {
+		return a.hex() === b.hex()
+	},
+})
 
 export const replScope = G.PreludeScope.extend({
 	IO: G.valueContainer(IO),
