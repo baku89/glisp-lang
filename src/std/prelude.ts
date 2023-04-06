@@ -125,7 +125,7 @@ PreludeScope.defs({
 	'<': defn('(=> [x:Number y:Number]: Boolean)', (x: Number, y: Number) =>
 		boolean(x.value < y.value)
 	),
-	'==': defn('(=> [x:Number y:Number]: Boolean)', (x: Value, y: Value) =>
+	'==': defn('(=> [x:_ y:_]: Boolean)', (x: Value, y: Value) =>
 		boolean(x.isEqualTo(y))
 	),
 	'&&': defn(
