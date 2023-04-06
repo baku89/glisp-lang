@@ -477,7 +477,7 @@ export class Symbol extends BaseExpr {
 		// 束縛されている値が環境に見当たらない場合、自由変数なんでデフォルト値を返す
 		// ただし、型変数は除く
 		if (resolved.type === 'param') {
-			return value.defaultValue.withFreeVar()
+			return value.defaultValue.usesParamDefault()
 		} else {
 			return value
 		}

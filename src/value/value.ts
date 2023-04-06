@@ -92,9 +92,16 @@ export abstract class BaseValue {
 		return isType(this as any)
 	}
 
+	/**
+	 * その値が返された式への参照。Mutableであり、常にその値が返された最後の式への参照を持つ
+	 */
 	source?: Expr
 
-	hasFreeVar?: boolean
+	/**
+	 * その値が、関数本体部の式において、仮引数のデフォルト値として返された値か?
+	 */
+	isParamDefault?: boolean
+
 	log?: Set<Log>
 
 	withLog(...logs: Log[]): Value {
@@ -105,9 +112,9 @@ export abstract class BaseValue {
 		return value
 	}
 
-	withFreeVar() {
+	usesParamDefault() {
 		const value = this.clone()
-		value.hasFreeVar = true
+		value.isParamDefault = true
 		return value
 	}
 
@@ -645,7 +652,7 @@ export class Fn extends BaseValue implements IFnLike {
 	}
 
 	withLog!: (...logs: Log[]) => Fn
-	withFreeVar!: () => Fn
+	usesParamDefault!: () => Fn
 
 	isEqualTo(value: Value) {
 		return this === value
@@ -749,7 +756,7 @@ export class FnType extends BaseValue implements IFnType {
 	}
 
 	withLog!: (...logs: Log[]) => FnType
-	withFreeVar!: () => FnType
+	usesParamDefault!: () => FnType
 
 	#defaultValue?: Fn
 	get defaultValue() {
