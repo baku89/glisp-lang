@@ -33,7 +33,6 @@ import {createUniqueName} from '../util/NameCollision'
 import {nullishEqual} from '../util/nullishEqual'
 import {union} from '../util/SetOperation'
 import {unionType} from './TypeOperation'
-import {createFoldFn} from './walk'
 
 export type Value = Type | Atomic
 
@@ -79,9 +78,7 @@ export abstract class BaseValue {
 		return this.isEqualTo(ty) || this.superType.isSubtypeOf(ty)
 	}
 
-	get isType(): boolean {
-		return isType(this as any)
-	}
+	abstract isType: boolean
 
 	/**
 	 * その値が返された式への参照。Mutableであり、常にその値が返された最後の式への参照を持つ
@@ -190,6 +187,8 @@ export class Unit extends BaseValue {
 		return this.type === value.type
 	}
 
+	isType = false
+
 	protected toExprExceptMeta() {
 		return app()
 	}
@@ -239,6 +238,8 @@ export class All extends BaseValue {
 	isSubtypeOf(value: Value) {
 		return this.isEqualTo(value)
 	}
+
+	isType = true
 
 	withDefault(defaultValue: Atomic): Value {
 		const value = this.clone()
@@ -291,6 +292,8 @@ export class Never extends BaseValue {
 		return true
 	}
 
+	isType = true
+
 	clone() {
 		const value = new Never()
 		value.meta = this.meta
@@ -335,6 +338,8 @@ export class Prim<T = any> extends BaseValue {
 			this.superType.option.primEqual(this.value, value.value)
 		)
 	}
+
+	isType = false
 
 	clone(): Prim<T> {
 		const prim = new Prim<T>(this.value, this.superType)
@@ -391,6 +396,8 @@ export class PrimType<T = any> extends BaseValue {
 	isEqualTo(value: Value) {
 		return this.type === value.type && this.name === value.name
 	}
+
+	isType = true
 
 	of(value: T): Prim<T> {
 		return new Prim(value, this)
@@ -483,6 +490,8 @@ export class Enum extends BaseValue {
 		)
 	}
 
+	isType = false
+
 	clone() {
 		const value = new Enum(this.name)
 		value.superType = this.superType
@@ -534,6 +543,8 @@ export class EnumType extends BaseValue {
 	isEqualTo(value: Value) {
 		return this.type === value.type && this.name === value.name
 	}
+
+	isType = true
 
 	getEnum(label: string) {
 		const en = this.types.find(t => t.name === label)
@@ -602,6 +613,8 @@ export class TypeVar extends BaseValue {
 		return this === value
 	}
 
+	isType = true
+
 	clone(): Value {
 		throw new Error('TypeVar cannot be cloned')
 	}
@@ -648,6 +661,8 @@ export class Fn extends BaseValue implements IFnLike {
 	isEqualTo(value: Value) {
 		return this === value
 	}
+
+	isType = false
 
 	protected toExprExceptMeta(): Expr {
 		if (!this.body) {
@@ -843,6 +858,8 @@ export class FnType extends BaseValue implements IFnType {
 		return valueParam.isSubtypeOf(thisParam) && this.ret.isSubtypeOf(value.ret)
 	}
 
+	isType = true
+
 	declare isTypeFor: (value: Value) => value is Fn
 
 	withDefault(defaultValue: Atomic): Value {
@@ -986,6 +1003,14 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 		return true
 	}
 
+	get isType(): boolean {
+		return (
+			this.optionalPos < this.items.length ||
+			!!this.rest ||
+			this.items.map(it => it.isType).includes(true)
+		)
+	}
+
 	get fnType() {
 		return new FnType({index: NumberType}, unionType(...this.items))
 	}
@@ -1119,6 +1144,16 @@ export class Dict<
 		return true
 	}
 
+	get isType(): boolean {
+		return (
+			this.optionalKeys.size > 0 ||
+			!!this.rest ||
+			values(this.items)
+				.map(it => it.isType)
+				.includes(true)
+		)
+	}
+
 	declare isTypeFor: (value: Value) => value is Dict
 
 	withDefault(defaultValue: Atomic): Value {
@@ -1194,6 +1229,8 @@ export class UnionType extends BaseValue {
 		return this.types.some(s.isSubtypeOf.bind(s))
 	}
 
+	isType = true
+
 	withDefault(defaultValue: Atomic): Value {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
 
@@ -1226,28 +1263,3 @@ export function isEqual(a: Value, b: Value): boolean {
 export function isSubtype(a: Value, b: Value): boolean {
 	return a.isSubtypeOf(b)
 }
-
-const or = (...xs: boolean[]) => xs.some(x => x)
-
-const isType = createFoldFn(
-	{
-		All: () => true,
-		TypeVar: () => true,
-		Never: () => true,
-		PrimType: () => true,
-		EnumType: () => true,
-		FnType: () => true,
-		UnionType: () => true,
-
-		Fn: () => false,
-
-		Vec(v, fold, c) {
-			return fold(...v.items.map(c), v.optionalPos < v.items.length, !!v.rest)
-		},
-		Dict(v, fold, c) {
-			return fold(...values(v.items).map(c), v.optionalKeys.size > 0, !!v.rest)
-		},
-	},
-	false,
-	or
-)
