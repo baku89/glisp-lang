@@ -74,7 +74,7 @@ export function createFoldFn<U>(
 				const f = visitors[type] ?? defaultFn
 
 				const us = [f(value), ...value.items.map(fold)]
-				if (value.rest) us.push(fold(value))
+				if (value.rest) us.push(fold(value.rest))
 
 				return concat(...us)
 			}
