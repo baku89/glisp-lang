@@ -45,9 +45,9 @@ export type Meta = Record<string, Value>
  */
 type Atomic = Never | Unit | Prim<any> | Enum | Fn | Vec | Dict
 
-const emptySet = new Set<TypeVar>()
+const emptySet = new Set<any>()
 
-const getTypeVars = createFoldFn(
+const getTypeVars = createFoldFn<Set<TypeVar>>(
 	{
 		TypeVar: ty => new Set([ty]),
 	},
@@ -104,18 +104,18 @@ export abstract class BaseValue {
 	 */
 	isParamDefault?: boolean
 
-	log?: Set<Log>
+	log = new Set<Log>()
 
 	withLog(...logs: Log[]): Value {
-		const value = this.clone()
+		const value = this.cloneOnlyProps()
 		if (logs.length > 0) {
-			value.log = new Set([...(this.log ?? []), ...logs])
+			value.log = union(this.log, logs)
 		}
 		return value
 	}
 
 	usesParamDefault() {
-		const value = this.clone()
+		const value = this.cloneOnlyProps()
 		value.isParamDefault = true
 		return value
 	}
@@ -154,7 +154,7 @@ export abstract class BaseValue {
 	withMeta(meta: Meta) {
 		const thisMeta = this.meta ?? {}
 
-		const value = this.clone()
+		const value = this.cloneOnlyProps()
 		value.meta = {...thisMeta, ...meta}
 		return value
 	}
@@ -167,7 +167,15 @@ export abstract class BaseValue {
 		return this.toExpr().print(options)
 	}
 
-	abstract clone(): Value
+	clone() {
+		const value = this.cloneOnlyProps()
+		value.#meta = this.meta
+		value.log = this.log
+		value.isParamDefault = this.isParamDefault
+		return value
+	}
+
+	protected abstract cloneOnlyProps(): Value
 }
 
 export type IFn = (...params: any[]) => Value
@@ -207,10 +215,10 @@ export class Unit extends BaseValue {
 		return app()
 	}
 
-	clone() {
-		const value = new Unit()
-		value.meta = this.meta
-		return value
+	declare clone: () => Unit
+
+	protected cloneOnlyProps() {
+		return new Unit()
 	}
 
 	static instance = new Unit()
@@ -255,16 +263,17 @@ export class All extends BaseValue {
 
 	isType = true
 
-	withDefault(defaultValue: Atomic): Value {
+	withDefault(defaultValue: Atomic): All {
 		const value = this.clone()
 		value.#defaultValue = defaultValue
 		return value
 	}
 
-	clone() {
+	declare clone: () => All
+
+	protected cloneOnlyProps() {
 		const value = new All()
 		value.#defaultValue = this.#defaultValue
-		value.meta = this.meta
 		return value
 	}
 
@@ -308,10 +317,10 @@ export class Never extends BaseValue {
 
 	isType = true
 
-	clone() {
-		const value = new Never()
-		value.meta = this.meta
-		return value
+	declare clone: () => Never
+
+	protected cloneOnlyProps() {
+		return new Never()
 	}
 
 	static instance = new Never()
@@ -355,11 +364,10 @@ export class Prim<T = any> extends BaseValue {
 
 	isType = false
 
-	clone(): Prim<T> {
-		const prim = new Prim<T>(this.value, this.superType)
-		prim.meta = this.meta
+	declare clone: () => Prim<T>
 
-		return prim
+	cloneOnlyProps(): Prim<T> {
+		return new Prim<T>(this.value, this.superType)
 	}
 }
 
@@ -425,7 +433,9 @@ export class PrimType<T = any> extends BaseValue {
 		return value
 	}
 
-	clone() {
+	declare clone: () => PrimType
+
+	protected cloneOnlyProps() {
 		const value = new PrimType<T>(
 			this.name,
 			this.#initialDefaultValue.value,
@@ -433,7 +443,6 @@ export class PrimType<T = any> extends BaseValue {
 		)
 
 		value.#defaultValue = this.#defaultValue
-		value.meta = this.meta
 		return value
 	}
 
@@ -506,10 +515,11 @@ export class Enum extends BaseValue {
 
 	isType = false
 
-	clone() {
+	declare clone: () => Enum
+
+	protected cloneOnlyProps() {
 		const value = new Enum(this.name)
 		value.superType = this.superType
-		value.meta = this.meta
 		return value
 	}
 
@@ -573,18 +583,17 @@ export class EnumType extends BaseValue {
 	withDefault(defaultValue: Atomic) {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
 
-		const value = this.clone()
+		const value = this.cloneOnlyProps()
 		value.#defaultValue = defaultValue
 		return value
 	}
 
-	clone() {
+	cloneOnlyProps() {
 		const value = new EnumType(
 			this.name,
 			this.types.map(t => t.name)
 		)
 		value.#defaultValue = this.#defaultValue
-		value.meta = this.meta
 		return value
 	}
 }
@@ -629,7 +638,9 @@ export class TypeVar extends BaseValue {
 
 	isType = true
 
-	clone(): Value {
+	declare clone: () => never
+
+	protected cloneOnlyProps(): Value {
 		throw new Error('TypeVar cannot be cloned')
 	}
 
@@ -704,10 +715,10 @@ export class Fn extends BaseValue implements IFnLike {
 		)
 	}
 
-	clone() {
-		const value = new Fn(this.superType, this.fn, this.body)
-		value.meta = this.meta
-		return value
+	declare clone: () => Fn
+
+	protected cloneOnlyProps() {
+		return new Fn(this.superType, this.fn, this.body)
 	}
 }
 
@@ -864,16 +875,17 @@ export class FnType extends BaseValue implements IFnType {
 	withDefault(defaultValue: Atomic): Value {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
 
-		const value = this.clone()
+		const value = this.cloneOnlyProps()
 		value.#defaultValue = defaultValue
 		return value
 	}
 
-	clone() {
+	declare clone: () => FnType
+
+	protected cloneOnlyProps() {
 		const value = new FnType(this.params, this.optionalPos, this.rest, this.ret)
 		value.#defaultValue = this.#defaultValue
 		value.#initialDefaultValue = this.#initialDefaultValue
-		value.meta = this.meta
 		return value
 	}
 }
@@ -1046,10 +1058,11 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 		return value
 	}
 
-	clone(): Vec {
+	declare clone: () => Vec
+
+	protected cloneOnlyProps(): Vec {
 		const value = new Vec(this.items, this.optionalPos, this.rest)
 		value.#defaultValue = this.#defaultValue
-		value.meta = this.meta
 		return value
 	}
 }
@@ -1162,10 +1175,11 @@ export class Dict<
 		return value
 	}
 
-	clone(): Dict<TItems> {
+	declare clone: () => Dict
+
+	protected cloneOnlyProps(): Dict<TItems> {
 		const value = new Dict(this.items, this.optionalKeys, this.rest)
 		value.#defaultValue = this.#defaultValue
-		value.meta = this.meta
 		return value
 	}
 
@@ -1229,6 +1243,8 @@ export class UnionType extends BaseValue {
 
 	isType = true
 
+	declare clone: () => UnionType
+
 	withDefault(defaultValue: Atomic): Value {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
 
@@ -1237,10 +1253,9 @@ export class UnionType extends BaseValue {
 		return value
 	}
 
-	clone() {
+	protected cloneOnlyProps() {
 		const value = new UnionType(this.types)
 		value.#defaultValue = this.#defaultValue
-		value.meta = this.meta
 		return value
 	}
 
