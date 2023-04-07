@@ -1231,6 +1231,7 @@ const or = (...xs: boolean[]) => xs.some(x => x)
 
 const isType = createFoldFn(
 	{
+		All: () => true,
 		TypeVar: () => true,
 		Never: () => true,
 		PrimType: () => true,

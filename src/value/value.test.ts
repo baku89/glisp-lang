@@ -126,7 +126,7 @@ describe('subtyping', () => {
 })
 
 describe('checking type or atom', () => {
-	test('_', false)
+	test('_', true)
 	test('Never', true)
 	test('()', false)
 	test('0', false)
