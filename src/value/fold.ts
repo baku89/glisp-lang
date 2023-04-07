@@ -28,9 +28,7 @@ type TypeToValue<T extends ValueType> = T extends 'All'
 	? Val.Fn
 	: T extends 'Vec'
 	? Val.Vec
-	: T extends 'Dict'
-	? Val.Dict
-	: Val.Value
+	: Val.Dict
 
 type Visitors<U> = {
 	[T in ValueType]?: (value: TypeToValue<T>) => U
