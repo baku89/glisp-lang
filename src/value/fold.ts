@@ -4,12 +4,6 @@ import type * as Val from './value'
 
 type ValueType = Val.Value['type']
 
-type VisitorFn<T extends ValueType, U> = (
-	value: TypeToValue<T>,
-	fold: (...us: U[]) => U,
-	c: (child: Val.Value) => U
-) => U
-
 type TypeToValue<T extends ValueType> = T extends 'All'
 	? Val.All
 	: T extends 'PrimType'
@@ -39,56 +33,11 @@ type TypeToValue<T extends ValueType> = T extends 'All'
 	: Val.Value
 
 type Visitors<U> = {
-	[T in ValueType]?: VisitorFn<T, U>
+	[T in ValueType]?: (value: TypeToValue<T>) => U
 }
 
 export function createFoldFn<U>(
 	visitors: Visitors<U>,
-	initial: U,
-	foldFn: (...xs: U[]) => U
-) {
-	return (value: Val.Value) => fold(value)
-
-	function fold(value: Val.Value): U {
-		const type = value.type
-
-		if (type in visitors) {
-			return (visitors[type] as any)(value, foldFn, fold)
-		}
-
-		switch (type) {
-			case 'UnionType':
-				return foldFn(...value.types.map(fold))
-			case 'Fn':
-				return fold(value.fnType)
-			case 'FnType':
-				return foldFn(
-					...values(value.params).map(fold),
-					value.rest ? fold(value.rest.value) : initial,
-					fold(value.ret)
-				)
-			case 'Vec':
-				return foldFn(
-					...value.items.map(fold),
-					value.rest ? fold(value.rest) : initial
-				)
-			case 'Dict':
-				return foldFn(
-					...values(value.items).map(fold),
-					value.rest ? fold(value.rest) : initial
-				)
-			default:
-				return initial
-		}
-	}
-}
-
-type Visitors2<U> = {
-	[T in ValueType]?: (value: TypeToValue<T>) => U
-}
-
-export function createFoldFn2<U>(
-	visitors: Visitors2<U>,
 	defaultFn: (value: Val.Value) => U,
 	concat: (...xs: U[]) => U
 ) {

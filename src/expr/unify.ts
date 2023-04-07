@@ -16,7 +16,7 @@ import {
 	Value,
 	vec,
 } from '../value'
-import {createFoldFn2} from '../value/walk'
+import {createFoldFn} from '../value/fold'
 
 export type Const = [Value, Relation, Value]
 
@@ -30,7 +30,7 @@ function invRelation(op: Relation): Relation {
 
 const emptySet = new Set<TypeVar>()
 
-export const getTypeVars = createFoldFn2(
+export const getTypeVars = createFoldFn(
 	{
 		TypeVar: ty => new Set([ty]),
 	},
