@@ -24,7 +24,6 @@ import {
 	valueMeta,
 	vecLiteral,
 } from '../expr'
-import {getTypeVars} from '../expr/unify'
 import {Log} from '../Log'
 import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
@@ -32,6 +31,7 @@ import {isEqualSet} from '../util/isEqualSet'
 import {createUniqueName} from '../util/NameCollision'
 import {nullishEqual} from '../util/nullishEqual'
 import {union} from '../util/SetOperation'
+import {createFoldFn} from './fold'
 import {unionType} from './TypeOperation'
 
 export type Value = Type | Atomic
@@ -44,6 +44,16 @@ export type Meta = Record<string, Value>
  * Value that can be a default value. Non-type values
  */
 type Atomic = Never | Unit | Prim<any> | Enum | Fn | Vec | Dict
+
+const emptySet = new Set<TypeVar>()
+
+const getTypeVars = createFoldFn(
+	{
+		TypeVar: ty => new Set([ty]),
+	},
+	() => emptySet,
+	union
+)
 
 export abstract class BaseValue {
 	constructor() {
@@ -79,6 +89,10 @@ export abstract class BaseValue {
 	}
 
 	abstract isType: boolean
+
+	get typeVars(): Set<TypeVar> {
+		return getTypeVars(this as any as Value)
+	}
 
 	/**
 	 * その値が返された式への参照。Mutableであり、常にその値が返された最後の式への参照を持つ
@@ -673,7 +687,7 @@ export class Fn extends BaseValue implements IFnLike {
 		const fnType = this.fnType
 
 		const typeVars: string[] = []
-		for (const tv of getTypeVars(fnType)) {
+		for (const tv of fnType.typeVars) {
 			typeVars.push(createUniqueName(tv.name, typeVars))
 		}
 
@@ -779,26 +793,11 @@ export class FnType extends BaseValue implements IFnType {
 		return this.#initialDefaultValue
 	}
 
-	#typeVars?: Set<TypeVar>
-	get typeVars() {
-		if (!this.#typeVars) {
-			const tvParams = union(
-				...values(this.params).map(getTypeVars),
-				this.rest ? getTypeVars(this.rest.value) : new Set()
-			)
-
-			const tvOut = getTypeVars(this.ret)
-
-			this.#typeVars = union(tvParams, tvOut)
-		}
-		return this.#typeVars
-	}
-
 	protected toExprExceptMeta(): FnDef {
 		// Collect all type varaibles
 		const typeVars: string[] = []
 
-		for (const tv of getTypeVars(this)) {
+		for (const tv of this.typeVars) {
 			typeVars.push(createUniqueName(tv.name, typeVars))
 		}
 
@@ -874,7 +873,6 @@ export class FnType extends BaseValue implements IFnType {
 		const value = new FnType(this.params, this.optionalPos, this.rest, this.ret)
 		value.#defaultValue = this.#defaultValue
 		value.#initialDefaultValue = this.#initialDefaultValue
-		value.#typeVars = this.#typeVars
 		value.meta = this.meta
 		return value
 	}

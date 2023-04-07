@@ -1,6 +1,5 @@
 import {mapValues, values} from 'lodash'
 
-import {union} from '../util/SetOperation'
 import {zipShorter} from '../util/zipShorter'
 import {
 	all,
@@ -16,7 +15,6 @@ import {
 	Value,
 	vec,
 } from '../value'
-import {createFoldFn} from '../value/fold'
 
 export type Const = [Value, Relation, Value]
 
@@ -28,20 +26,10 @@ function invRelation(op: Relation): Relation {
 	return '=='
 }
 
-const emptySet = new Set<TypeVar>()
-
-export const getTypeVars = createFoldFn(
-	{
-		TypeVar: ty => new Set([ty]),
-	},
-	() => emptySet,
-	union
-)
-
 export function shadowTypeVars(ty: Value) {
 	const unifier = new Unifier()
 
-	for (const tv of getTypeVars(ty)) {
+	for (const tv of ty.typeVars) {
 		const shadowed = tv.shadow()
 		unifier.mapTo(tv, shadowed)
 	}
@@ -102,8 +90,8 @@ export class Unifier {
 
 		if (l.isSubtypeOf(u)) return
 
-		const ltvs = getTypeVars(l)
-		const utvs = getTypeVars(u)
+		const ltvs = l.typeVars
+		const utvs = u.typeVars
 		if (ltvs.size === 0 && utvs.size === 0) {
 			/**
 			 * When both limits have no typeVars (e.g. α |-> [Numer, Boolean]),
@@ -232,7 +220,7 @@ export class Unifier {
 
 		// Finally set limits
 		if (t.type === 'TypeVar') {
-			if (getTypeVars(u).has(t)) throw new Error('Occur check')
+			if (u.typeVars.has(t)) throw new Error('Occur check')
 
 			const Su = this.substitute(u)
 

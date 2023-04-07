@@ -14,7 +14,7 @@ import {
 	unit,
 	Value,
 } from '../value'
-import {Const, getTypeVars, Unifier} from './unify'
+import {Const, Unifier} from './unify'
 
 const T = typeVar('T'),
 	U = typeVar('U'),
@@ -42,7 +42,7 @@ describe('getTypeVars', () => {
 		const eString = '{' + expected.map(e => e.print()).join(', ') + '}'
 
 		test(`FV(${ty.print()}) equals to ${eString}`, () => {
-			const tvs = [...getTypeVars(ty)]
+			const tvs = [...ty.typeVars]
 			const diff = _.differenceWith(tvs, expected, isEqual)
 
 			if (diff.length > 0) {
