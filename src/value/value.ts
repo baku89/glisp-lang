@@ -44,16 +44,7 @@ export type Meta = Record<string, Value>
 /**
  * Value that can be a default value. Non-type values
  */
-type Atomic =
-	| Never
-	| Unit
-	| Prim<any>
-	| Number
-	| String
-	| Enum
-	| Fn
-	| Vec
-	| Dict
+type Atomic = Never | Unit | Prim<any> | Enum | Fn | Vec | Dict
 
 export abstract class BaseValue {
 	constructor() {
