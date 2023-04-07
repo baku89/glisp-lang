@@ -14,7 +14,7 @@ const props = withDefaults(defineProps<Props>(), {
 const evaluated = ref('')
 
 function updateEvaluated() {
-	evaluated.value = props.expr.eval().value.print()
+	evaluated.value = props.expr.eval().print()
 }
 updateEvaluated()
 

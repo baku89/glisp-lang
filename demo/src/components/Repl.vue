@@ -46,33 +46,29 @@ function evaluate() {
 
 	const expr = parsed.value.value
 
-	let result: G.EvalResult
+	let result: G.Value
 
 	try {
 		result = expr.eval()
+		window.result = result
 	} catch (err) {
-		result = new G.EvalResult(G.unit).withLog({
+		result = G.unit.withLog({
 			level: 'error',
 			reason: err instanceof Error ? err.message : 'Run-time error',
 			ref: err instanceof G.EvalError ? err.ref : expr,
 		})
 	}
 
-	const {
-		value,
-		info: {log},
-	} = result
-
 	let printed = ''
-	if (!IO.isTypeFor(value)) {
-		printed = value.print()
+	if (!IO.isTypeFor(result)) {
+		printed = result.print()
 	}
 
 	replLines.value.push({
 		key: replLines.value.length,
 		input: expr.print(),
 		evaluated: printed,
-		log: Array.from(log).map(({level, reason, ref}, key) => {
+		log: Array.from(result.log).map(({level, reason, ref}, key) => {
 			reason = reason.replaceAll(/`(.+?)`/g, '<code>$1</code>')
 
 			return {
@@ -85,8 +81,8 @@ function evaluate() {
 	})
 
 	// Execute the content of IO monad
-	if (IO.isTypeFor(value)) {
-		value.value()
+	if (IO.isTypeFor(result)) {
+		result.value()
 	}
 
 	nextTick(() => {
@@ -104,10 +100,10 @@ function updatePrinted() {
 }
 projectScope.on('edit', updatePrinted)
 
-const evaluated = ref(projectScope.eval().value.print())
+const evaluated = ref(projectScope.eval().print())
 
 function updateEvaluated() {
-	evaluated.value = projectScope.eval().value.print()
+	evaluated.value = projectScope.eval().print()
 }
 
 projectScope.on('change', updateEvaluated)

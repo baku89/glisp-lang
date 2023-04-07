@@ -30,8 +30,8 @@ export const replScope = G.PreludeScope.extend({
 				Color
 			),
 			(red: G.Number, green: G.Number, blue: G.Number, alpha: G.Number) => {
-				return new G.EvalResult(
-					Color.of(chroma([red.value, green.value, blue.value, alpha.value]))
+				return Color.of(
+					chroma([red.value, green.value, blue.value, alpha.value])
 				)
 			}
 		)
@@ -44,18 +44,16 @@ export const replScope = G.PreludeScope.extend({
 
 				const symbol = G.Parser.Symbol.parse(_name)
 				if (!symbol.status) {
-					return new G.EvalResult(G.unit).withLog({
+					return G.unit.withLog({
 						level: 'error',
 						reason: `\`${_name}\` cannot be used as a symbol name`,
 						ref: G.container(G.unit),
 					})
 				}
 
-				return new G.EvalResult(
-					IO.of(() => {
-						projectScope.set(_name, value.toExpr())
-					})
-				)
+				return IO.of(() => {
+					projectScope.set(_name, value.toExpr())
+				})
 			}
 		)
 	),
@@ -65,18 +63,16 @@ export const replScope = G.PreludeScope.extend({
 
 			const symbol = G.Parser.Symbol.parse(_name)
 			if (!symbol.status) {
-				return new G.EvalResult(G.unit).withLog({
+				return G.unit.withLog({
 					level: 'error',
 					reason: `\`${_name}\` cannot be used as a symbol name`,
 					ref: G.container(G.unit),
 				})
 			}
 
-			return new G.EvalResult(
-				IO.of(() => {
-					projectScope.delete(_name)
-				})
-			)
+			return IO.of(() => {
+				projectScope.delete(_name)
+			})
 		})
 	),
 })
