@@ -174,11 +174,11 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	abstract clone(): AnyExpr
 
 	eval(env = Env.global): Value {
-		const evalCallee = evaluatingExprs.at(-1)
+		const evalCallee = evaluatingExprs.callee
 		if (evalCallee) {
 			this.evalDep.add(evalCallee)
 		}
-		const inferCallee = inferringExprs.at(-1)
+		const inferCallee = inferringExprs.callee
 		if (inferCallee) {
 			this.inferDep.add(inferCallee)
 		}
@@ -186,7 +186,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 		let cache = this.evalCache.get(env)
 
 		if (!cache) {
-			if (evaluatingExprs.includes(this)) {
+			if (evaluatingExprs.has(this)) {
 				return unit.withLog({
 					level: 'error',
 					reason: 'Circular reference detected',
@@ -210,7 +210,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	}
 
 	infer(env = Env.global): Value {
-		const inferCallee = inferringExprs.at(-1)
+		const inferCallee = inferringExprs.callee
 		if (inferCallee) {
 			this.inferDep.add(inferCallee)
 		}
@@ -218,7 +218,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 		let cache = this.inferCache.get(env)
 
 		if (!cache) {
-			if (inferringExprs.includes(this)) {
+			if (inferringExprs.has(this)) {
 				return unit.withLog({
 					level: 'error',
 					reason: 'Circular reference detected',
