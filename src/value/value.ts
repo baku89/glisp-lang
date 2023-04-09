@@ -607,13 +607,15 @@ export const False = BooleanType.getEnum('false')
 export const boolean = (value: boolean) => (value ? True : False)
 
 export class TypeVar extends BaseValue {
+	#id = Symbol()
+
 	get type() {
 		return 'TypeVar' as const
 	}
 	readonly superType = All.instance
 
 	public readonly name: string
-	public readonly original?: TypeVar
+	#original?: TypeVar
 
 	constructor(name: string) {
 		super()
@@ -633,25 +635,28 @@ export class TypeVar extends BaseValue {
 	}
 
 	isEqualTo(value: Value) {
-		return this === value
+		return value.type === 'TypeVar' && this.#id === value.#id
 	}
 
 	isType = true
 
-	declare clone: () => never
+	declare clone: () => TypeVar
 
 	protected cloneOnlyProps(): Value {
-		throw new Error('TypeVar cannot be cloned')
+		const value = new TypeVar(this.name)
+		value.#id = this.#id
+		value.#original = this.#original
+		return value
 	}
 
 	shadow(): TypeVar {
 		const tv = new TypeVar(this.name)
-		;(tv.original as TypeVar) = this
+		tv.#original = this
 		return tv
 	}
 
 	unshadow(): TypeVar {
-		return this.original ?? this
+		return this.#original ?? this
 	}
 }
 
