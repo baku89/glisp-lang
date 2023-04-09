@@ -1,12 +1,13 @@
+import {Log} from '../Log'
 import {BaseExpr} from '.'
 
 class CallStack {
 	#stack: BaseExpr[] = []
-	#sets = new WeakSet<BaseExpr>()
+	#sets = new Map<BaseExpr, Set<Log>>()
 
 	push(expr: BaseExpr) {
 		this.#stack.push(expr)
-		this.#sets.add(expr)
+		this.#sets.set(expr, new Set())
 	}
 
 	has(expr: BaseExpr) {
@@ -15,11 +16,24 @@ class CallStack {
 
 	pop() {
 		const callee = this.#stack.pop()
-		if (callee) this.#sets.delete(callee)
+		if (callee) {
+			const log = this.#sets.get(callee) ?? new Set()
+			this.#sets.delete(callee)
+			return log
+		}
+		throw new Error('Invalid CallStack')
 	}
 
 	get callee() {
 		return this.#stack.at(-1) ?? null
+	}
+
+	pushLog(log: Set<Log> = new Set()) {
+		for (const s of this.#sets.values()) {
+			for (const l of log) {
+				s.add(l)
+			}
+		}
 	}
 }
 

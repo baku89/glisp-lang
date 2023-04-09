@@ -10,6 +10,7 @@ import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
 import {isEqualSet} from '../util/isEqualSet'
 import {nullishEqual} from '../util/nullishEqual'
+import {union} from '../util/SetOperation'
 import {
 	All,
 	all,
@@ -197,8 +198,14 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 			try {
 				evaluatingExprs.push(this)
 				cache = this.forceEval(env)
+				const log = cache.log
+				evaluatingExprs.pushLog(log)
+				inferringExprs.pushLog(log)
 			} finally {
-				evaluatingExprs.pop()
+				const log = evaluatingExprs.pop()
+				if (cache) {
+					cache.log = union(cache.log, log)
+				}
 			}
 
 			cache.source = this as any as Expr
@@ -229,8 +236,14 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 			try {
 				inferringExprs.push(this)
 				cache = this.forceInfer(env)
+				const log = cache.log
+				evaluatingExprs.pushLog(log)
+				inferringExprs.pushLog(log)
 			} finally {
-				inferringExprs.pop()
+				const log = inferringExprs.pop()
+				if (cache) {
+					cache.log = union(cache.log, log)
+				}
 			}
 
 			this.inferCache.set(env, cache)
@@ -493,9 +506,8 @@ export class Symbol extends BaseExpr {
 		switch (resolved.type) {
 			case 'global':
 				return resolved.expr.infer(env)
-			case 'param': {
+			case 'param':
 				return resolved.expr.eval(env)
-			}
 			case 'arg':
 				return resolved.value
 		}

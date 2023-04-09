@@ -107,7 +107,7 @@ export abstract class BaseValue {
 	log = new Set<Log>()
 
 	withLog(...logs: Log[]): Value {
-		const value = this.cloneOnlyProps()
+		const value = this.clone()
 		if (logs.length > 0) {
 			value.log = union(this.log, logs)
 		}
@@ -115,7 +115,7 @@ export abstract class BaseValue {
 	}
 
 	usesParamDefault() {
-		const value = this.cloneOnlyProps()
+		const value = this.clone()
 		value.isParamDefault = true
 		return value
 	}
@@ -154,7 +154,7 @@ export abstract class BaseValue {
 	withMeta(meta: Meta) {
 		const thisMeta = this.meta ?? {}
 
-		const value = this.cloneOnlyProps()
+		const value = this.clone()
 		value.meta = {...thisMeta, ...meta}
 		return value
 	}

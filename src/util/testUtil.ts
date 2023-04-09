@@ -27,13 +27,16 @@ export function testEval(
 		if (!result.isEqualTo(expectedVal)) {
 			throw new Error('Got=' + result.print())
 		}
-		// if (!hasLog && log.size > 0) {
-		// 	throw new Error('Expected no log, but got=' + printLog(log))
-		// }
 
-		// if (hasLog && log.size === 0) {
-		// 	throw new Error('Expected logs, but no log')
-		// }
+		const log = result.log
+
+		if (!hasLog && log.size > 0) {
+			throw new Error('Expected no log, but got=' + printLog(log))
+		}
+
+		if (hasLog && log.size === 0) {
+			throw new Error('Expected logs, but no log')
+		}
 	})
 }
 
