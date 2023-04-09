@@ -44,15 +44,20 @@ function onInput(newValue: number | string) {
 </script>
 
 <template>
-	<component
-		:is="inputComponent"
-		:modelValue="value"
-		class="ExprLiteral"
-		@update:modelValue="onInput"
-		@confirm="$emit('confirm')"
-	/>
+	<div class="ExprLiteral">
+		<component
+			:is="inputComponent"
+			:modelValue="value"
+			@update:modelValue="onInput"
+			@confirm="$emit('confirm')"
+		/>
+	</div>
 </template>
 
 <style lang="stylus" scoped>
 @import '@/common.styl'
+.ExprLiteral
+	display grid
+	grid-template-columns repeat(auto-fill, minmax(var(--ui-input-col-width), 1fr))
+	gap var(--ui-input-gap)
 </style>

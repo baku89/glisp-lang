@@ -52,6 +52,7 @@ function set(path: number, newExpr: G.Expr) {
 			:expanded="expanded"
 			@update:expanded="setItemExpanded(i, $event)"
 		>
+			<template #label>{{ i }}</template>
 			<Expr
 				:expr="item"
 				:layout="expanded ? 'expanded' : 'collapsed'"
