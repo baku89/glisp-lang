@@ -107,11 +107,13 @@ export abstract class BaseValue {
 	log = new Set<Log>()
 
 	withLog(...logs: Log[]): Value {
-		const value = this.clone()
 		if (logs.length > 0) {
+			const value = this.clone()
 			value.log = union(this.log, logs)
+			return value
+		} else {
+			return this as any as Value
 		}
-		return value
 	}
 
 	usesParamDefault() {
@@ -685,7 +687,8 @@ export class Fn extends BaseValue implements IFnLike {
 		return this
 	}
 
-	withLog!: (...logs: Log[]) => Fn
+	declare withLog: (...logs: Log[]) => Fn
+
 	usesParamDefault!: () => Fn
 
 	isEqualTo(value: Value) {
@@ -791,7 +794,7 @@ export class FnType extends BaseValue implements IFnType {
 		return this
 	}
 
-	withLog!: (...logs: Log[]) => FnType
+	declare withLog: (...logs: Log[]) => FnType
 	usesParamDefault!: () => FnType
 
 	#defaultValue?: Fn
