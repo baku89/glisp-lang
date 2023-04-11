@@ -35,6 +35,7 @@ import {Action} from './action'
 import {changedExprs, editedExprs, evaluatingExprs, inferringExprs} from './dep'
 import {Env} from './env'
 import {FailedResolution} from './FailedResolution'
+import {Key} from './path'
 import {
 	createListDelimiters,
 	increaseDelimiter,
@@ -118,7 +119,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	protected abstract forceInfer(env: Env): Value
 
 	// eslint-disable-next-line no-unused-vars
-	get(path: string | number): Expr | null {
+	get(key: Key): Expr | null {
 		return null
 	}
 
@@ -140,17 +141,17 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	}
 
 	// eslint-disable-next-line no-unused-vars
-	set(path: string | number, expr: Expr): Action {
+	set(key: Key, expr: Expr): Action {
 		throw new Error(`Invalid call of set on \`${this.print()}\``)
 	}
 
 	// eslint-disable-next-line no-unused-vars
-	delete(path: string | number): Action {
+	delete(key: Key): Action {
 		throw new Error(`Invalid call of delete on \`${this.print()}\``)
 	}
 
 	// eslint-disable-next-line no-unused-vars
-	rename(path: string | number, to: string): Action {
+	rename(key: Key, to: string): Action {
 		throw new Error(`Invalid call of rename on \`${this.print()}\``)
 	}
 
@@ -780,16 +781,16 @@ export class FnDef extends BaseExpr {
 			: all // Otherwise, the expression means function type definition
 	}
 
-	get(path: number | string): Expr | null {
-		if (typeof path === 'number') return null
+	get(key: Key): Expr | null {
+		if (typeof key === 'number') return null
 
-		const typeVar = this.typeVars?.get(path)
+		const typeVar = this.typeVars?.get(key)
 
 		if (typeVar) {
 			return new Container(typeVar)
 		}
 
-		return this.params.get(path)
+		return this.params.get(key)
 	}
 
 	print(options?: PrintOptions): string {
@@ -884,10 +885,10 @@ export class ParamsDef {
 		return {params, rest}
 	}
 
-	get(path: number | string): Expr | null {
-		if (typeof path !== 'string') return null
+	get(key: Key): Expr | null {
+		if (typeof key !== 'string') return null
 
-		return this.items[path] ?? null
+		return this.items[key] ?? null
 	}
 
 	print(options?: PrintOptions) {
@@ -1038,31 +1039,31 @@ export class VecLiteral extends BaseExpr {
 		return vec(items)
 	}
 
-	get(path: number | string): Expr | null {
-		if (typeof path === 'string') return null
+	get(key: Key): Expr | null {
+		if (typeof key === 'string') return null
 
-		return this.items[path] ?? null
+		return this.items[key] ?? null
 	}
 
-	set(path: number | string, expr: Expr): Action {
-		if (typeof path !== 'number') {
-			throw new Error('Invalid path: ' + path)
+	set(key: Key, expr: Expr): Action {
+		if (typeof key !== 'number') {
+			throw new Error('Invalid path: ' + key)
 		}
 
 		// Allows path === items.length to push a new element
-		if (path < 0 || this.items.length < path) {
+		if (key < 0 || this.items.length < key) {
 			throw new Error('Index out of range')
 		}
 
-		const oldExpr = this.get(path)
-		this.items[path] = expr
+		const oldExpr = this.get(key)
+		this.items[key] = expr
 		expr.parent = this
 
 		if (oldExpr) {
 			oldExpr.clearCache()
 
 			this.dispatchEditEvents()
-			return {type: 'set', path, expr: oldExpr}
+			return {type: 'set', path: key, expr: oldExpr}
 		} else {
 			// When appended to the last element
 
@@ -1074,39 +1075,39 @@ export class VecLiteral extends BaseExpr {
 				increaseDelimiter(this.extras.delimiters)
 			}
 
-			this.failedResolution.clearCache(path)
+			this.failedResolution.clearCache(key)
 
 			this.dispatchEditEvents()
-			return {type: 'delete', path}
+			return {type: 'delete', path: key}
 		}
 	}
 
-	delete(path: string | number): Action {
-		if (typeof path !== 'number') {
-			throw new Error('Invalid path: ' + path)
+	delete(key: Key): Action {
+		if (typeof key !== 'number') {
+			throw new Error('Invalid path: ' + key)
 		}
 
-		if (path < 0 || this.items.length <= path) {
+		if (key < 0 || this.items.length <= key) {
 			throw new Error('Index out of range')
 		}
 
 		// 削除する要素とそれ以降の式に依存する式のキャッシュを削除
-		this.items.slice(path).forEach(it => it.clearCache())
+		this.items.slice(key).forEach(it => it.clearCache())
 
-		const [deletedExpr] = this.items.splice(path, 1)
+		const [deletedExpr] = this.items.splice(key, 1)
 
-		if (path < this.optionalPos) {
+		if (key < this.optionalPos) {
 			this.optionalPos--
 		}
 
 		if (this.extras) {
 			const {delimiters} = this.extras
-			delimiters.splice(path + 1, 1)
+			delimiters.splice(key + 1, 1)
 		}
 
-		if (path === this.items.length) {
+		if (key === this.items.length) {
 			this.dispatchEditEvents()
-			return {type: 'set', path, expr: deletedExpr}
+			return {type: 'set', path: key, expr: deletedExpr}
 		} else {
 			throw new Error('Not yet implemented')
 		}
@@ -1206,10 +1207,10 @@ export class DictLiteral extends BaseExpr {
 		return dict(items)
 	}
 
-	get(path: string | number): Expr | null {
-		if (typeof path === 'number') return null
+	get(key: Key): Expr | null {
+		if (typeof key === 'number') return null
 
-		return this.items[path] ?? null
+		return this.items[key] ?? null
 	}
 
 	print(options?: PrintOptions): string {
@@ -1446,44 +1447,44 @@ export class App extends BaseExpr {
 		return unifier.substitute(ty.fnType.ret, true)
 	}
 
-	get(path: string | number): Expr | null {
+	get(key: Key): Expr | null {
 		if (!this.fn) return null
 		let index: number
 
-		if (typeof path === 'string') {
+		if (typeof key === 'string') {
 			// NOTE: 実引数として渡された関数の方ではなく、仮引数の方で名前を参照するべきなので、
 			// Env.globalのほうが良いのでは?
 			const fnType = this.fn.infer()
 			if (fnType.type !== 'FnType') return null
 
 			const paramNames = keys(fnType.params)
-			index = paramNames.indexOf(path) + 1
+			index = paramNames.indexOf(key) + 1
 			if (index <= 0) return null
 		} else {
-			index = path
+			index = key
 		}
 
 		// index begins like (fn=0 arg0=1 arg2=2 ...)
 		return (index === 0 ? this.fn : this.args[index - 1]) ?? null
 	}
 
-	set(path: string | number, newExpr: Expr): Action {
-		const oldExpr = this.get(path)
+	set(key: Key, newExpr: Expr): Action {
+		const oldExpr = this.get(key)
 
 		let index: number
 
-		if (typeof path === 'string') {
+		if (typeof key === 'string') {
 			if (!this.fn) throw new Error('Invalid')
 
 			const fnType = this.fn.infer()
 			if (fnType.type !== 'FnType') throw new Error('Invalid')
 
 			const paramNames = keys(fnType.params)
-			index = paramNames.indexOf(path) + 1
+			index = paramNames.indexOf(key) + 1
 
-			if (index <= 0) throw new Error('Invalid path:' + path)
+			if (index <= 0) throw new Error('Invalid path:' + key)
 		} else {
-			index = path
+			index = key
 		}
 
 		if (index === 0) {
@@ -1499,10 +1500,10 @@ export class App extends BaseExpr {
 		if (oldExpr) {
 			oldExpr.clearCache()
 			this.dispatchEditEvents()
-			return {type: 'set', path, expr: oldExpr}
+			return {type: 'set', path: key, expr: oldExpr}
 		} else {
 			this.dispatchEditEvents()
-			return {type: 'delete', path}
+			return {type: 'delete', path: key}
 		}
 	}
 
@@ -1574,23 +1575,23 @@ export class Scope extends BaseExpr {
 		return this.ret ? this.ret.eval(env) : unit
 	}
 
-	get(path: string | number): Expr | null {
-		if (typeof path === 'number') return null
+	get(key: Key): Expr | null {
+		if (typeof key === 'number') return null
 
-		if (path === 'return') {
+		if (key === 'return') {
 			return this.ret ?? null
 		} else {
-			return this.items[path] ?? null
+			return this.items[key] ?? null
 		}
 	}
 
-	set(path: string | number, newExpr: Expr): Action {
-		const oldExpr = this.get(path)
+	set(key: Key, newExpr: Expr): Action {
+		const oldExpr = this.get(key)
 
-		if (path === 'return') {
+		if (key === 'return') {
 			this.ret = newExpr
 		} else {
-			this.items[path] = newExpr
+			this.items[key] = newExpr
 		}
 
 		newExpr.parent = this
@@ -1598,56 +1599,56 @@ export class Scope extends BaseExpr {
 		if (oldExpr) {
 			oldExpr.clearCache()
 			this.dispatchEditEvents()
-			return {type: 'set', path, expr: oldExpr}
+			return {type: 'set', path: key, expr: oldExpr}
 		} else {
 			if (this.extras) {
 				increaseDelimiter(this.extras.delimiters)
-				if (path !== 'return') {
+				if (key !== 'return') {
 					increaseDelimiter(this.extras.delimiters)
 				}
 			}
 
-			this.failedResolution.clearCache(path)
+			this.failedResolution.clearCache(key)
 			this.dispatchEditEvents()
-			return {type: 'delete', path}
+			return {type: 'delete', path: key}
 		}
 	}
 
-	delete(path: string | number): Action {
-		const oldExpr = this.get(path)
+	delete(key: Key): Action {
+		const oldExpr = this.get(key)
 
 		if (!oldExpr) throw new Error('Invalid action')
 
 		let index: number
 		const names = keys(this.items)
 
-		if (path === 'return') {
+		if (key === 'return') {
 			this.ret = null
 			index = names.length + 1
 		} else {
-			delete this.items[path]
-			index = names.indexOf(path as string) + 1
+			delete this.items[key]
+			index = names.indexOf(key as string) + 1
 		}
 
 		oldExpr.clearCache()
 
 		if (this.extras) {
 			removeDelimiter(this.extras.delimiters, index)
-			if (path !== 'return') {
+			if (key !== 'return') {
 				removeDelimiter(this.extras.delimiters, index)
 			}
 		}
 
 		this.dispatchEditEvents()
-		return {type: 'set', path, expr: oldExpr}
+		return {type: 'set', path: key, expr: oldExpr}
 	}
 
-	rename(path: string | number, to: string): Action {
-		if (path === 'return' || to === 'return') {
+	rename(key: Key, to: string): Action {
+		if (key === 'return' || to === 'return') {
 			throw new Error('return expression cannot be renamed')
 		}
 
-		if (typeof path === 'number') {
+		if (typeof key === 'number') {
 			throw new Error('Invalid rename path')
 		}
 
@@ -1655,11 +1656,11 @@ export class Scope extends BaseExpr {
 			throw new Error('Already exists')
 		}
 
-		const expr = this.items[path]
+		const expr = this.items[key]
 
 		if (!expr) throw new Error('Invalid action')
 
-		delete this.items[path]
+		delete this.items[key]
 		this.items[to] = expr
 
 		expr.clearCache()
@@ -1668,7 +1669,7 @@ export class Scope extends BaseExpr {
 
 		this.dispatchEditEvents()
 
-		return {type: 'rename', path: to, to: path}
+		return {type: 'rename', path: to, to: key}
 	}
 
 	print(options?: PrintOptions): string {
@@ -1812,9 +1813,9 @@ export class Match extends BaseExpr {
 		return type
 	}
 
-	get(path: string | number): Expr | null {
-		if (typeof path === 'string') {
-			if (path === this.captureName) {
+	get(key: Key): Expr | null {
+		if (typeof key === 'string') {
+			if (key === this.captureName) {
 				return this.subject
 			}
 		}

@@ -1,19 +1,20 @@
 import type {Expr} from '.'
+import type {Key} from './path'
 
 interface SetAction {
 	type: 'set'
-	path: string | number
+	path: Key
 	expr: Expr
 }
 
 interface DeleteAction {
 	type: 'delete'
-	path: string | number
+	path: Key
 }
 
 interface RenameAction {
 	type: 'rename'
-	path: string | number
+	path: Key
 	to: string
 }
 

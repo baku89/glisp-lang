@@ -24,6 +24,7 @@ import {
 	valueMeta,
 	vecLiteral,
 } from '../expr'
+import type {Key} from '../expr/path'
 import {Log} from '../Log'
 import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
@@ -178,7 +179,7 @@ export abstract class BaseValue {
 	}
 
 	// eslint-disable-next-line no-unused-vars
-	get(key: string | number): Value | null {
+	get(key: Key): Value | null {
 		return null
 	}
 
@@ -1061,7 +1062,7 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 		return this.#fn
 	}
 
-	get(key: string | number): Value | null {
+	get(key: Key): Value | null {
 		if (typeof key === 'number') {
 			return this.items[key] ?? null
 		} else {
@@ -1197,7 +1198,7 @@ export class Dict<
 		)
 	}
 
-	get(key: string | number): Value | null {
+	get(key: Key): Value | null {
 		return this.items[key] ?? null
 	}
 
