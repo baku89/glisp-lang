@@ -337,13 +337,18 @@ export class Symbol extends BaseExpr {
 
 	public readonly paths: readonly Path[]
 
-	constructor(...paths: readonly Path[]) {
+	constructor(pathArrayOrPath: readonly Path[] | Path) {
 		super()
 
-		if (paths.length === 0) {
+		const _paths: Path[] = Array.isArray(pathArrayOrPath)
+			? pathArrayOrPath
+			: [pathArrayOrPath]
+
+		if (_paths.length === 0) {
 			throw new Error('Zero-length path cannot be set to a new Symbol')
 		}
-		this.paths = paths
+
+		this.paths = _paths
 	}
 
 	#resolved: ResolveResult | null = null
@@ -523,7 +528,7 @@ export class Symbol extends BaseExpr {
 	}
 
 	clone() {
-		return new Symbol(...this.paths)
+		return new Symbol(this.paths)
 	}
 
 	clearCache(): void {
@@ -532,7 +537,9 @@ export class Symbol extends BaseExpr {
 	}
 }
 
-export const symbol = (...paths: readonly Path[]) => new Symbol(...paths)
+export const symbol = (pathArrayOrPath: readonly Path[] | Path) => {
+	return new Symbol(pathArrayOrPath)
+}
 
 /**
  * AST to directry store a value that cannot be parsed from string
@@ -1900,7 +1907,7 @@ export class InfixNumber extends BaseExpr {
 	protected forceEval(env: Env): Value {
 		const args = this.args.map(a => new Literal(a))
 
-		const app = new App(new Symbol('$' + this.op), ...args)
+		const app = new App(new Symbol(['$' + this.op]), ...args)
 		app.parent = this.parent
 
 		return app.eval(env)
@@ -1909,7 +1916,7 @@ export class InfixNumber extends BaseExpr {
 	protected forceInfer(env: Env): Value {
 		const args = this.args.map(a => new Literal(a))
 
-		const app = new App(new Symbol('$' + this.op), ...args)
+		const app = new App(new Symbol(['$' + this.op]), ...args)
 		app.parent = this.parent
 
 		return app.infer(env)

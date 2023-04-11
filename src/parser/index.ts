@@ -515,7 +515,7 @@ export const Parser = P.createLanguage<IParser>({
 				).many()
 			).map(([first, restPart]) => {
 				const [, rest] = zip(restPart)
-				return new Symbol(first, ...rest)
+				return new Symbol([first, ...rest])
 			})
 		)
 	},
