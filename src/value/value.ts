@@ -177,6 +177,11 @@ export abstract class BaseValue {
 		return value
 	}
 
+	// eslint-disable-next-line no-unused-vars
+	get(key: string | number): Value | null {
+		return null
+	}
+
 	protected abstract cloneOnlyProps(): Value
 }
 
@@ -1056,6 +1061,25 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 		return this.#fn
 	}
 
+	get(key: string | number): Value | null {
+		if (typeof key === 'number') {
+			return this.items[key] ?? null
+		} else {
+			switch (key) {
+				case 'x':
+					return this.items[0] ?? null
+				case 'y':
+					return this.items[1] ?? null
+				case 'z':
+					return this.items[2] ?? null
+				case 'w':
+					return this.items[3] ?? null
+				default:
+					return null
+			}
+		}
+	}
+
 	declare isTypeFor: (value: Value) => value is Vec
 
 	withDefault(defaultValue: Atomic): Value {
@@ -1171,6 +1195,10 @@ export class Dict<
 				.map(it => it.isType)
 				.includes(true)
 		)
+	}
+
+	get(key: string | number): Value | null {
+		return this.items[key] ?? null
 	}
 
 	declare isTypeFor: (value: Value) => value is Dict
