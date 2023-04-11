@@ -183,6 +183,11 @@ export abstract class BaseValue {
 		return null
 	}
 
+	// eslint-disable-next-line no-unused-vars
+	getTypeFor(key: Key): Value | null {
+		return null
+	}
+
 	protected abstract cloneOnlyProps(): Value
 }
 
