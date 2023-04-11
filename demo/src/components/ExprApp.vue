@@ -29,7 +29,7 @@ const argNames = computed<[string, string][]>(() => {
 
 	if (!fn) return []
 
-	const fnInferred = fn.infer().value
+	const fnInferred = fn.infer()
 
 	if (!('fnType' in fnInferred)) return []
 

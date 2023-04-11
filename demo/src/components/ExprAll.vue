@@ -56,9 +56,7 @@ const exprComponent = computed(() => {
 		@update:expr="$emit('update:expr', $event)"
 		@confirm="$emit('confirm')"
 	/>
-	<div v-else class="text">
-		{{ expr.print() }} -> {{ expr.eval().value.print() }}
-	</div>
+	<div v-else class="text">{{ expr.eval().print() }}</div>
 </template>
 
 <style lang="stylus" scoped>
