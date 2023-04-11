@@ -17,6 +17,7 @@ import {
 	ValueMeta,
 	VecLiteral,
 } from '../expr'
+import {CurrentPath, Path, UpPath} from '../expr/path'
 
 function zip<T1, T2, T3, T4>(
 	coll: [T1, T2, T3?, T4?][]
@@ -157,6 +158,9 @@ const ReservedNumericString = P.alt(P.regex(/-?Infinity/), P.string('NaN'))
 
 // TODO: allow other characters that would not affect to the parsing logic
 const InfixName = P.regex(/[a-z!$%&*_=|]+/i)
+
+const PUpPath = P.string('..').map<typeof UpPath>(() => UpPath)
+const PCurrentPath = P.string('.').map<typeof CurrentPath>(() => CurrentPath)
 
 // Main parser
 interface IParser {
@@ -499,12 +503,12 @@ export const Parser = P.createLanguage<IParser>({
 	Symbol(r) {
 		return P.notFollowedBy(P.string('...')).then(
 			P.seq(
-				P.alt(P.string('..'), P.string('.'), r.NamePath),
+				P.alt(PUpPath, PCurrentPath, r.NamePath),
 				P.seq(
 					P.string('/'),
-					P.alt<string | number>(
-						P.string('..'),
-						P.string('.'),
+					P.alt<Path>(
+						PUpPath,
+						PCurrentPath,
 						r.NamePath,
 						P.regex(/([1-9][0-9]*|0)/).map(parseInt)
 					)

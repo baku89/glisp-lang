@@ -35,7 +35,7 @@ import {Action} from './action'
 import {changedExprs, editedExprs, evaluatingExprs, inferringExprs} from './dep'
 import {Env} from './env'
 import {FailedResolution} from './FailedResolution'
-import {Key} from './path'
+import {CurrentPath, Key, Path, UpPath} from './path'
 import {
 	createListDelimiters,
 	increaseDelimiter,
@@ -322,12 +322,6 @@ export class Program extends BaseExpr {
 	}
 }
 
-export const UpPath = '..' as const
-export const CurrentPath = '.' as const
-export type NamePath = string
-export type IndexPath = number
-export type Path = typeof UpPath | typeof CurrentPath | NamePath | IndexPath
-
 type ResolveResult =
 	| {type: 'global' | 'param'; expr: Expr}
 	| {type: 'arg'; value: Value}
@@ -388,7 +382,7 @@ export class Symbol extends BaseExpr {
 			} else if (path === CurrentPath) {
 				// Do nothing
 			} else {
-				// path === NamePath || path === IndexPath
+				// typeof path === Key
 				if (!isFirstPath) {
 					const e: Expr | null = expr.get(path)
 					if (e) {
@@ -515,7 +509,13 @@ export class Symbol extends BaseExpr {
 	}
 
 	print() {
-		return this.paths.join('/')
+		return this.paths
+			.map(p => {
+				if (p === UpPath) return '..'
+				if (p === CurrentPath) return '.'
+				return p
+			})
+			.join('/')
 	}
 
 	isSameTo(expr: AnyExpr) {
@@ -1883,7 +1883,7 @@ export class InfixNumber extends BaseExpr {
 
 	public readonly args: number[]
 
-	constructor(public readonly op: NamePath, ...args: number[]) {
+	constructor(public readonly op: string, ...args: number[]) {
 		super()
 
 		if (args.length === 0) {
