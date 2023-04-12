@@ -92,23 +92,20 @@ function set(path: string, expr: G.Expr) {
 		flex-direction column
 		gap var(--ui-input-row-margin)
 
-.items, .ret
-	padding-left var(--ui-inspector-tree-icon-size)
-
 .items
 	position relative
 	display flex
 	flex-direction column
 	gap var(--ui-input-row-margin)
+	padding-left var(--ui-inspector-tree-icon-size)
 
 	+box-before()
 		top calc(var(--ui-input-row-margin) * -1)
-		bottom calc(var(--ui-input-row-margin) * -0.5)
+		bottom 0
 		left calc(var(--ui-inspector-tree-icon-size) / 2)
 		border 1px solid var(--color-outline-variant)
 		border-right 0
 		border-top 0
-		height 100%
 		width calc(var(--ui-input-row-margin) * .75)
 		border-bottom-left-radius 9999px
 </style>

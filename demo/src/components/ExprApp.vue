@@ -77,7 +77,7 @@ function set(path: number, expr: G.Expr) {
 		>
 			<template #label>
 				<span>{{ argNames[i][0] }}</span>
-				<span v-if="argNames[i][1]" class="suffix">@{{ argNames[i][1] }}</span>
+				<span v-if="argNames[i][1]" class="suffix">{{ argNames[i][1] }}</span>
 			</template>
 			<Expr
 				:expr="arg"
@@ -85,24 +85,6 @@ function set(path: number, expr: G.Expr) {
 				@confirm="tagHistory"
 			/>
 		</Row>
-	</div>
-	<div v-else-if="layout === 'collapsed'" class="ExprApp--collapsed">
-		<Expr
-			v-if="exprRef.fn"
-			class="collapsed-fn"
-			:expr="exprRef.fn"
-			@update:expr="set(0, $event)"
-			@confirm="tagHistory"
-		/>
-		<Expr
-			v-for="(item, i) in exprRef.args"
-			:key="i"
-			class="item"
-			:expr="item"
-			layout="minimal"
-			@update:expr="set(i + 1, $event)"
-			@confirm="tagHistory"
-		/>
 	</div>
 	<ExprMnimal v-else class="ExprApp--minimal" :expr="expr" />
 </template>
@@ -123,7 +105,7 @@ function set(path: number, expr: G.Expr) {
 		+box-before()
 			left calc(var(--ui-inspector-tree-icon-size) / 2)
 			top calc(var(--ui-input-row-margin) * -1)
-			bottom calc(var(--ui-input-row-margin) * -0.5)
+			bottom 0
 			width calc(var(--ui-input-row-margin) * .75)
 			border 1px solid var(--color-outline-variant)
 			border-right 0
@@ -139,7 +121,13 @@ function set(path: number, expr: G.Expr) {
 		font-family var(--font-code)
 
 .suffix
-	color var(--color-outline-variant)
+	font-family var(--font-code)
+	color var(--color-outline)
+
+	&:before
+		padding-left .1em
+		content '.'
+		font-family var(--font-ui)
 
 .collapsed-fn
 	box-shadow inset 0 0 0 2px var(--color-surface-variant) !important

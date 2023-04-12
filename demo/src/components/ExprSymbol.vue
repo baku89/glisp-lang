@@ -31,12 +31,14 @@ function onInput(value: string) {
 </script>
 
 <template>
-	<InputString
-		:modelValue="symbolName"
-		class="ExprSymbol"
-		:invalid="isSymbolNameInvalid"
-		@update:modelValue="onInput"
-	/>
+	<div class="ExprSymbol">
+		<span class="arrow-icon material-symbols-rounded"> reply </span>
+		<InputString
+			:modelValue="symbolName"
+			:invalid="isSymbolNameInvalid"
+			@update:modelValue="onInput"
+		/>
+	</div>
 </template>
 
 <style lang="stylus" scoped>
@@ -44,4 +46,22 @@ function onInput(value: string) {
 
 .ExprSymbol
 	text-align center
+	position relative
+
+	.arrow-icon
+		display block
+		top 0
+		position absolute
+		left 0
+		height 100%
+		aspect-ratio 1
+		line-height var(--ui-input-height)
+		font-size 1em
+		border-radius var(--ui-input-border-radius)
+		z-index 20
+
+		&:hover
+			background var(--color-primary)
+			color var(--color-on-primary)
+			cursor pointer
 </style>

@@ -84,7 +84,7 @@ function set(path: number, newExpr: G.Expr) {
 		flex-direction column
 		gap var(--ui-input-row-margin)
 		font-family var(--font-ui)
-		padding-left calc(var(--ui-input-height) * .666)
+		padding-left var(--ui-inspector-tree-icon-size)
 
 		+box-before()
 			left calc(var(--ui-input-height) / 3)
@@ -92,7 +92,7 @@ function set(path: number, newExpr: G.Expr) {
 			border 1px solid var(--color-outline-variant)
 			border-right 0
 			border-top 0
-			bottom calc(var(--ui-input-row-margin) * -0.5)
+			bottom 0
 			top calc(var(--ui-input-row-margin) * -1)
 
 	&--collapsed

@@ -114,25 +114,6 @@ function set(path: string, expr: G.Expr) {
 		flex-direction column
 		gap var(--ui-input-row-margin)
 
-		&:after
-			content 'L'
-			position absolute
-			top calc(var(--ui-input-height) / 2)
-			left 0
-			background var(--color-outline-variant)
-			color var(--color-background)
-			border-radius 9999px
-			display block
-			aspect-ratio 1
-			width var(--ui-inspector-tree-icon-size)
-			height var(--ui-inspector-tree-icon-size)
-			line-height var(--ui-inspector-tree-icon-size)
-			text-align center
-			font-weight 900
-			font-family var(--font-code)
-			font-size calc(var(--ui-inspector-tree-icon-size) * 0.8)
-			transform translateY(-50%) scale(.8)
-
 .items, .ret
 	padding-left var(--ui-inspector-tree-icon-size)
 
