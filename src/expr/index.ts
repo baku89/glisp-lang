@@ -65,16 +65,17 @@ export type AtomExpr = Symbol | Container | Literal | InfixNumber
 /**
  * expressions that can contain other experssions
  */
-export type ParentExpr =
-	| App
-	| Scope
-	| Match
-	| FnDef
-	| VecLiteral
-	| DictLiteral
-	| ValueMeta
-	| ParamsDef // No infer
-	| Program
+export type ParentExpr = InnerExpr | UtilExpr
+
+/**
+ * シンボルのパスを解決するのに用いられる内部ノード
+ */
+type InnerExpr = App | Scope | Match | FnDef | VecLiteral | DictLiteral
+
+/**
+ * シンボルのパスからは原則として無視される式
+ */
+type UtilExpr = ValueMeta | ParamsDef | Program
 
 export interface PrintOptions {
 	omitMeta?: boolean
@@ -92,6 +93,23 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	abstract readonly type: string
 
 	parent: ParentExpr | null = null
+
+	get innerParent(): InnerExpr | null {
+		let expr: AnyExpr | null = this.parent
+		while (expr) {
+			if (
+				expr.type !== 'Program' &&
+				expr.type !== 'ValueMeta' &&
+				expr.type !== 'ParamsDef'
+			) {
+				break
+			}
+
+			expr = expr.parent
+		}
+
+		return expr
+	}
 
 	/**
 	 * 現在の式の評価値が変わることで、再評価が必要になる式
@@ -355,24 +373,12 @@ export class Symbol extends BaseExpr {
 	resolve(env: Env = Env.global): ResolveResult {
 		if (this.#resolved) return this.#resolved
 
-		let expr: Expr | ParamsDef | Program | null = this.parent
+		let expr: Expr | null = this.innerParent
 		let isFirstPath = true
 
 		for (let i = 0; i < this.paths.length; i++) {
 			const path = this.paths[i]
 			const isLastPath = i === this.paths.length - 1
-
-			while (expr) {
-				if (
-					expr.type !== 'Program' &&
-					expr.type !== 'ValueMeta' &&
-					expr.type !== 'ParamsDef'
-				) {
-					break
-				}
-
-				expr = expr.parent
-			}
 
 			if (!expr) {
 				return {
@@ -383,7 +389,7 @@ export class Symbol extends BaseExpr {
 			}
 
 			if (path === UpPath) {
-				expr = expr.parent
+				expr = expr.innerParent
 			} else if (path === CurrentPath) {
 				// Do nothing
 			} else {
@@ -439,7 +445,7 @@ export class Symbol extends BaseExpr {
 
 							env = env.pop()
 						}
-						expr = expr.parent
+						expr = expr.innerParent
 					}
 				}
 			}
@@ -447,24 +453,10 @@ export class Symbol extends BaseExpr {
 			isFirstPath = false
 		}
 
-		while (expr && (expr.type === 'Program' || expr.type === 'ValueMeta')) {
-			expr = expr.parent
-		}
-
 		if (!expr) {
 			return {
 				level: 'error',
 				reason: `Symbol \`${this.print()}\` cannot be resolved`,
-				ref: this,
-			}
-		}
-
-		if (expr.type === 'ParamsDef') {
-			return {
-				level: 'error',
-				reason:
-					`Symbol \`${this.print()} is referring a parameter part of ` +
-					'function definition',
 				ref: this,
 			}
 		}
