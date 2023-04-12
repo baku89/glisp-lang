@@ -1549,6 +1549,9 @@ export class App extends BaseExpr {
 		let index: number
 
 		if (typeof key === 'string') {
+			if (key === '=>') {
+				return this.fn
+			}
 			// NOTE: 実引数として渡された関数の方ではなく、仮引数の方で名前を参照するべきなので、
 			// Env.globalのほうが良いのでは?
 			const fnType = this.fn.infer()
@@ -1563,6 +1566,19 @@ export class App extends BaseExpr {
 
 		// index begins like (fn=0 arg0=1 arg2=2 ...)
 		return (index === 0 ? this.fn : this.args[index - 1]) ?? null
+	}
+
+	getKey(expr: Expr): Key | null {
+		if (expr === this.fn) {
+			return '=>'
+		}
+
+		const index = this.args.findIndex(a => a === expr)
+		if (index !== -1) {
+			return index + 1
+		} else {
+			return null
+		}
 	}
 
 	set(key: Key, newExpr: Expr): Action {
