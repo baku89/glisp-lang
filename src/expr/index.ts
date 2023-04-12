@@ -1,11 +1,12 @@
 import EventEmitter from 'eventemitter3'
 import {IterableWeakSet} from 'iterable-weak'
-import {entries, forOwn, fromPairs, keys, mapValues, values} from 'lodash'
+import {entries, forOwn, keys, mapValues, values} from 'lodash'
 import ordinal from 'ordinal'
 
 import {EvalError} from '../EvalError'
 import {Log} from '../Log'
 import {fromKeysValues} from '../util/fromKeysValues'
+import {getKeyByValue} from '../util/getKeyByValue'
 import {isEqualArray} from '../util/isEqualArray'
 import {isEqualDict} from '../util/isEqualDict'
 import {isEqualSet} from '../util/isEqualSet'
@@ -25,7 +26,6 @@ import {
 	number,
 	string,
 	TypeVar,
-	typeVar,
 	unionType,
 	unit,
 	Value,
@@ -46,11 +46,12 @@ import {shadowTypeVars, Unifier} from './unify'
 
 export {notifyChangedExprs} from './dep'
 export type {Action} from './action'
+export * from './computeSymbol'
 
 /**
  * ASTs that have eval, infer as normal
  */
-export type Expr = Exclude<AnyExpr, ParamsDef>
+export type Expr = Exclude<Exclude<AnyExpr, ParamsDef>, TypeVarsDef>
 
 /**
  * Presenting any ASTs
@@ -70,12 +71,12 @@ export type ParentExpr = InnerExpr | UtilExpr
 /**
  * シンボルのパスを解決するのに用いられる内部ノード
  */
-type InnerExpr = App | Scope | Match | FnDef | VecLiteral | DictLiteral
+export type InnerExpr = App | Scope | Match | FnDef | VecLiteral | DictLiteral
 
 /**
  * シンボルのパスからは原則として無視される式
  */
-type UtilExpr = ValueMeta | ParamsDef | Program
+type UtilExpr = ValueMeta | ParamsDef | TypeVarsDef | Program
 
 export interface PrintOptions {
 	omitMeta?: boolean
@@ -100,7 +101,8 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 			if (
 				expr.type !== 'Program' &&
 				expr.type !== 'ValueMeta' &&
-				expr.type !== 'ParamsDef'
+				expr.type !== 'ParamsDef' &&
+				expr.type !== 'TypeVarDef'
 			) {
 				break
 			}
@@ -173,9 +175,14 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 		throw new Error(`Invalid call of rename on \`${this.print()}\``)
 	}
 
+	// eslint-disable-next-line no-unused-vars
+	getKey(expr: Expr): Key | null {
+		return null
+	}
+
 	protected dispatchEditEvents() {
 		// Emit 'edit' events
-		let e: BaseExpr | ParamsDef | null = this
+		let e: BaseExpr | ParamsDef | TypeVarsDef | null = this
 		do {
 			if (e instanceof EventEmitter) {
 				editedExprs.add(e)
@@ -731,6 +738,7 @@ export class FnDef extends BaseExpr {
 		}
 
 		// Set parent
+		if (this.typeVars) this.typeVars.parent = this
 		this.params.parent = this
 		if (this.returnType) this.returnType.parent = this
 		if (this.body) this.body.parent = this
@@ -836,13 +844,23 @@ export class FnDef extends BaseExpr {
 	get(key: Key): Expr | null {
 		if (typeof key === 'number') return null
 
-		const typeVar = this.typeVars?.get(key)
-
-		if (typeVar) {
-			return new Container(typeVar)
+		if (key === 'return') {
+			return this.body ?? null
 		}
 
-		return this.params.get(key)
+		return this.typeVars?.get(key) ?? this.params.get(key)
+	}
+
+	getKey(expr: Expr): Key | null {
+		const keyInParams = this.typeVars?.getKey(expr) ?? this.params.getKey(expr)
+
+		if (keyInParams) {
+			return keyInParams
+		}
+
+		if (expr === this.body) return 'return'
+
+		return null
 	}
 
 	print(options?: PrintOptions): string {
@@ -943,6 +961,11 @@ export class ParamsDef {
 		return this.items[key] ?? null
 	}
 
+	getKey(expr: Expr): Key | null {
+		if (expr.parent !== this) return null
+		return getKeyByValue(this.items, expr)
+	}
+
 	print(options?: PrintOptions) {
 		const params = entries(this.items)
 		const {optionalPos, rest} = this
@@ -1009,14 +1032,28 @@ export const paramsDef = (
 ) => new ParamsDef(items, optionalPos, rest)
 
 export class TypeVarsDef {
-	readonly typeVars: Record<string, TypeVar>
+	readonly type = 'TypeVarDef' as const
+
+	parent!: FnDef
+
+	readonly typeVars: Record<string, Container<TypeVar>>
 
 	constructor(readonly names: readonly string[]) {
-		this.typeVars = fromPairs(names.map(name => [name, typeVar(name)]))
+		this.typeVars = {}
+
+		for (const name of names) {
+			const e = new Container(new TypeVar(name))
+			e.parent = this
+			this.typeVars[name] = e
+		}
 	}
 
-	get(name: string): TypeVar | undefined {
-		return this.typeVars[name]
+	get(name: string): Container<TypeVar> | null {
+		return this.typeVars[name] ?? null
+	}
+
+	getKey(key: Expr): Key | null {
+		return getKeyByValue(this.typeVars, key)
 	}
 
 	print() {
@@ -1095,6 +1132,10 @@ export class VecLiteral extends BaseExpr {
 		if (typeof key === 'string') return null
 
 		return this.items[key] ?? null
+	}
+
+	getKey(expr: Expr): Key | null {
+		return this.items.findIndex(it => it === expr) ?? null
 	}
 
 	set(key: Key, expr: Expr): Action {
@@ -1263,6 +1304,10 @@ export class DictLiteral extends BaseExpr {
 		if (typeof key === 'number') return null
 
 		return this.items[key] ?? null
+	}
+
+	getKey(expr: Expr): Key | null {
+		return getKeyByValue(this.items, expr)
 	}
 
 	print(options?: PrintOptions): string {
@@ -1635,6 +1680,11 @@ export class Scope extends BaseExpr {
 		} else {
 			return this.items[key] ?? null
 		}
+	}
+
+	getKey(expr: Expr): Key | null {
+		const keyInVars = getKeyByValue(this.items, expr)
+		return keyInVars ?? (this.ret === expr ? 'return' : null)
 	}
 
 	set(key: Key, newExpr: Expr): Action {
