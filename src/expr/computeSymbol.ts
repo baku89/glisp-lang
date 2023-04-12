@@ -1,5 +1,5 @@
 import {AnyExpr, Expr, InnerExpr, Symbol} from '.'
-import {Path, UpPath} from './path'
+import {CurrentPath, Path, UpPath} from './path'
 
 function getInnerAncestors(expr: Expr) {
 	const ancestors: InnerExpr[] = []
@@ -47,7 +47,11 @@ export function computeSymbol(from: Expr, to: Expr): Symbol | null {
 			// NOTE: 色々マズい
 			upwardPaths.splice(0, upwardPaths.length)
 		} else {
-			upwardPaths.push(UpPath)
+			if (upwardPaths.length === 0 && from.type === 'Symbol') {
+				upwardPaths.push(CurrentPath)
+			} else {
+				upwardPaths.push(UpPath)
+			}
 		}
 	}
 
