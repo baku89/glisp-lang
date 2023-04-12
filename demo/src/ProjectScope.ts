@@ -82,9 +82,10 @@ export const projectScope = G.Parser.Scope.tryParse(
 (let a: (+ b 2)
      b: 123
      c: "hello"
-     d: (let TAU: (* PI 2)
+     s: (let TAU: (* PI 2)
              E: 2.71828
              (+ TAU b))
+     d: {foo: "banana" bar: "apple"}
      v: [1
          [0 (** 2 3) ()]
          (let y: 20 y)
