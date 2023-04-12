@@ -354,19 +354,21 @@ export class Symbol extends BaseExpr {
 	}
 
 	public readonly paths: readonly Path[]
+	public readonly keys: readonly Key[]
 
-	constructor(pathArrayOrPath: readonly Path[] | Path) {
+	constructor(pathArrayOrPath: readonly Path[] | Path, keys: Key[] = []) {
 		super()
 
-		const _paths: Path[] = Array.isArray(pathArrayOrPath)
+		const paths: Path[] = Array.isArray(pathArrayOrPath)
 			? pathArrayOrPath
 			: [pathArrayOrPath]
 
-		if (_paths.length === 0) {
+		if (paths.length === 0) {
 			throw new Error('Zero-length path cannot be set to a new Symbol')
 		}
 
-		this.paths = _paths
+		this.paths = paths
+		this.keys = keys
 	}
 
 	#resolved: ResolveResult | null = null
@@ -471,7 +473,7 @@ export class Symbol extends BaseExpr {
 			return unit.withLog(resolved)
 		}
 
-		let value: Value
+		let value: Value | null
 		if (resolved.type === 'arg') {
 			value = resolved.value
 		} else {
@@ -480,12 +482,25 @@ export class Symbol extends BaseExpr {
 
 		// 仮引数を参照しており、かつそれが関数呼び出し時ではなく
 		// 束縛されている値が環境に見当たらない場合、自由変数なんでデフォルト値を返す
-		// ただし、型変数は除く
 		if (resolved.type === 'param') {
-			return value.defaultValue.usesParamDefault()
-		} else {
-			return value
+			value = value.defaultValue.usesParamDefault()
 		}
+
+		// 値の内部値にアクセスする
+		for (const key of this.keys) {
+			if (!value) break
+			value = value.get(key)
+		}
+
+		if (!value) {
+			return unit.withLog({
+				level: 'error',
+				reason: `Symbol \`${this.print()}\` cannot be resolved`,
+				ref: this,
+			})
+		}
+
+		return value
 	}
 
 	protected forceInfer(env: Env): Value {
@@ -495,14 +510,35 @@ export class Symbol extends BaseExpr {
 			return unit.withLog(resolved)
 		}
 
+		let value: Value | null
+
 		switch (resolved.type) {
 			case 'global':
-				return resolved.expr.infer(env)
+				value = resolved.expr.infer(env)
+				break
 			case 'param':
-				return resolved.expr.eval(env)
+				value = resolved.expr.eval(env)
+				break
 			case 'arg':
-				return resolved.value
+				value = resolved.value
+				break
 		}
+
+		// 値の内部値にアクセスする
+		for (const key of this.keys) {
+			if (!value) break
+			value = value.getTypeFor(key)
+		}
+
+		if (!value) {
+			return unit.withLog({
+				level: 'error',
+				reason: `Symbol \`${this.print()}\` cannot be resolved`,
+				ref: this,
+			})
+		}
+
+		return value
 	}
 
 	print() {
