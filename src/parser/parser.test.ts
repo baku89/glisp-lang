@@ -103,6 +103,9 @@ describe('parsing path symbols', () => {
 	testParsing('x/..', symbol(['x', UpPath]))
 	testParsing('./0', symbol([CurrentPath, 0]))
 	testParsing('x/111/222', symbol(['x', 111, 222]))
+	testParsing('x.x', symbol('x', 'x'))
+	testParsing('x.0', symbol('x', 0))
+	testParsing('x/y.0.z.2', symbol(['x', 'y'], [0, 'z', 2]))
 })
 
 describe('parsing line comment', () => {

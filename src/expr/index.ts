@@ -354,9 +354,12 @@ export class Symbol extends BaseExpr {
 	}
 
 	public readonly paths: readonly Path[]
-	public readonly keys: readonly Key[]
+	public readonly props: readonly Key[]
 
-	constructor(pathArrayOrPath: readonly Path[] | Path, keys: Key[] = []) {
+	constructor(
+		pathArrayOrPath: readonly Path[] | Path,
+		propArrayOrProp: Key[] | Key = []
+	) {
 		super()
 
 		const paths: Path[] = Array.isArray(pathArrayOrPath)
@@ -367,8 +370,12 @@ export class Symbol extends BaseExpr {
 			throw new Error('Zero-length path cannot be set to a new Symbol')
 		}
 
+		const props: Key[] = Array.isArray(propArrayOrProp)
+			? propArrayOrProp
+			: [propArrayOrProp]
+
 		this.paths = paths
-		this.keys = keys
+		this.props = props
 	}
 
 	#resolved: ResolveResult | null = null
@@ -487,7 +494,7 @@ export class Symbol extends BaseExpr {
 		}
 
 		// 値の内部値にアクセスする
-		for (const key of this.keys) {
+		for (const key of this.props) {
 			if (!value) break
 			value = value.get(key)
 		}
@@ -525,9 +532,9 @@ export class Symbol extends BaseExpr {
 		}
 
 		// 値の内部値にアクセスする
-		for (const key of this.keys) {
+		for (const prop of this.props) {
 			if (!value) break
-			value = value.getTypeFor(key)
+			value = value.getTypeFor(prop)
 		}
 
 		if (!value) {
@@ -542,13 +549,20 @@ export class Symbol extends BaseExpr {
 	}
 
 	print() {
-		return this.paths
+		const paths = this.paths
 			.map(p => {
 				if (p === UpPath) return '..'
 				if (p === CurrentPath) return '.'
 				return p
 			})
 			.join('/')
+		const properties = this.props.map(p => '.' + p).join('')
+
+		if (paths.endsWith('.') && properties !== '') {
+			return paths + '/' + properties
+		} else {
+			return paths + properties
+		}
 	}
 
 	isSameTo(expr: AnyExpr) {
@@ -565,8 +579,11 @@ export class Symbol extends BaseExpr {
 	}
 }
 
-export const symbol = (pathArrayOrPath: readonly Path[] | Path) => {
-	return new Symbol(pathArrayOrPath)
+export const symbol = (
+	pathArrayOrPath: readonly Path[] | Path,
+	propArrayOrProp?: Key[] | Key
+) => {
+	return new Symbol(pathArrayOrPath, propArrayOrProp)
 }
 
 /**
