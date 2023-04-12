@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import {ref} from 'vue'
+
 withDefaults(
 	defineProps<{
 		modelValue: string
@@ -11,9 +13,12 @@ withDefaults(
 	}
 )
 
+const inputEl = ref<HTMLInputElement | null>(null)
+
 const emits = defineEmits<{
 	(e: 'update:modelValue', value: string): void
 	(e: 'confirm'): void
+	(e: 'blur'): void
 }>()
 
 let hasChanged = false
@@ -28,14 +33,24 @@ function onInput(e: Event) {
 }
 
 function onBlur() {
-	if (!hasChanged) return
-	emits('confirm')
+	if (hasChanged) {
+		emits('confirm')
+	}
+	emits('blur')
 }
+
+defineExpose({
+	focus() {
+		inputEl.value?.focus()
+		inputEl.value?.select()
+	},
+})
 </script>
 
 <template>
 	<div class="InputString" :class="{invalid}">
 		<input
+			ref="inputEl"
 			class="input"
 			type="text"
 			:value="modelValue"

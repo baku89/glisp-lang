@@ -2,6 +2,8 @@
 import * as G from 'glisp'
 import {ref, watchEffect} from 'vue'
 
+import {useGlispManager} from '../use/useGlispManager'
+
 interface Props {
 	expr: G.Expr
 	valueType?: G.Value
@@ -21,10 +23,18 @@ updateEvaluated()
 watchEffect(() => {
 	props.expr.on('change', updateEvaluated)
 })
+
+const manager = useGlispManager()
 </script>
 
 <template>
-	<div class="ExprMinimal">{{ evaluated }}</div>
+	<div
+		class="ExprMinimal"
+		@pointerenter="manager.onPointerEnter(expr)"
+		@pointerleave="manager.onPointerLeave()"
+	>
+		{{ evaluated }}
+	</div>
 </template>
 
 <style lang="stylus" scoped>

@@ -2,6 +2,7 @@
 import * as G from 'glisp'
 import {computed, ref, watchEffect} from 'vue'
 
+import {useGlispManager} from '../use/useGlispManager'
 import InputNumber from './InputNumber.vue'
 import InputString from './InputString.vue'
 
@@ -41,6 +42,8 @@ function onInput(newValue: number | string) {
 
 	value.value = newValue
 }
+
+const manager = useGlispManager()
 </script>
 
 <template>
@@ -50,6 +53,8 @@ function onInput(newValue: number | string) {
 			:modelValue="value"
 			@update:modelValue="onInput"
 			@confirm="$emit('confirm')"
+			@pointerenter="manager.onPointerEnter(expr)"
+			@pointerleave="manager.onPointerLeave()"
 		/>
 	</div>
 </template>

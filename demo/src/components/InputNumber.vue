@@ -284,7 +284,6 @@ function onBlur() {
 }
 
 function confirm() {
-	console.log('confirm')
 	emits('confirm')
 }
 
