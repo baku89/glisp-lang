@@ -1068,21 +1068,37 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 	}
 
 	get(key: Key): Value | null {
-		if (typeof key === 'number') {
-			return this.items[key] ?? null
-		} else {
-			switch (key) {
-				case 'x':
-					return this.items[0] ?? null
-				case 'y':
-					return this.items[1] ?? null
-				case 'z':
-					return this.items[2] ?? null
-				case 'w':
-					return this.items[3] ?? null
-				default:
-					return null
+		const index =
+			typeof key === 'number' ? key : Vec.#StringKeyToIndex[key] ?? null
+
+		if (index === null) return null
+
+		return this.items[index] ?? null
+	}
+
+	static #StringKeyToIndex: Record<string, number | undefined> = {
+		x: 0,
+		y: 1,
+		z: 2,
+		w: 3,
+	}
+
+	getTypeFor(key: Key): Value | null {
+		const index =
+			typeof key === 'number' ? key : Vec.#StringKeyToIndex[key] ?? null
+
+		if (index === null) return null
+
+		if (index < this.items.length) {
+			if (this.optionalPos <= index) {
+				return unionType(this.items[index], unit)
+			} else {
+				return this.items[index] ?? null
 			}
+		} else if (this.rest) {
+			return unionType(this.rest, unit)
+		} else {
+			return null
 		}
 	}
 
@@ -1205,6 +1221,24 @@ export class Dict<
 
 	get(key: Key): Value | null {
 		return this.items[key] ?? null
+	}
+
+	getTypeFor(key: Key): Value | null {
+		if (typeof key === 'number') return null
+
+		if (key in this.items) {
+			if (this.optionalKeys.has(key)) {
+				return unionType(this.items[key], unit)
+			} else {
+				return this.items[key]
+			}
+		} else {
+			if (this.rest) {
+				return unionType(this.rest, unit)
+			} else {
+				return null
+			}
+		}
 	}
 
 	declare isTypeFor: (value: Value) => value is Dict
