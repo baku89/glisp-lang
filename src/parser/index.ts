@@ -162,6 +162,13 @@ const InfixName = P.regex(/[a-z!$%&*_=|]+/i)
 const PUpPath = P.string('..').map<typeof UpPath>(() => UpPath)
 const PCurrentPath = P.string('.').map<typeof CurrentPath>(() => CurrentPath)
 
+const NameKey = seq(
+	AllowedCharForName,
+	many(P.alt(P.digit, P.string('?'), AllowedCharForName))
+).assert(name => !Reserved.has(name), 'cannot use reserved keyword as a symbol')
+
+const IndexKey = P.regex(/([1-9][0-9]*|0)/).map(parseInt)
+
 // Main parser
 interface IParser {
 	Program: Program
@@ -178,7 +185,6 @@ interface IParser {
 	VecLiteral: VecLiteral
 	DictEntry: [boolean, string, Expr, [string, string]]
 	DictLiteral: DictLiteral
-	NamePath: string
 	Symbol: Symbol
 	ValueMeta: ValueMeta
 	InfixNumber: InfixNumber
@@ -227,8 +233,8 @@ export const Parser = P.createLanguage<IParser>({
 			.map(raw => new Literal(raw))
 			.desc('string literal')
 	},
-	TypeVarsDef(r) {
-		return P.seq(_, P.seq(r.NamePath, _).many())
+	TypeVarsDef() {
+		return P.seq(_, P.seq(NameKey, _).many())
 			.wrap(P.string('('), P.string(')'))
 			.map(([d0, ItemsPart]) => {
 				const [items, ds] = zip(ItemsPart)
@@ -247,7 +253,7 @@ export const Parser = P.createLanguage<IParser>({
 			// Items part
 			r.DictEntry.many(),
 			// Rest part
-			opt(P.seq(P.string('...'), followedByColon(r.NamePath), _, r.Expr, _))
+			opt(P.seq(P.string('...'), followedByColon(NameKey), _, r.Expr, _))
 		)
 			.wrap(P.string('['), P.string(']'))
 			.map(([d0, pairs, restDs]) => {
@@ -341,7 +347,7 @@ export const Parser = P.createLanguage<IParser>({
 			.desc('function application')
 	},
 	ScopeEntry(r) {
-		return P.seq(followedByColon(r.NamePath), _, r.Expr).map(
+		return P.seq(followedByColon(NameKey), _, r.Expr).map(
 			([name, _0, expr]) => [name, _0, expr]
 		)
 	},
@@ -399,7 +405,7 @@ export const Parser = P.createLanguage<IParser>({
 			_,
 			P.string('match'),
 			_,
-			P.seq(followedByColon(r.NamePath), _, r.Expr, _),
+			P.seq(followedByColon(NameKey), _, r.Expr, _),
 			P.seq(followedByColon(r.Expr), _, r.Expr, _).many(),
 			opt(P.seq(r.Expr, _))
 		)
@@ -451,7 +457,7 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	DictEntry(r) {
 		return P.seq(
-			followedByColon(P.seq(OptionalMark, r.NamePath)),
+			followedByColon(P.seq(OptionalMark, NameKey)),
 			_,
 			r.Expr,
 			_
@@ -491,32 +497,27 @@ export const Parser = P.createLanguage<IParser>({
 				return expr
 			})
 	},
-	NamePath() {
-		return seq(
-			AllowedCharForName,
-			many(P.alt(P.digit, P.string('?'), AllowedCharForName))
-		).assert(
-			name => !Reserved.has(name),
-			'cannot use reserved keyword as a symbol'
-		)
-	},
-	Symbol(r) {
+	Symbol() {
 		return P.notFollowedBy(P.string('...')).then(
 			P.seq(
-				P.alt(PUpPath, PCurrentPath, r.NamePath),
+				// Paths (xx/yy/zz/1/2/3)
 				P.seq(
-					P.string('/'),
-					P.alt<Path>(
-						PUpPath,
-						PCurrentPath,
-						r.NamePath,
-						P.regex(/([1-9][0-9]*|0)/).map(parseInt)
-					)
+					// First path must not be begin with IndexKey
+					P.alt<Path>(PUpPath, PCurrentPath, NameKey),
+					// Rest paths can be whichever
+					P.seqMap(
+						P.string('/'),
+						P.alt<Path>(PUpPath, PCurrentPath, NameKey, IndexKey),
+						(_, path) => path
+					).many()
+				).map<Path[]>(([first, rest]) => [first, ...rest]),
+				// PropKeys (x.y.z.1.2.3)
+				P.seqMap(
+					P.string('.'),
+					P.alt<string | number>(NameKey, IndexKey),
+					(_, key) => key
 				).many()
-			).map(([first, restPart]) => {
-				const [, rest] = zip(restPart)
-				return new Symbol([first, ...rest])
-			})
+			).map(([paths, keys]) => new Symbol(paths, keys))
 		)
 	},
 	ValueMeta(r) {
