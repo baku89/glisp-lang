@@ -6,10 +6,12 @@ withDefaults(
 		modelValue: string
 		disabled?: boolean
 		invalid?: boolean
+		tweaked?: boolean
 	}>(),
 	{
 		disabled: false,
 		invalid: false,
+		tweaked: false,
 	}
 )
 
@@ -48,7 +50,7 @@ defineExpose({
 </script>
 
 <template>
-	<div class="InputString" :class="{invalid}">
+	<div class="InputString" :class="{invalid, tweaked}">
 		<input
 			ref="inputEl"
 			class="input"
@@ -66,5 +68,5 @@ defineExpose({
 @import '@/common.styl'
 
 .InputString
-	input()
+	input('.tweaked')
 </style>

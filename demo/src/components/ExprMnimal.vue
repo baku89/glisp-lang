@@ -55,4 +55,9 @@ const manager = useGlispManager()
 	white-space nowrap
 	overflow hidden
 	text-overflow ellipsis
+	input-transition(box-shadow)
+	--border-color var(--color-primary)
+
+	&:hover
+		box-shadow 0 0 0 0 inset var(--border-color), 0 0 0 1px inset var(--border-color)
 </style>
