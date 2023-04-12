@@ -507,7 +507,14 @@ export const Parser = P.createLanguage<IParser>({
 					// Rest paths can be whichever
 					P.seqMap(
 						P.string('/'),
-						P.alt<Path>(PUpPath, PCurrentPath, NameKey, IndexKey),
+						P.alt<Path>(
+							PUpPath,
+							PCurrentPath,
+							NameKey,
+							IndexKey,
+							P.string('=>'),
+							P.string('return')
+						),
 						(_, path) => path
 					).many()
 				).map<Path[]>(([first, rest]) => [first, ...rest]),
