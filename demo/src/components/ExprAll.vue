@@ -3,6 +3,7 @@ import * as G from 'glisp'
 import {computed} from 'vue'
 
 import ExprApp from './ExprApp.vue'
+import ExprDictLiteral from './ExprDictLiteral.vue'
 import ExprLiteral from './ExprLiteral.vue'
 import ExprProgram from './ExprProgram.vue'
 import ExprScope from './ExprScope.vue'
@@ -39,6 +40,8 @@ const exprComponent = computed(() => {
 			return ExprScope
 		case 'VecLiteral':
 			return ExprVecLiteral
+		case 'DictLiteral':
+			return ExprDictLiteral
 		default:
 			return null
 	}
