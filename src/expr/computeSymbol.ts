@@ -20,6 +20,10 @@ function getInnerAncestors(expr: Expr) {
  * @param to 参照先の式
  */
 export function computeSymbol(from: Expr, to: Expr): Symbol | null {
+	if (from === to) {
+		return new Symbol(CurrentPath)
+	}
+
 	// 共通の祖先があるかをチェック
 	const fromAncestors = getInnerAncestors(from)
 	const toAncestors = getInnerAncestors(to)
