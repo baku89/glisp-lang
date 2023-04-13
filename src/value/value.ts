@@ -72,15 +72,6 @@ export abstract class BaseValue {
 	get meta(): Meta | undefined {
 		return this.#meta
 	}
-	set meta(meta: Meta | undefined) {
-		if (meta) {
-			if (values(meta).length === 0) return
-			if ('default' in meta) {
-				throw new Error('Meta cannot has a `default` field.')
-			}
-		}
-		this.#meta = meta
-	}
 
 	abstract isEqualTo(value: Value): boolean
 
@@ -155,10 +146,16 @@ export abstract class BaseValue {
 	}
 
 	withMeta(meta: Meta) {
-		const thisMeta = this.meta ?? {}
+		const thisMeta = this.#meta ?? {}
 
 		const value = this.clone()
-		value.meta = {...thisMeta, ...meta}
+
+		const mergedMeta = {...thisMeta, ...meta}
+
+		if (keys(mergedMeta).length > 0) {
+			value.#meta = mergedMeta
+		}
+
 		return value
 	}
 
@@ -172,7 +169,7 @@ export abstract class BaseValue {
 
 	clone() {
 		const value = this.cloneOnlyProps()
-		value.#meta = this.meta
+		value.#meta = this.#meta
 		value.log = this.log
 		value.isParamDefault = this.isParamDefault
 		return value
