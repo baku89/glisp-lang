@@ -150,7 +150,7 @@ describe('evaluating function body', () => {
 				throw new Error('Not a function. Got=' + i.print())
 			}
 
-			if (!i.body) {
+			if (!i.body || i.body.type === 'NativeFnBody') {
 				throw new Error('Not a function definition. Got=' + i.print())
 			}
 

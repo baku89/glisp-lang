@@ -695,6 +695,11 @@ export class Literal extends BaseExpr {
 
 export const literal = (value: number | string) => new Literal(value)
 
+interface NativeFnBody {
+	type: 'NativeFnBody'
+	f: IFn
+}
+
 /**
  * AST represents function definition
  * e.g.
@@ -709,13 +714,13 @@ export class FnDef extends BaseExpr {
 	public readonly typeVars?: TypeVarsDef
 	public readonly params: ParamsDef
 	public readonly returnType?: Expr
-	public readonly body?: Expr
+	public readonly body?: Expr | NativeFnBody
 
 	constructor(
 		typeVars?: TypeVarsDef | string[] | null,
 		params?: ParamsDef | Record<string, Expr> | null,
 		returnType?: Expr | null,
-		body?: Expr | null
+		body?: Expr | NativeFnBody | null
 	) {
 		super()
 
@@ -741,7 +746,7 @@ export class FnDef extends BaseExpr {
 		if (this.typeVars) this.typeVars.parent = this
 		this.params.parent = this
 		if (this.returnType) this.returnType.parent = this
-		if (this.body) this.body.parent = this
+		if (this.body && this.body.type !== 'NativeFnBody') this.body.parent = this
 	}
 
 	protected forceEval(env: Env): FnType | Fn {
@@ -763,7 +768,7 @@ export class FnDef extends BaseExpr {
 			}
 
 			const innerEnv = env.push(arg)
-			let returnType = body.infer(innerEnv)
+			let returnType = body.type === 'NativeFnBody' ? all : body.infer(innerEnv)
 
 			// When there's explicit notation for return type,
 			// check if inferredReturnType <: returnType is true.
@@ -789,15 +794,18 @@ export class FnDef extends BaseExpr {
 			}
 
 			// Defines a function object in JS
-			let fnObj: IFn
+			let f: IFn
 
-			if (shouldReturnDefaultValue) {
-				fnObj = () => returnType.defaultValue
+			if (body.type === 'NativeFnBody') {
+				f = body.f
+			} else if (shouldReturnDefaultValue) {
+				f = () => returnType.defaultValue
 				body = returnType.defaultValue.toExpr()
 			} else {
 				const {names, restName} = this.params.getNames()
+				const bodyExpr = body
 
-				fnObj = (...args: Value[]) => {
+				f = (...args: Value[]) => {
 					const argDict = fromKeysValues(names, args)
 					if (restName) {
 						const restArgs = args.slice(names.length)
@@ -806,13 +814,17 @@ export class FnDef extends BaseExpr {
 
 					const innerEnv = env.push(argDict)
 
-					return body.eval(innerEnv)
+					return bodyExpr.eval(innerEnv)
 				}
 			}
 
 			const fnType = new FnType(params, optionalPos, rest, returnType)
 
-			const fn = new Fn(fnType, fnObj, body)
+			const fn = new Fn(
+				fnType,
+				f,
+				body.type !== 'NativeFnBody' ? body : undefined
+			)
 
 			return fn.withLog(...log)
 		} else {
@@ -845,7 +857,11 @@ export class FnDef extends BaseExpr {
 		if (typeof key === 'number') return null
 
 		if (key === 'return') {
-			return this.body ?? null
+			if (!this.body || this.body.type === 'NativeFnBody') {
+				return null
+			} else {
+				return this.body
+			}
 		}
 
 		return this.typeVars?.get(key) ?? this.params.get(key)
@@ -875,36 +891,64 @@ export class FnDef extends BaseExpr {
 			this.extras = {delimiters}
 		}
 
-		const typeVars = this.typeVars ? [this.typeVars.print()] : []
-		const params = this.params.print(options)
-		const returnType = this.returnType
-			? [':', this.returnType.print(options)]
-			: []
-		const body = this.body ? [this.body.print(options)] : []
+		const tokens: string[] = ['=>']
 
-		const elements = ['=>', ...typeVars, params, ...returnType, ...body]
+		if (this.typeVars) {
+			tokens.push(this.typeVars.print())
+		}
 
-		return '(' + insertDelimiters(elements, this.extras.delimiters) + ')'
+		// Params
+		tokens.push(this.params.print(options))
+
+		if (this.returnType) {
+			tokens.push(':', this.returnType.print(options))
+		}
+
+		if (this.body) {
+			if (this.body.type === 'NativeFnBody') {
+				tokens.push('(js)')
+			} else {
+				tokens.push(this.body.print(options))
+			}
+		}
+
+		return '(' + insertDelimiters(tokens, this.extras.delimiters) + ')'
 	}
 
 	extras?: {delimiters: string[]}
 
-	isSameTo(expr: AnyExpr) {
+	isSameTo(expr: AnyExpr): boolean {
 		return (
 			this.type === expr.type &&
 			nullishEqual(this.typeVars, expr.typeVars, TypeVarsDef.isSame) &&
 			this.params.isSameTo(expr.params) &&
 			nullishEqual(this.returnType, expr.returnType, isSame) &&
-			nullishEqual(this.body, expr.body, isSame)
+			nullishEqual(
+				this.body,
+				expr.body,
+				(a: Expr | NativeFnBody, b: Expr | NativeFnBody) => {
+					if (a.type === 'NativeFnBody') {
+						return b.type === 'NativeFnBody' && a.f === b.f
+					} else {
+						return b.type !== 'NativeFnBody' && a.isSameTo(b)
+					}
+				}
+			)
 		)
 	}
 
 	clone(): FnDef {
+		const clonedBody = !this.body
+			? null
+			: this.body.type === 'NativeFnBody'
+			? this.body
+			: this.body.clone()
+
 		return new FnDef(
 			this.typeVars?.clone(),
 			this.params.clone(),
 			this.returnType?.clone() ?? null,
-			this.body?.clone() ?? null
+			clonedBody
 		)
 	}
 }
