@@ -623,7 +623,7 @@ export class Container<V extends Value = Value> extends BaseExpr {
 	print(options?: PrintOptions) {
 		const expr = this.value.toExpr()
 		if (expr.type !== this.type) return expr.print(options)
-		return `<value container of ${this.value.type}>`
+		return `<Container of ${this.value.type}>`
 	}
 
 	isSameTo(expr: AnyExpr) {
@@ -2122,9 +2122,9 @@ export class ValueMeta extends BaseExpr {
 				})
 			}
 			delete meta.default
-
-			value = value.withMeta(meta)
 		}
+
+		value = value.withMeta(meta)
 
 		return value.withLog(...log)
 	}
