@@ -2,6 +2,7 @@
 import * as G from 'glisp'
 import {computed} from 'vue'
 
+import {useExpr, useExprEvaluated} from '../use/useExpr'
 import ExprApp from './ExprApp.vue'
 import ExprDictLiteral from './ExprDictLiteral.vue'
 import ExprLiteral from './ExprLiteral.vue'
@@ -10,16 +11,19 @@ import ExprScope from './ExprScope.vue'
 import ExprSymbol from './ExprSymbol.vue'
 import ExprVecLiteral from './ExprVecLiteral.vue'
 
-interface Props {
-	expr: G.Expr
-	valueType?: G.Value
-	layout?: 'expanded' | 'collapsed' | 'minimal'
-}
+const props = withDefaults(
+	defineProps<{
+		expr: G.Expr
+		expectedType?: G.Value
+		layout?: 'expanded' | 'collapsed' | 'minimal'
+	}>(),
+	{
+		expectedType: () => G.all,
+		layout: 'expanded',
+	}
+)
 
-const props = withDefaults(defineProps<Props>(), {
-	valueType: () => G.all,
-	layout: 'expanded',
-})
+const evaluated = useExprEvaluated(useExpr(props).exprRef)
 
 defineEmits<{
 	(e: 'update:expr', expr: G.Expr): void
@@ -53,13 +57,13 @@ const exprComponent = computed(() => {
 		:is="exprComponent"
 		v-if="exprComponent !== null"
 		:expr="expr"
-		:value-type="valueType"
+		:expectedType="expectedType"
 		:layout="layout"
 		v-bind="$attrs"
 		@update:expr="$emit('update:expr', $event)"
 		@confirm="$emit('confirm')"
 	/>
-	<div v-else class="text">{{ expr.eval().print() }}</div>
+	<div v-else class="text">{{ evaluated.print() }}</div>
 </template>
 
 <style lang="stylus" scoped>

@@ -1,25 +1,30 @@
 <script setup lang="ts">
 import {useElementBounding, useMouse} from '@vueuse/core'
 import * as G from 'glisp'
-import {computed, ref, shallowRef} from 'vue'
+import {computed, ref} from 'vue'
 
+import {useExpr, useExprEvaluated} from '../use/useExpr'
 import {useGlispManager} from '../use/useGlispManager'
 import ExprMinimal from './ExprMnimal.vue'
 import InputString from './InputString.vue'
 
-interface Props {
-	expr: G.Symbol
-	valueType?: G.Value
-}
+const props = withDefaults(
+	defineProps<{
+		expr: G.Symbol
+		expectedType?: G.Value
+	}>(),
+	{
+		expectedType: () => G.all,
+	}
+)
 
-const props = withDefaults(defineProps<Props>(), {
-	valueType: () => G.all,
-})
-
-const exprRef = shallowRef(props.expr)
+const {exprRef} = useExpr(props)
+const evaluated = useExprEvaluated(exprRef)
 
 const emits = defineEmits<{
 	(e: 'update:expr', newExpr: G.Expr): void
+	(e: 'confirm'): void
+	(e: 'cancel'): void
 }>()
 
 const symbolName = computed(() => exprRef.value.print())
@@ -37,13 +42,25 @@ function onInput(value: string) {
 	emits('update:expr', newExpr)
 }
 
-const inputEl = ref<any>(null)
+function onBlur() {
+	editing.value = false
+	emits('confirm')
+}
 
 const manager = useGlispManager()
 
-function onPointerdownArrow() {
+const invalidType = computed(() => {
+	return !props.expectedType.isTypeFor(evaluated.value)
+})
+
+// Tweak UI
+const inputEl = ref<any>(null)
+
+function beginTweak() {
 	tweaking.value = true
 	editing.value = true
+
+	const originalExpr = props.expr
 
 	window.addEventListener('pointerup', onPointerUp, {once: true})
 
@@ -52,28 +69,34 @@ function onPointerdownArrow() {
 			inputEl.value.focus()
 		} else {
 			editing.value = false
+
+			if (props.expr === originalExpr) {
+				emits('cancel')
+			} else {
+				emits('confirm')
+			}
 		}
 
 		tweaking.value = false
 
-		manager.off('select')
+		manager.off('select', onSelectAnotherExpr)
+		manager.off('unselect', onUnselectAnotherExpr)
 	}
 
 	manager.on('select', onSelectAnotherExpr)
 	manager.on('unselect', onUnselectAnotherExpr)
 
 	function onSelectAnotherExpr(toExpr: G.Expr) {
+		if (props.expr === toExpr) return
+
 		const symbol = G.computeSymbol(props.expr, toExpr)
 		if (!symbol) return
-		exprRef.value = symbol
 		emits('update:expr', symbol)
 	}
 
-	function onUnselectAnotherExpr() {}
-}
-
-function onBlurInput() {
-	editing.value = false
+	function onUnselectAnotherExpr() {
+		emits('update:expr', originalExpr)
+	}
 }
 
 // Arrow
@@ -97,20 +120,20 @@ const mouse = useMouse()
 			ref="arrowEl"
 			class="arrow-icon material-symbols-rounded"
 			:class="{tweaking}"
-			@pointerdown="onPointerdownArrow"
+			@pointerdown="beginTweak"
 		>
 			{{ tweaking ? '' : 'reply' }}
 		</span>
-		<ExprMinimal v-if="!editing" :expr="exprRef" />
+		<ExprMinimal v-if="!editing" :expr="exprRef" :expectedType="expectedType" />
 		<InputString
 			v-else
 			ref="inputEl"
 			class="input"
 			:modelValue="symbolName"
-			:invalid="isSymbolNameInvalid"
+			:invalid="isSymbolNameInvalid || invalidType"
 			:tweaked="editing"
 			@update:modelValue="onInput"
-			@blur="onBlurInput"
+			@blur="onBlur"
 		/>
 		<teleport to="body">
 			<svg v-if="tweaking" class="ExprSymbol__overlay">

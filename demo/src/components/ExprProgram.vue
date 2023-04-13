@@ -5,17 +5,17 @@ import Expr from './ExprAll.vue'
 
 interface Props {
 	expr: G.Program
-	valueType?: G.Value
+	expectedType?: G.Value
 }
 
 withDefaults(defineProps<Props>(), {
-	valueType: () => G.all,
+	expectedType: () => G.all,
 })
 </script>
 
 <template>
 	<div class="ExprProgram">
-		<Expr v-if="expr.expr" :expr="expr.expr" :value-type="valueType" />
+		<Expr v-if="expr.expr" :expr="expr.expr" :value-type="expectedType" />
 		<div v-else class="empty">{{ expr.print() }}</div>
 	</div>
 </template>

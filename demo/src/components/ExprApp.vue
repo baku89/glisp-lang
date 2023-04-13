@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import * as G from 'glisp'
-import {keys} from 'lodash'
-import {computed, shallowRef, triggerRef} from 'vue'
+import {entries} from 'lodash'
+import {computed} from 'vue'
 
+import {useExpr} from '../use/useExpr'
 import {injectGlispUndoRedo} from '../use/useGlispUndoRedo'
 import Expr from './ExprAll.vue'
 import ExprMnimal from './ExprMnimal.vue'
@@ -11,20 +12,24 @@ import Row from './Row.vue'
 const props = withDefaults(
 	defineProps<{
 		expr: G.App
-		valueType?: G.Value
+		expectedType?: G.Value
 		layout?: 'expanded' | 'collapsed' | 'minimal'
 	}>(),
 	{
-		valueType: () => G.all,
+		expectedType: () => G.all,
 		layout: 'expanded',
 	}
 )
 
-const exprRef = shallowRef(props.expr)
+const {exprRef} = useExpr(props)
 
-exprRef.value.on('edit', () => triggerRef(exprRef))
+interface ArgInfo {
+	name: string
+	suffix?: string
+	expectedType: G.Value
+}
 
-const argNames = computed<[string, string][]>(() => {
+const argInfos = computed<ArgInfo[]>(() => {
 	const {fn} = exprRef.value
 
 	if (!fn) return []
@@ -35,16 +40,38 @@ const argNames = computed<[string, string][]>(() => {
 
 	const {fnType} = fnInferred.fnType
 
-	const names: [string, string][] = keys(fnType.params).map(n => [n, ''])
+	const names: ArgInfo[] = entries(fnType.params).map(
+		([name, expectedType]) => {
+			if (expectedType.meta) {
+				const labelValue = expectedType.meta['label']
+				if (labelValue && G.StringType.isTypeFor(labelValue)) {
+					name = labelValue.value
+				}
+			}
+
+			return {
+				name,
+				expectedType,
+			}
+		}
+	)
 
 	if (fnType.rest) {
-		const restName = fnType.rest.name
+		let name = fnType.rest.name
+		const expectedType = fnType.rest.value
 		const restArgNum = exprRef.value.args.length - names.length
+
+		if (expectedType.meta) {
+			const labelValue = expectedType.meta['label']
+			if (labelValue && G.StringType.isTypeFor(labelValue)) {
+				name = labelValue.value
+			}
+		}
 
 		names.push(
 			...Array(restArgNum)
 				.fill(null)
-				.map((_, i) => [restName, i.toString()] as [string, string])
+				.map((_, i) => ({name, suffix: i.toString(), expectedType}))
 		)
 	}
 
@@ -76,11 +103,14 @@ function set(path: number, expr: G.Expr) {
 			:expandable="false"
 		>
 			<template #label>
-				<span>{{ argNames[i][0] }}</span>
-				<span v-if="argNames[i][1]" class="suffix">{{ argNames[i][1] }}</span>
+				<span>{{ argInfos[i].name }}</span>
+				<span v-if="argInfos[i].suffix" class="suffix">
+					{{ argInfos[i].suffix }}
+				</span>
 			</template>
 			<Expr
 				:expr="arg"
+				:expectedType="argInfos[i].expectedType"
 				@update:expr="set(i + 1, $event)"
 				@confirm="tagHistory"
 			/>

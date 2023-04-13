@@ -8,12 +8,12 @@ import Row from './Row.vue'
 
 interface Props {
 	expr: G.VecLiteral
-	valueType?: G.Value
+	expectedType?: G.Value
 	layout?: 'expanded' | 'collapsed' | 'minimal'
 }
 
 const props = withDefaults(defineProps<Props>(), {
-	valueType: () => G.vec([], undefined, G.all),
+	expectedType: () => G.vec([], undefined, G.all),
 	layout: 'expanded',
 })
 

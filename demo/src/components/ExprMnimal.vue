@@ -1,39 +1,48 @@
 <script setup lang="ts">
 import * as G from 'glisp'
-import {ref, watchEffect} from 'vue'
+import {computed, watchEffect} from 'vue'
 
+import {useExpr, useExprEvaluated} from '../use/useExpr'
 import {useGlispManager} from '../use/useGlispManager'
 
-interface Props {
-	expr: G.Expr
-	valueType?: G.Value
-}
+const props = withDefaults(
+	defineProps<{
+		expr: G.Expr
+		expectedType?: G.Value
+	}>(),
+	{
+		expectedType: () => G.all,
+	}
+)
 
-const props = withDefaults(defineProps<Props>(), {
-	valueType: () => G.all,
-})
-
-const evaluated = ref('')
+const {exprRef} = useExpr(props)
+const evaluated = useExprEvaluated(exprRef)
+const evaluatedStr = computed(() => evaluated.value.print())
 
 function updateEvaluated() {
-	evaluated.value = props.expr.eval().print()
+	evaluated.value = props.expr.eval()
 }
-updateEvaluated()
 
 watchEffect(() => {
 	props.expr.on('change', updateEvaluated)
+	updateEvaluated()
 })
 
 const manager = useGlispManager()
+
+const invalidType = computed(() => {
+	return !props.expectedType.isTypeFor(evaluated.value)
+})
 </script>
 
 <template>
 	<div
 		class="ExprMinimal"
+		:class="{invalidType}"
 		@pointerenter="manager.onPointerEnter(expr)"
 		@pointerleave="manager.onPointerLeave()"
 	>
-		{{ evaluated }}
+		{{ evaluatedStr }}
 	</div>
 </template>
 
@@ -47,8 +56,6 @@ const manager = useGlispManager()
 	height var(--ui-input-height)
 	line-height @height
 	border-radius var(--ui-input-border-radius)
-	background var(--color-primary-container)
-	color var(--color-on-primary-container)
 	padding 0 var(--ui-input-horiz-padding)
 	font-family var(--font-code)
 	cursor inherit
@@ -56,8 +63,10 @@ const manager = useGlispManager()
 	overflow hidden
 	text-overflow ellipsis
 	input-transition(box-shadow)
-	--border-color var(--color-primary)
+	--border-color var(--color-surface-border)
+	box-shadow 0 0 0 1px inset var(--border-color)
 
-	&:hover
-		box-shadow 0 0 0 0 inset var(--border-color), 0 0 0 1px inset var(--border-color)
+	&.invalidType
+		color var(--color-error)
+		--border-color var(--color-error)
 </style>

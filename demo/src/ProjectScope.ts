@@ -82,6 +82,7 @@ export const projectScope = G.Parser.Scope.tryParse(
 (let a: (+ b 2)
      b: 123
      c: "hello"
+     w: b
      s: (let TAU: (* PI 2)
              E: 2.71828
              (+ TAU b))

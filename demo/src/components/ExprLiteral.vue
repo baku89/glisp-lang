@@ -8,11 +8,11 @@ import InputString from './InputString.vue'
 
 interface Props {
 	expr: G.Literal
-	valueType?: G.Value
+	expectedType?: G.Value
 }
 
 const props = withDefaults(defineProps<Props>(), {
-	valueType: () => G.all,
+	expectedType: () => G.all,
 })
 
 const emits = defineEmits<{

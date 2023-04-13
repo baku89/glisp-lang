@@ -4,6 +4,7 @@ import {inject, InjectionKey, provide} from 'vue'
 interface GlispUndoRedoProvide {
 	commit(expr: G.Expr, action: G.Action): void
 	tagHistory(): void
+	cancelTweak(): void
 }
 
 const GlispUndoRedoKey = Symbol() as InjectionKey<GlispUndoRedoProvide>
@@ -11,6 +12,7 @@ const GlispUndoRedoKey = Symbol() as InjectionKey<GlispUndoRedoProvide>
 export const GlispUndoRedoProvideDefault: GlispUndoRedoProvide = {
 	commit() {},
 	tagHistory() {},
+	cancelTweak() {},
 }
 
 export function useGlispUndoRedo() {
@@ -22,6 +24,7 @@ export function useGlispUndoRedo() {
 
 	const MAX_HISTORY = 1000
 
+	// まだ履歴に追加される前のTweak中のコマンド
 	let tweakCommands: MutationCommand[] = []
 
 	let history: MutationCommand[][] = []
@@ -49,6 +52,10 @@ export function useGlispUndoRedo() {
 		currentHistoryIndex = history.length
 	}
 
+	function cancelTweak() {
+		tweakCommands = []
+	}
+
 	function undo() {
 		if (currentHistoryIndex === 0) return
 
@@ -61,7 +68,7 @@ export function useGlispUndoRedo() {
 		G.notifyChangedExprs()
 	}
 
-	provide(GlispUndoRedoKey, {commit, tagHistory})
+	provide(GlispUndoRedoKey, {commit, tagHistory, cancelTweak})
 
 	return {undo}
 }

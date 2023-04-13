@@ -1,29 +1,27 @@
 <script setup lang="ts">
 import * as G from 'glisp'
 import {entries} from 'lodash'
-import {computed, ref, shallowRef, triggerRef} from 'vue'
+import {computed, ref} from 'vue'
 
+import {useExpr} from '../use/useExpr'
 import {injectGlispUndoRedo} from '../use/useGlispUndoRedo'
 import Expr from './ExprAll.vue'
 import ExprMnimal from './ExprMnimal.vue'
 import Row from './Row.vue'
 
-interface Props {
-	expr: G.Scope
-	valueType?: G.Value
-	layout?: 'expanded' | 'collapsed' | 'minimal'
-}
+const props = withDefaults(
+	defineProps<{
+		expr: G.Scope
+		expectedType?: G.Value
+		layout?: 'expanded' | 'collapsed' | 'minimal'
+	}>(),
+	{
+		expectedType: () => G.all,
+		layout: 'expanded',
+	}
+)
 
-const props = withDefaults(defineProps<Props>(), {
-	valueType: () => G.all,
-	layout: 'expanded',
-})
-
-const exprRef = shallowRef(props.expr)
-
-exprRef.value.on('edit', () => {
-	triggerRef(exprRef)
-})
+const {exprRef} = useExpr(props)
 
 const items = computed(() => {
 	return entries(exprRef.value.items).map(([name, e]) => {
@@ -55,7 +53,7 @@ const retExpandable = computed(() => {
 
 const retExpanded = ref(false)
 
-const {commit, tagHistory} = injectGlispUndoRedo()
+const {commit, tagHistory, cancelTweak} = injectGlispUndoRedo()
 
 function set(path: string, expr: G.Expr) {
 	commit(props.expr, {type: 'set', path, expr})
@@ -79,22 +77,24 @@ function set(path: string, expr: G.Expr) {
 						:layout="expanded ? 'expanded' : 'collapsed'"
 						@update:expr="set(path, $event)"
 						@confirm="tagHistory"
+						@cancel="cancelTweak"
 					/>
 				</Row>
 			</div>
 			<Row
-				v-if="expr.ret"
+				v-if="exprRef.ret"
 				v-model:expanded="retExpanded"
-				class="ret"
+				class="return"
 				:expandable="retExpandable"
 			>
 				<template #label>Return</template>
 				<Expr
 					class="value"
-					:expr="expr.ret"
+					:expr="exprRef.ret"
 					:layout="retExpanded ? 'expanded' : 'collapsed'"
 					@update:expr="set('return', $event)"
 					@confirm="tagHistory"
+					@cancel="cancelTweak"
 				/>
 			</Row>
 		</div>
@@ -114,7 +114,7 @@ function set(path: string, expr: G.Expr) {
 		flex-direction column
 		gap var(--ui-input-row-margin)
 
-.items, .ret
+.items, .return
 	padding-left var(--ui-inspector-tree-icon-size)
 
 .items
@@ -129,7 +129,7 @@ function set(path: string, expr: G.Expr) {
 		border-left 1px dashed var(--color-outline-variant)
 		height 100%
 
-.ret
+.return
 	position relative
 	border-style solid
 
