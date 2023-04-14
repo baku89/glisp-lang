@@ -1,6 +1,6 @@
 import {range} from 'lodash'
 
-import {container, scope} from '../expr'
+import {container, FnDef, scope} from '../expr'
 import {Log} from '../Log'
 import {parse, parseModule} from '../parser'
 import {
@@ -11,7 +11,6 @@ import {
 	enumType,
 	False,
 	Fn,
-	fn,
 	IFn,
 	Never,
 	Number,
@@ -27,14 +26,19 @@ import {
 	vec,
 } from '../value'
 
-function defn(type: string, f: IFn) {
-	const fnType = parse(type, PreludeScope).eval()
+function defn(type: string, f: IFn): FnDef {
+	const parsed = parse(type)
 
-	if (fnType.type !== 'FnType') throw new Error('Not a fnType:' + type)
+	if (!parsed.expr) throw new Error('Not a fnType')
 
-	const _fn = fn(fnType, f)
+	const fnType = parsed.expr
 
-	return container(_fn)
+	if (fnType.type !== 'FnDef') throw new Error('Not a fnType:' + fnType.type)
+
+	return new FnDef(fnType.typeVars, fnType.params, fnType.returnType, {
+		type: 'NativeFnBody',
+		f,
+	})
 }
 
 export const PreludeScope = scope({
@@ -44,15 +48,9 @@ export const PreludeScope = scope({
 	_: container(All.instance),
 	All: container(All.instance),
 	Never: container(Never.instance),
-})
-
-PreludeScope.defs({
 	union: defn('(=> [...types:_]: _)', (...types: Value[]) =>
 		unionType(...types)
 	),
-})
-
-PreludeScope.defs({
 	true: container(True),
 	false: container(False),
 	log: defn(

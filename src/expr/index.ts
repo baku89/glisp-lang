@@ -768,7 +768,8 @@ export class FnDef extends BaseExpr {
 			}
 
 			const innerEnv = env.push(arg)
-			let returnType = body.type === 'NativeFnBody' ? all : body.infer(innerEnv)
+			let returnType =
+				body.type === 'NativeFnBody' ? never : body.infer(innerEnv)
 
 			// When there's explicit notation for return type,
 			// check if inferredReturnType <: returnType is true.
@@ -960,7 +961,7 @@ export const fnDef = (
 	typeVars?: TypeVarsDef | string[] | null,
 	param?: ParamsDef | Record<string, Expr> | null,
 	returnType?: Expr | null,
-	body?: Expr | null
+	body?: Expr | NativeFnBody | null
 ) => new FnDef(typeVars, param, returnType, body)
 
 export class ParamsDef {

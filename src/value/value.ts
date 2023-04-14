@@ -706,11 +706,6 @@ export class Fn extends BaseValue implements IFnLike {
 	isType = false
 
 	protected toExprExceptMeta(): Expr {
-		if (!this.body) {
-			// It means the function is defined in JS natively
-			return container(this)
-		}
-
 		const fnType = this.fnType
 
 		const typeVars: string[] = []
@@ -718,16 +713,16 @@ export class Fn extends BaseValue implements IFnLike {
 			typeVars.push(createUniqueName(tv.name, typeVars))
 		}
 
-		const _params = mapValues(fnType.params, p => p.toExpr())
+		const params = mapValues(fnType.params, p => p.toExpr())
 		const rest = fnType.rest
 			? {name: fnType.rest.name ?? '', expr: fnType.rest.value.toExpr()}
 			: undefined
 
-		return fnDef(
+		return new FnDef(
 			typeVars.length > 0 ? typeVars : null,
-			paramsDef(_params, fnType.optionalPos, rest),
+			paramsDef(params, fnType.optionalPos, rest),
 			fnType.ret.toExpr(),
-			this.body.clone()
+			this.body ? this.body.clone() : {type: 'NativeFnBody', f: this.fn}
 		)
 	}
 
