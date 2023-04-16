@@ -28,9 +28,8 @@ input($focus-selector = ':focus')
 		line-height calc(var(--input-height) - 0.5em)
 
 	&:has(:disabled)
-		border 1px solid cyan
 		background transparent
-		color cyan
+		box-shadow 0 0 0 0 inset var(--border-color), 0 0 0 1px inset var(--color-surface-border)
 
 	&.invalid
 		color var(--color-error)

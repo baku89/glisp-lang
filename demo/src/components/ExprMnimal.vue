@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import * as G from 'glisp'
-import {computed, watchEffect} from 'vue'
+import {computed} from 'vue'
 
 import {useExpr, useExprEvaluated} from '../use/useExpr'
 import {useGlispManager} from '../use/useGlispManager'
+import ValueNumber from './ValueNumber.vue'
 
 const props = withDefaults(
 	defineProps<{
@@ -17,32 +18,44 @@ const props = withDefaults(
 	}
 )
 
+const emits = defineEmits<{
+	(e: 'update:hovered', hovered: boolean): void
+}>()
+
 const {exprRef} = useExpr(props)
 const evaluated = useExprEvaluated(exprRef)
 const evaluatedStr = computed(() => evaluated.value.print())
-
-function updateEvaluated() {
-	evaluated.value = props.expr.eval()
-}
-
-watchEffect(() => {
-	props.expr.on('change', updateEvaluated)
-	updateEvaluated()
-})
 
 const invalidType = computed(() => {
 	return !props.expectedType.isTypeFor(evaluated.value)
 })
 
 const manager = useGlispManager()
+
+const isNumber = computed(() => G.NumberType.isTypeFor(evaluated.value))
+
+function onHoverChange(hovered: boolean) {
+	if (hovered) {
+		manager.onPointerEnter(props.expr)
+	} else {
+		manager.onPointerLeave()
+	}
+	emits('update:hovered', hovered)
+}
 </script>
 
 <template>
+	<ValueNumber
+		v-if="isNumber"
+		:value="(evaluated as G.Number)"
+		@update:hovered="onHoverChange($event)"
+	/>
 	<div
+		v-else
 		class="ExprMinimal"
 		:class="{invalidType, hovered}"
-		@mouseenter="manager.onPointerEnter(expr)"
-		@mouseleave="manager.onPointerLeave()"
+		@pointerenter="onHoverChange(true)"
+		@pointerleave="onHoverChange(false)"
 	>
 		{{ evaluatedStr }}
 	</div>

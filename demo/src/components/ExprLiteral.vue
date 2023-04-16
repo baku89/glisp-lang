@@ -56,7 +56,7 @@ function onUnhover() {
 </script>
 
 <template>
-	<div class="ExprLiteral">
+	<div class="ExprLiteral" :class="{number: typeof value === 'number'}">
 		<component
 			:is="inputComponent"
 			:modelValue="value"
@@ -73,6 +73,8 @@ function onUnhover() {
 @import '@/common.styl'
 .ExprLiteral
 	display grid
-	grid-template-columns repeat(auto-fill, minmax(var(--ui-input-col-width), 1fr))
+	grid-template-columns 1fr
 	gap var(--ui-input-gap)
+	&.number
+		grid-template-columns repeat(auto-fill, minmax(var(--ui-input-col-width), 1fr))
 </style>
