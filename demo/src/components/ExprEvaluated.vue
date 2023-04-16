@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import * as G from 'glisp'
-import {computed} from 'vue'
+import {computed, watchEffect} from 'vue'
 
 import {useExpr, useExprEvaluated} from '../use/useExpr'
 import {useGlispManager} from '../use/useGlispManager'
@@ -24,7 +24,8 @@ const emits = defineEmits<{
 
 const {exprRef} = useExpr(props)
 const evaluated = useExprEvaluated(exprRef)
-const evaluatedStr = computed(() => evaluated.value.print())
+
+watchEffect(() => console.log(evaluated.value))
 
 const invalidType = computed(() => {
 	return !props.expectedType.isTypeFor(evaluated.value)
@@ -47,24 +48,25 @@ function onHoverChange(hovered: boolean) {
 <template>
 	<ValueNumber
 		v-if="isNumber"
+		:class="{hovered}"
 		:value="(evaluated as G.Number)"
 		@update:hovered="onHoverChange($event)"
 	/>
 	<div
 		v-else
-		class="ExprMinimal"
+		class="ExprEvalauted"
 		:class="{invalidType, hovered}"
 		@pointerenter="onHoverChange(true)"
 		@pointerleave="onHoverChange(false)"
 	>
-		{{ evaluatedStr }}
+		{{ evaluated.print() }}
 	</div>
 </template>
 
 <style lang="stylus" scoped>
 @import '@/common.styl'
 
-.ExprMinimal
+.ExprEvalauted
 	--color-border var(--color-surface-border)
 
 	display block

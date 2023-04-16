@@ -5,7 +5,7 @@ import {computed, ref} from 'vue'
 
 import {useExpr, useExprEvaluated} from '../use/useExpr'
 import {useGlispManager} from '../use/useGlispManager'
-import ExprMinimal from './ExprMnimal.vue'
+import ExprEvaluated from './ExprEvaluated.vue'
 import InputString from './InputString.vue'
 
 const props = withDefaults(
@@ -57,6 +57,8 @@ const invalidType = computed(() => {
 const inputEl = ref<any>(null)
 
 function beginTweak() {
+	updateArrowBound()
+
 	tweaking.value = true
 	editing.value = true
 
@@ -105,7 +107,13 @@ function beginTweak() {
 
 // Arrow
 const arrowEl = ref<HTMLElement | null>(null)
-const {left, right, top, bottom} = useElementBounding(arrowEl)
+const {
+	left,
+	right,
+	top,
+	bottom,
+	update: updateArrowBound,
+} = useElementBounding(arrowEl, {})
 
 const arrowCenter = computed(() => {
 	return [(left.value + right.value) / 2, (top.value + bottom.value) / 2]
@@ -124,7 +132,11 @@ const mouse = useMouse()
 		>
 			{{ tweaking ? '' : 'reply' }}
 		</span>
-		<ExprMinimal v-if="!editing" :expr="exprRef" :expectedType="expectedType" />
+		<ExprEvaluated
+			v-if="!editing"
+			:expr="exprRef"
+			:expectedType="expectedType"
+		/>
 		<InputString
 			v-else
 			ref="inputEl"

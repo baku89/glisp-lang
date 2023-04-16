@@ -7,8 +7,8 @@ import {inject, provide, ref} from 'vue'
 import {useExpr} from '../use/useExpr'
 import {useGlispManager} from '../use/useGlispManager'
 import Expr from './ExprAll.vue'
+import ExprEvaluated from './ExprEvaluated.vue'
 import ExprLiteral from './ExprLiteral.vue'
-import ExprMnimal from './ExprMnimal.vue'
 import ExprSymbol from './ExprSymbol.vue'
 
 interface Props {
@@ -44,7 +44,18 @@ const collapsedExprComponent = computed(() => {
 	} else if (type === 'Symbol') {
 		return ExprSymbol
 	} else {
-		return ExprMnimal
+		return ExprEvaluated
+	}
+})
+
+const icon = computed(() => {
+	const type = exprRef.value.type
+	if (type === 'App') {
+		return 'schema'
+	} else if (type === 'Scope') {
+		return 'schema'
+	} else {
+		return null
 	}
 })
 

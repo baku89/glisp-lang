@@ -28,7 +28,7 @@ const props = withDefaults(
 		clampMax: true,
 		disabled: false,
 		invalid: false,
-		minSpeed: 0.0001,
+		minSpeed: 0.001,
 		maxSpeed: 1000,
 		tweaked: false,
 		hovered: false,
@@ -44,7 +44,12 @@ const root = ref()
 const input = ref<HTMLInputElement | null>(null)
 
 const local = ref(props.modelValue)
-const display = ref(props.modelValue.toString())
+const display = ref(
+	(() => {
+		const prec = Math.max(0, Math.ceil(-Math.log10(props.minSpeed)))
+		return toFixedWithNoTrailingZeros(props.modelValue, prec)
+	})()
+)
 
 const {left, top, right, width, height} = useElementBounding(root)
 
@@ -279,7 +284,8 @@ function increment(delta: number) {
 
 function onBlur() {
 	if (hasChanged) {
-		display.value = props.modelValue.toString()
+		const prec = Math.max(0, Math.ceil(-Math.log10(props.minSpeed)))
+		display.value = toFixedWithNoTrailingZeros(local.value, prec)
 		confirm()
 	} else {
 		// 変な文字を打ったときはhasChanged === falseなので、これでリセットをかける
@@ -299,7 +305,8 @@ watchEffect(() => {
 	if (tweaking.value) {
 		display.value = props.modelValue.toFixed(tweakPrecision.value)
 	} else {
-		display.value = local.value.toString()
+		const prec = Math.max(0, Math.ceil(-Math.log10(props.minSpeed)))
+		display.value = toFixedWithNoTrailingZeros(local.value, prec)
 	}
 })
 
