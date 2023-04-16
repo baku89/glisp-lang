@@ -155,6 +155,8 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 			return this.delete(action.path)
 		} else if (action.type === 'rename') {
 			return this.rename(action.path, action.to)
+		} else if (action.type === 'insert') {
+			return this.insert(action.path, action.expr)
 		} else {
 			throw new Error('Not yet supported')
 		}
@@ -173,6 +175,11 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	// eslint-disable-next-line no-unused-vars
 	rename(key: Key, to: string): Action {
 		throw new Error(`Invalid call of rename on \`${this.print()}\``)
+	}
+
+	// eslint-disable-next-line no-unused-vars
+	insert(key: Key, expr: Expr): Action {
+		throw new Error(`Invalid call of insert on \`${this.print()}\``)
 	}
 
 	// eslint-disable-next-line no-unused-vars
@@ -439,8 +446,7 @@ export class Symbol extends BaseExpr {
 											'cannot be followed by any path',
 										ref: this,
 									}
-								}
-								if (env.isGlobal) {
+								} else if (env.isGlobal) {
 									return {type: 'param', expr: e}
 								} else {
 									// 型変数は環境にセットされないので、そのまま返す
@@ -1214,8 +1220,8 @@ export class VecLiteral extends BaseExpr {
 			}
 
 			this.failedResolution.clearCache(key)
-
 			this.dispatchEditEvents()
+
 			return {type: 'delete', path: key}
 		}
 	}
@@ -1243,12 +1249,43 @@ export class VecLiteral extends BaseExpr {
 			delimiters.splice(key + 1, 1)
 		}
 
+		this.dispatchEditEvents()
+
 		if (key === this.items.length) {
-			this.dispatchEditEvents()
 			return {type: 'set', path: key, expr: deletedExpr}
 		} else {
-			throw new Error('Not yet implemented')
+			return {type: 'insert', path: key, expr: deletedExpr}
 		}
+	}
+
+	insert(key: Key, expr: Expr): Action {
+		if (typeof key !== 'number') {
+			throw new Error('Invalid path: ' + key)
+		}
+
+		if (key < 0 || this.items.length < key) {
+			throw new Error('Index out of range')
+		}
+
+		// 挿入する要素より後方の式に依存するキャッシュをクリア
+		this.items.slice(key).forEach(it => it.clearCache())
+
+		this.items.splice(key, 0, expr)
+
+		if (key < this.optionalPos) {
+			this.optionalPos++
+		}
+
+		if (this.extras) {
+			increaseDelimiter(this.extras.delimiters)
+		}
+
+		// 新しく追加されたキー分のシンボルを再解決する
+		this.failedResolution.clearCache(this.items.length - 1)
+
+		this.dispatchEditEvents()
+
+		return {type: 'delete', path: key}
 	}
 
 	print(options?: PrintOptions): string {

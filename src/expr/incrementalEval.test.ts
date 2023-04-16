@@ -18,6 +18,8 @@ function printAction(action: Action) {
 		return `action=${type}, path=${p}`
 	} else if (type === 'rename') {
 		return `action=${type}, path=${p}, to=${action.to}`
+	} else if (type === 'insert') {
+		return `action=${type}, path=${p}, to=${action.expr}`
 	}
 }
 
@@ -44,7 +46,22 @@ describe('incremental evaluation', () => {
 	test($`[0 1 2]`, {type: 'set', path: 1, expr: $`"m"`}, $`[0 "m" 2]`)
 	test($`[0 1 2]`, {type: 'set', path: 1, expr: $`"m"`}, $`[0 "m" 2]`)
 	test($`[./1]`, {type: 'set', path: 1, expr: $`42`}, $`[42 42]`)
-	test($`[./1 "hey"]`, {type: 'delete', path: 1}, $`[()]`)
+	test($`[./1 "foo"]`, {type: 'delete', path: 1}, $`[()]`)
+	test(
+		$`[./2 "foo"]`,
+		{type: 'set', path: 2, expr: $`"bar"`},
+		$`["bar" "foo" "bar"]`
+	)
+	test(
+		$`[./2 "foo"]`,
+		{type: 'insert', path: 1, expr: $`"bar"`},
+		$`["foo" "bar" "foo"]`
+	)
+	test(
+		$`[./2 "foo"]`,
+		{type: 'insert', path: 0, expr: $`"bar"`},
+		$`["bar" "foo" "foo"]`
+	)
 
 	function test(src: Expr, action: Action, expected: Expr) {
 		it(

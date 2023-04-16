@@ -18,4 +18,10 @@ interface RenameAction {
 	to: string
 }
 
-export type Action = SetAction | DeleteAction | RenameAction
+interface InsertAction {
+	type: 'insert'
+	path: number
+	expr: Expr
+}
+
+export type Action = SetAction | DeleteAction | RenameAction | InsertAction
