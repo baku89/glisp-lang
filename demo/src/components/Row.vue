@@ -65,6 +65,10 @@ provide(
 	grid-template-columns var(--ui-inspector-label-width) 1fr
 	gap var(--ui-input-row-margin) 0
 
+	--color-chevron var(--color-outline)
+	&:hover
+		--color-chevron var(--color-primary)
+
 	&.expanded
 		grid-template-columns 1fr
 		& > .Row__key > .Row__icon
@@ -83,8 +87,8 @@ provide(
 		font-size var(--ui-inspector-tree-icon-size)
 		width var(--ui-inspector-tree-icon-size)
 		height var(--ui-inspector-tree-icon-size)
-		input-transition(transform)
-		color var(--color-outline)
+		input-transition(transform, color)
+		color var(--color-chevron)
 
 		&:not(.expandable)
 			cursor initial

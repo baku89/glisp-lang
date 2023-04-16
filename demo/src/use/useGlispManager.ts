@@ -1,5 +1,9 @@
 import EventEmitter from 'eventemitter3'
 import * as G from 'glisp'
+import {Ref, ref} from 'vue'
+
+// Symbolのpick whip UIをドラッグした際、期待される値の型を保持
+const symbolType = ref(G.never) as Ref<G.Value>
 
 const eventEmitter = new EventEmitter<{
 	select: (expr: G.Expr) => void
@@ -15,6 +19,7 @@ const manager = {
 	onPointerLeave() {
 		eventEmitter.emit('unselect')
 	},
+	symbolType,
 }
 
 export function useGlispManager() {

@@ -3,7 +3,6 @@ import * as G from 'glisp'
 import {computed, watchEffect} from 'vue'
 
 import {useExpr, useExprEvaluated} from '../use/useExpr'
-import {useGlispManager} from '../use/useGlispManager'
 
 const props = withDefaults(
 	defineProps<{
@@ -28,20 +27,13 @@ watchEffect(() => {
 	updateEvaluated()
 })
 
-const manager = useGlispManager()
-
 const invalidType = computed(() => {
 	return !props.expectedType.isTypeFor(evaluated.value)
 })
 </script>
 
 <template>
-	<div
-		class="ExprMinimal"
-		:class="{invalidType}"
-		@pointerenter="manager.onPointerEnter(expr)"
-		@pointerleave="manager.onPointerLeave()"
-	>
+	<div class="ExprMinimal" :class="{invalidType}">
 		{{ evaluatedStr }}
 	</div>
 </template>

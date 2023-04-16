@@ -77,6 +77,7 @@ function set(path: number, newExpr: G.Expr) {
 @import '@/common.styl'
 
 .ExprVecLiteral
+
 	&--expanded
 		position relative
 		font-family var(--font-code)
@@ -86,14 +87,21 @@ function set(path: number, newExpr: G.Expr) {
 		font-family var(--font-ui)
 		padding-left var(--ui-inspector-tree-icon-size)
 
+
+		--tree-color var(--color-outline-variant)
+
+		&:hover
+			--tree-color var(--color-primary)
+
 		+box-before()
 			left calc(var(--ui-input-height) / 3)
 			width calc(var(--ui-input-row-margin) * .75)
-			border 1px solid var(--color-outline-variant)
+			border 1px solid var(--tree-color)
 			border-right 0
 			border-top 0
 			bottom 0
 			top calc(var(--ui-input-row-margin) * -1)
+			input-transition(border)
 
 	&--collapsed
 		display grid

@@ -3,6 +3,7 @@ import * as G from 'glisp'
 import {computed} from 'vue'
 
 import {useExpr, useExprEvaluated} from '../use/useExpr'
+import {useGlispManager} from '../use/useGlispManager'
 import ExprApp from './ExprApp.vue'
 import ExprDictLiteral from './ExprDictLiteral.vue'
 import ExprLiteral from './ExprLiteral.vue'
@@ -23,7 +24,8 @@ const props = withDefaults(
 	}
 )
 
-const evaluated = useExprEvaluated(useExpr(props).exprRef)
+const {exprRef} = useExpr(props)
+const evaluated = useExprEvaluated(exprRef)
 
 defineEmits<{
 	(e: 'update:expr', expr: G.Expr): void
@@ -50,6 +52,12 @@ const exprComponent = computed(() => {
 			return null
 	}
 })
+
+const manager = useGlispManager()
+
+const referrable = computed(() => {
+	return evaluated.value.isSubtypeOf(manager.symbolType.value)
+})
 </script>
 
 <template>
@@ -59,9 +67,12 @@ const exprComponent = computed(() => {
 		:expr="expr"
 		:expectedType="expectedType"
 		:layout="layout"
+		:referrable="referrable"
 		v-bind="$attrs"
 		@update:expr="$emit('update:expr', $event)"
 		@confirm="$emit('confirm')"
+		@pointerenter="manager.onPointerEnter(expr)"
+		@pointerleave="manager.onPointerLeave()"
 	/>
 	<div v-else class="text">{{ evaluated.print() }}</div>
 </template>

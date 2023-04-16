@@ -62,6 +62,8 @@ function beginTweak() {
 
 	const originalExpr = props.expr
 
+	manager.symbolType.value = props.expectedType
+
 	window.addEventListener('pointerup', onPointerUp, {once: true})
 
 	function onPointerUp(e: PointerEvent) {
@@ -81,6 +83,8 @@ function beginTweak() {
 
 		manager.off('select', onSelectAnotherExpr)
 		manager.off('unselect', onUnselectAnotherExpr)
+
+		manager.symbolType.value = G.never
 	}
 
 	manager.on('select', onSelectAnotherExpr)
@@ -111,11 +115,7 @@ const mouse = useMouse()
 </script>
 
 <template>
-	<div
-		class="ExprSymbol"
-		@pointerenter="manager.onPointerEnter(expr)"
-		@pointerleave="manager.onPointerLeave()"
-	>
+	<div class="ExprSymbol">
 		<span
 			ref="arrowEl"
 			class="arrow-icon material-symbols-rounded"

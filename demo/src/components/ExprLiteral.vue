@@ -3,7 +3,6 @@ import * as G from 'glisp'
 import {computed} from 'vue'
 
 import {useExpr} from '../use/useExpr'
-import {useGlispManager} from '../use/useGlispManager'
 import InputNumber from './InputNumber.vue'
 import InputString from './InputString.vue'
 
@@ -38,8 +37,6 @@ function onInput(newValue: number | string) {
 	const newExpr = G.literal(newValue)
 	emits('update:expr', newExpr)
 }
-
-const manager = useGlispManager()
 </script>
 
 <template>
@@ -49,8 +46,6 @@ const manager = useGlispManager()
 			:modelValue="value"
 			@update:modelValue="onInput"
 			@confirm="$emit('confirm')"
-			@pointerenter="manager.onPointerEnter(expr)"
-			@pointerleave="manager.onPointerLeave()"
 		/>
 	</div>
 </template>
