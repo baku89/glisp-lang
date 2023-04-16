@@ -4,6 +4,7 @@ import {entries} from 'lodash'
 import {computed} from 'vue'
 
 import {useExpr} from '../use/useExpr'
+import {useGlispManager} from '../use/useGlispManager'
 import {injectGlispUndoRedo} from '../use/useGlispUndoRedo'
 import Row from './Row.vue'
 
@@ -19,7 +20,7 @@ const props = withDefaults(
 	}
 )
 
-defineEmits<{
+const emits = defineEmits<{
 	(e: 'update:hovered', hovered: boolean): void
 }>()
 
@@ -32,14 +33,26 @@ const {commit, tagHistory, cancelTweak} = injectGlispUndoRedo()
 function set(path: string, expr: G.Expr) {
 	commit(props.expr, {type: 'set', path, expr})
 }
+
+const manager = useGlispManager()
+
+function onHover() {
+	emits('update:hovered', true)
+	manager.onPointerEnter(props.expr)
+}
+
+function onUnhover() {
+	emits('update:hovered', false)
+	manager.onPointerLeave()
+}
 </script>
 
 <template>
 	<div class="ExprScope expanded" :class="{hovered}">
 		<div
 			class="hover-region"
-			@pointerenter="$emit('update:hovered', true)"
-			@pointerleave="$emit('update:hovered', false)"
+			@pointerenter="onHover"
+			@pointerleave="onUnhover"
 		/>
 		<div class="items">
 			<Row

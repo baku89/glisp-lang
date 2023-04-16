@@ -5,6 +5,7 @@ import * as G from 'glisp'
 import {inject, provide, ref} from 'vue'
 
 import {useExpr} from '../use/useExpr'
+import {useGlispManager} from '../use/useGlispManager'
 import Expr from './ExprAll.vue'
 import ExprLiteral from './ExprLiteral.vue'
 import ExprMnimal from './ExprMnimal.vue'
@@ -47,10 +48,22 @@ const collapsedExprComponent = computed(() => {
 	}
 })
 
+const manager = useGlispManager()
+
 // Expr hover/unhover
 const labelHovered = ref(false)
 const exprHovered = ref(false)
 const hovered = computed(() => labelHovered.value || exprHovered.value)
+
+function onHoverLabel() {
+	labelHovered.value = true
+	manager.onPointerEnter(props.expr)
+}
+
+function onUnhoverLabel() {
+	labelHovered.value = false
+	manager.onPointerLeave()
+}
 
 // NOTE: 140 shouldn't be a magic number
 const rowKeyWidth = inject('Row__key_width', ref(140))
@@ -71,8 +84,8 @@ provide(
 	>
 		<div
 			class="key"
-			@pointerenter="labelHovered = true"
-			@pointerleave="labelHovered = false"
+			@pointerenter="onHoverLabel"
+			@pointerleave="onUnhoverLabel"
 		>
 			<button
 				class="icon material-symbols-rounded"

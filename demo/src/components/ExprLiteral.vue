@@ -3,6 +3,7 @@ import * as G from 'glisp'
 import {computed} from 'vue'
 
 import {useExpr} from '../use/useExpr'
+import {useGlispManager} from '../use/useGlispManager'
 import InputNumber from './InputNumber.vue'
 import InputString from './InputString.vue'
 
@@ -40,6 +41,18 @@ function onInput(newValue: number | string) {
 	const newExpr = G.literal(newValue)
 	emits('update:expr', newExpr)
 }
+
+const manager = useGlispManager()
+
+function onHover() {
+	emits('update:hovered', true)
+	manager.onPointerEnter(props.expr)
+}
+
+function onUnhover() {
+	emits('update:hovered', false)
+	manager.onPointerLeave()
+}
 </script>
 
 <template>
@@ -50,8 +63,8 @@ function onInput(newValue: number | string) {
 			:hovered="hovered"
 			@update:modelValue="onInput"
 			@confirm="$emit('confirm')"
-			@pointerenter="$emit('update:hovered', true)"
-			@pointerleave="$emit('update:hovered', false)"
+			@pointerenter="onHover"
+			@pointerleave="onUnhover"
 		/>
 	</div>
 </template>
