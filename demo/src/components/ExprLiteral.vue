@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import * as G from 'glisp'
-import {computed, ref, watchEffect} from 'vue'
+import {computed} from 'vue'
 
+import {useExpr} from '../use/useExpr'
 import {useGlispManager} from '../use/useGlispManager'
 import InputNumber from './InputNumber.vue'
 import InputString from './InputString.vue'
@@ -20,11 +21,9 @@ const emits = defineEmits<{
 	(e: 'confirm'): void
 }>()
 
-const value = ref(props.expr.value)
+const {exprRef} = useExpr(props)
 
-watchEffect(() => {
-	value.value = props.expr.value
-})
+const value = computed(() => exprRef.value.value)
 
 const inputComponent = computed(() => {
 	switch (typeof value.value) {
@@ -37,10 +36,7 @@ const inputComponent = computed(() => {
 
 function onInput(newValue: number | string) {
 	const newExpr = G.literal(newValue)
-
 	emits('update:expr', newExpr)
-
-	value.value = newValue
 }
 
 const manager = useGlispManager()
