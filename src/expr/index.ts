@@ -393,7 +393,7 @@ export class Symbol extends BaseExpr {
 	}
 
 	#resolved: ResolveResult | null = null
-	resolve(env: Env = Env.global): ResolveResult {
+	#resolve(env: Env): ResolveResult {
 		if (this.#resolved) return this.#resolved
 
 		let expr: Expr | null = this.innerParent
@@ -484,6 +484,9 @@ export class Symbol extends BaseExpr {
 		}
 
 		return {type: 'global', expr}
+	}
+	resolve(env: Env = Env.global): ResolveResult {
+		return (this.#resolved ??= this.#resolve(env))
 	}
 
 	protected forceEval(env: Env): Value {
