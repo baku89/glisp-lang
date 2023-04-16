@@ -7,11 +7,13 @@ withDefaults(
 		disabled?: boolean
 		invalid?: boolean
 		tweaked?: boolean
+		hovered?: boolean
 	}>(),
 	{
 		disabled: false,
 		invalid: false,
 		tweaked: false,
+		hovered: false,
 	}
 )
 
@@ -50,7 +52,7 @@ defineExpose({
 </script>
 
 <template>
-	<div class="InputString" :class="{invalid, tweaked}">
+	<div class="InputString" :class="{invalid, tweaked, hovered}">
 		<input
 			ref="inputEl"
 			class="input"

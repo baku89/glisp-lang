@@ -16,7 +16,7 @@ const props = withDefaults(
 	defineProps<{
 		expr: G.Expr
 		expectedType?: G.Value
-		layout?: 'expanded' | 'collapsed' | 'minimal'
+		hovered?: boolean
 	}>(),
 	{
 		expectedType: () => G.all,
@@ -30,6 +30,7 @@ const evaluated = useExprEvaluated(exprRef)
 defineEmits<{
 	(e: 'update:expr', expr: G.Expr): void
 	(e: 'confirm'): void
+	(e: 'update:hovered', hovered: boolean): void
 }>()
 
 const exprComponent = computed(() => {
@@ -66,10 +67,11 @@ const referrable = computed(() => {
 		v-if="exprComponent !== null"
 		:expr="expr"
 		:expectedType="expectedType"
-		:layout="layout"
 		:referrable="referrable"
+		:hovered="hovered"
 		v-bind="$attrs"
 		@update:expr="$emit('update:expr', $event)"
+		@update:hovered="$emit('update:hovered', $event)"
 		@confirm="$emit('confirm')"
 		@pointerenter="manager.onPointerEnter(expr)"
 		@pointerleave="manager.onPointerLeave()"

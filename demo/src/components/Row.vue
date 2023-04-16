@@ -1,26 +1,56 @@
 <script setup lang="ts">
 import {computed} from '@vue/reactivity'
 import {useCssVar} from '@vueuse/core'
+import * as G from 'glisp'
 import {inject, provide, ref} from 'vue'
 
+import {useExpr} from '../use/useExpr'
+import Expr from './ExprAll.vue'
+import ExprLiteral from './ExprLiteral.vue'
+import ExprMnimal from './ExprMnimal.vue'
+import ExprSymbol from './ExprSymbol.vue'
+
 interface Props {
-	expandable: boolean
-	expanded: boolean
+	expr: G.Expr
 }
 
 const props = defineProps<Props>()
 
-interface Emits {
-	(e: 'update:expanded', value: boolean): void
-}
+const {exprRef} = useExpr(props)
 
-const emits = defineEmits<Emits>()
+const expandable = computed(() => {
+	const type = exprRef.value.type
+	return type !== 'Literal' && type !== 'Symbol'
+})
+
+const expanded = ref(false)
+
+defineEmits<{
+	(e: 'update:expr', expr: G.Expr): void
+	(e: 'confirm'): void
+	(e: 'cancel'): void
+}>()
 
 function onClickChevron() {
-	if (!props.expandable) return
-
-	emits('update:expanded', !props.expanded)
+	if (!expandable.value) return
+	expanded.value = !expanded.value
 }
+
+const collapsedExprComponent = computed(() => {
+	const type = exprRef.value.type
+	if (type === 'Literal') {
+		return ExprLiteral
+	} else if (type === 'Symbol') {
+		return ExprSymbol
+	} else {
+		return ExprMnimal
+	}
+})
+
+// Expr hover/unhover
+const labelHovered = ref(false)
+const exprHovered = ref(false)
+const hovered = computed(() => labelHovered.value || exprHovered.value)
 
 // NOTE: 140 shouldn't be a magic number
 const rowKeyWidth = inject('Row__key_width', ref(140))
@@ -36,24 +66,45 @@ provide(
 <template>
 	<div
 		class="Row"
-		:class="{expanded}"
+		:class="{expanded, hovered}"
 		:style="{'--ui-inspector-label-width': rowKeyWidth + 'px'}"
 	>
-		<div class="Row__key">
+		<div
+			class="key"
+			@pointerenter="labelHovered = true"
+			@pointerleave="labelHovered = false"
+		>
 			<button
-				class="Row__icon material-symbols-rounded"
+				class="icon material-symbols-rounded"
 				:class="{expandable}"
 				@click="onClickChevron"
 			>
 				{{ expandable ? 'chevron_right' : '・' }}
 			</button>
-			<div v-if="$slots.label" class="Row__label">
+			<div v-if="$slots.label" class="label">
 				<slot name="label" />
 			</div>
 		</div>
-		<div class="Row__value">
-			<slot />
-		</div>
+		<component
+			:is="collapsedExprComponent"
+			:expr="expr"
+			:hovered="hovered"
+			layout="collapsed"
+			@update:hovered="exprHovered = $event"
+			@update:expr="$emit('update:expr', $event)"
+			@confirm="$emit('confirm')"
+			@cancel="$emit('cancel')"
+		/>
+		<Expr
+			v-if="expanded"
+			class="detail"
+			:expr="expr"
+			:hovered="hovered"
+			@update:hovered="exprHovered = $event"
+			@update:expr="$emit('update:expr', $event)"
+			@confirm="$emit('confirm')"
+			@cancel="$emit('cancel')"
+		/>
 	</div>
 </template>
 
@@ -64,38 +115,37 @@ provide(
 	display grid
 	grid-template-columns var(--ui-inspector-label-width) 1fr
 	gap var(--ui-input-row-margin) 0
-
 	--color-chevron var(--color-outline)
-	&:hover
-		--color-chevron var(--color-primary)
 
 	&.expanded
-		grid-template-columns 1fr
-		& > .Row__key > .Row__icon
+		& > .key > .icon
 			transform rotate(90deg)
 
-	&__key
-		user-select none
-		display flex
-		align-items center
-		font-size var(--ui-input-font-size)
-		height var(--ui-input-height)
+	&.hovered > .key > .icon
+		color var(--color-primary)
+.key
+	user-select none
+	display flex
+	align-items center
+	font-size var(--ui-input-font-size)
+	height var(--ui-input-height)
+.icon
+	// background red
+	font-size var(--ui-inspector-tree-icon-size)
+	width var(--ui-inspector-tree-icon-size)
+	height var(--ui-inspector-tree-icon-size)
+	input-transition(transform, color)
+	color var(--color-chevron)
 
+	&:not(.expandable)
+		cursor initial
+		transform none !important
 
-	&__icon
-		// background red
-		font-size var(--ui-inspector-tree-icon-size)
-		width var(--ui-inspector-tree-icon-size)
-		height var(--ui-inspector-tree-icon-size)
-		input-transition(transform, color)
-		color var(--color-chevron)
+.label
+	width var(--ui-inspector-header-width)
+	line-height var(--ui-input-height)
+	padding-left .2em
 
-		&:not(.expandable)
-			cursor initial
-			transform none !important
-
-	&__label
-		width var(--ui-inspector-header-width)
-		line-height var(--ui-input-height)
-		padding-left .2em
+.detail
+	grid-column 1 / span 2
 </style>

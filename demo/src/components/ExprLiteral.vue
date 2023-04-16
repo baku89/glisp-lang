@@ -9,15 +9,18 @@ import InputString from './InputString.vue'
 interface Props {
 	expr: G.Literal
 	expectedType?: G.Value
+	hovered?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
 	expectedType: () => G.all,
+	hovered: false,
 })
 
 const emits = defineEmits<{
 	(e: 'update:expr', newExpr: G.Expr): void
 	(e: 'confirm'): void
+	(e: 'update:hovered', hovered: boolean): void
 }>()
 
 const {exprRef} = useExpr(props)
@@ -44,8 +47,11 @@ function onInput(newValue: number | string) {
 		<component
 			:is="inputComponent"
 			:modelValue="value"
+			:hovered="hovered"
 			@update:modelValue="onInput"
 			@confirm="$emit('confirm')"
+			@pointerenter="$emit('update:hovered', true)"
+			@pointerleave="$emit('update:hovered', false)"
 		/>
 	</div>
 </template>

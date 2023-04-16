@@ -19,6 +19,7 @@ const props = withDefaults(
 		minSpeed?: number
 		maxSpeed?: number
 		tweaked?: boolean
+		hovered?: boolean
 	}>(),
 	{
 		min: Number.MIN_SAFE_INTEGER,
@@ -30,6 +31,7 @@ const props = withDefaults(
 		minSpeed: 0.0001,
 		maxSpeed: 1000,
 		tweaked: false,
+		hovered: false,
 	}
 )
 
@@ -355,7 +357,7 @@ const cursorStyle = computed(() => {
 	<div
 		ref="root"
 		class="InputNumber"
-		:class="{tweaking: tweaking || tweaked, invalid}"
+		:class="{tweaking: tweaking || tweaked, invalid, hovered}"
 		v-bind="$attrs"
 	>
 		<input
@@ -418,14 +420,12 @@ const cursorStyle = computed(() => {
 
 	&:not(:has(:disabled))
 		cursor col-resize
-
 	.input
 		pointer-events none
 		font-family var(--font-code)
 
 		&:focus
 			pointer-events auto
-
 .signs
 	position absolute
 	inset 1px

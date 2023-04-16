@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import * as G from 'glisp'
-import {computed, ref} from 'vue'
 
-import Expr from './ExprAll.vue'
-import ExprMnimal from './ExprMnimal.vue'
+import {useExpr} from '../use/useExpr'
+import {injectGlispUndoRedo} from '../use/useGlispUndoRedo'
 import Row from './Row.vue'
 
 interface Props {
 	expr: G.VecLiteral
 	expectedType?: G.Value
-	layout?: 'expanded' | 'collapsed' | 'minimal'
+	hovered?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -17,94 +16,75 @@ const props = withDefaults(defineProps<Props>(), {
 	layout: 'expanded',
 })
 
-const items = computed(() => {
-	return props.expr.items.map((item, index) => {
-		const expandable = !(item.type === 'Literal' || item.type === 'Symbol')
+const {exprRef} = useExpr(props)
 
-		const expanded = itemExpanded.value.has(index) && expandable
+defineEmits<{
+	(e: 'update:hovered', hovered: boolean): void
+}>()
 
-		return [index, item, expandable, expanded] as const
-	})
-})
+const {commit, tagHistory, cancelTweak} = injectGlispUndoRedo()
 
-const itemExpanded = ref(new Set<number>())
-
-function setItemExpanded(index: number, expanded: boolean) {
-	if (expanded) {
-		itemExpanded.value.add(index)
-	} else {
-		itemExpanded.value.delete(index)
-	}
-}
-
-function set(path: number, newExpr: G.Expr) {
-	props.expr.set(path, newExpr)
-	G.notifyChangedExprs()
+function set(path: number, expr: G.Expr) {
+	commit(props.expr, {type: 'set', path, expr})
 }
 </script>
 
 <template>
-	<div v-if="layout === 'expanded'" class="ExprVecLiteral--expanded">
+	<div class="ExprVecLiteral" :class="{hovered}">
+		<div
+			class="hover-region"
+			@pointerenter="$emit('update:hovered', true)"
+			@pointerleave="$emit('update:hovered', false)"
+		/>
 		<Row
-			v-for="[i, item, expandable, expanded] in items"
+			v-for="(item, i) in exprRef.items"
 			:key="i"
-			:expandable="expandable"
-			:expanded="expanded"
-			@update:expanded="setItemExpanded(i, $event)"
+			:expr="item"
+			@update:expr="set(i, $event)"
+			@confirm="tagHistory"
+			@cancel="cancelTweak"
 		>
 			<template #label>{{ i }}</template>
-			<Expr
-				:expr="item"
-				:layout="expanded ? 'expanded' : 'collapsed'"
-				@update:expr="set(i, $event)"
-			/>
 		</Row>
 	</div>
-	<div v-else-if="layout === 'collapsed'" class="ExprVecLiteral--collapsed">
-		<Expr
-			v-for="(item, i) in expr.items"
-			:key="i"
-			class="item"
-			:expr="item"
-			layout="minimal"
-			@update:expr="set(i, $event)"
-		/>
-	</div>
-	<ExprMnimal v-else class="ExprVecLiteral--minimal" :expr="expr" />
 </template>
 
 <style lang="stylus" scoped>
 @import '@/common.styl'
 
 .ExprVecLiteral
+	position relative
+	display flex
+	flex-direction column
+	gap var(--ui-input-row-margin)
+	font-family var(--font-ui)
+	padding-left var(--ui-inspector-tree-icon-size)
 
-	&--expanded
-		position relative
-		font-family var(--font-code)
-		display flex
-		flex-direction column
-		gap var(--ui-input-row-margin)
-		font-family var(--font-ui)
-		padding-left var(--ui-inspector-tree-icon-size)
+	--border-color var(--color-outline-variant)
+	--border-width 1px
+	&.hovered
+		--border-color var(--color-primary)
+		--border-width 2px
 
+	+box-before()
+		left calc(var(--ui-input-height) / 3)
+		width calc(var(--ui-input-row-margin) * .75)
+		border var(--border-width) solid var(--border-color)
+		border-right 0
+		border-top 0
+		bottom 0
+		top calc(var(--ui-input-row-margin) * -1)
+		input-transition(border)
 
-		--tree-color var(--color-outline-variant)
-
-		&:hover
-			--tree-color var(--color-primary)
-
-		+box-before()
-			left calc(var(--ui-input-height) / 3)
-			width calc(var(--ui-input-row-margin) * .75)
-			border 1px solid var(--tree-color)
-			border-right 0
-			border-top 0
-			bottom 0
-			top calc(var(--ui-input-row-margin) * -1)
-			input-transition(border)
-
-	&--collapsed
+	&.collapsed
 		display grid
 		grid-template-columns: repeat(auto-fill, minmax(var(--ui-input-col-width), 1fr))
 		gap var(--ui-input-gap)
+
+.hover-region
+	position absolute
+	left 0
+	top calc(var(--ui-input-row-margin) * -1)
+	bottom 0
+	width var(--ui-inspector-tree-icon-size)
 </style>

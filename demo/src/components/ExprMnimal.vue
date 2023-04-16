@@ -8,9 +8,11 @@ const props = withDefaults(
 	defineProps<{
 		expr: G.Expr
 		expectedType?: G.Value
+		hovered?: boolean
 	}>(),
 	{
 		expectedType: () => G.all,
+		hovered: false,
 	}
 )
 
@@ -33,7 +35,7 @@ const invalidType = computed(() => {
 </script>
 
 <template>
-	<div class="ExprMinimal" :class="{invalidType}">
+	<div class="ExprMinimal" :class="{invalidType, hovered}">
 		{{ evaluatedStr }}
 	</div>
 </template>
@@ -42,6 +44,8 @@ const invalidType = computed(() => {
 @import '@/common.styl'
 
 .ExprMinimal
+	--color-border var(--color-surface-border)
+
 	display block
 	font-size var(--ui-input-font-size)
 	width 100%
@@ -55,10 +59,11 @@ const invalidType = computed(() => {
 	overflow hidden
 	text-overflow ellipsis
 	input-transition(box-shadow)
-	--border-color var(--color-surface-border)
-	box-shadow 0 0 0 1px inset var(--border-color)
+	box-shadow 0 0 0 1px inset var(--color-border)
 
+	&:hover, &.hovered
+		--color-border var(--color-primary)
 	&.invalidType
 		color var(--color-error)
-		--border-color var(--color-error)
+		--color-border var(--color-error)
 </style>

@@ -1,51 +1,33 @@
 <script setup lang="ts">
 import * as G from 'glisp'
 import {entries} from 'lodash'
-import {computed, ref} from 'vue'
+import {computed} from 'vue'
 
 import {useExpr} from '../use/useExpr'
 import {injectGlispUndoRedo} from '../use/useGlispUndoRedo'
-import Expr from './ExprAll.vue'
-import ExprMnimal from './ExprMnimal.vue'
 import Row from './Row.vue'
 
-interface Props {
-	expr: G.DictLiteral
-	expectedType?: G.Value
-	layout?: 'expanded' | 'collapsed' | 'minimal'
-}
+const props = withDefaults(
+	defineProps<{
+		expr: G.DictLiteral
+		expectedType?: G.Value
+		hovered?: boolean
+	}>(),
+	{
+		expectedType: () => G.all,
+		hovered: false,
+	}
+)
 
-const props = withDefaults(defineProps<Props>(), {
-	expectedType: () => G.all,
-	layout: 'expanded',
-})
+defineEmits<{
+	(e: 'update:hovered', hovered: boolean): void
+}>()
 
 const {exprRef} = useExpr(props)
 
-const items = computed(() => {
-	return entries(exprRef.value.items).map(([name, e]) => {
-		const expandable = !(e.type === 'Literal' || e.type === 'Symbol')
+const items = computed(() => entries(exprRef.value.items))
 
-		return [
-			name,
-			e,
-			expandable,
-			itemExpanded.value.has(name) && expandable,
-		] as const
-	})
-})
-
-const itemExpanded = ref(new Set<string>())
-
-function setItemExpanded(name: string, expanded: boolean) {
-	if (expanded) {
-		itemExpanded.value.add(name)
-	} else {
-		itemExpanded.value.delete(name)
-	}
-}
-
-const {commit, tagHistory} = injectGlispUndoRedo()
+const {commit, tagHistory, cancelTweak} = injectGlispUndoRedo()
 
 function set(path: string, expr: G.Expr) {
 	commit(props.expr, {type: 'set', path, expr})
@@ -53,27 +35,22 @@ function set(path: string, expr: G.Expr) {
 </script>
 
 <template>
-	<div class="ExprScope">
-		<div v-if="layout === 'expanded'" class="expanded">
-			<div class="items">
-				<Row
-					v-for="[path, e, expandable, expanded] in items"
-					:key="path"
-					:expanded="expanded"
-					:expandable="expandable"
-					@update:expanded="setItemExpanded(path, $event)"
-				>
-					<template #label>{{ path }}:</template>
-					<Expr
-						:expr="e"
-						:layout="expanded ? 'expanded' : 'collapsed'"
-						@update:expr="set(path, $event)"
-						@confirm="tagHistory"
-					/>
-				</Row>
-			</div>
-		</div>
-		<ExprMnimal v-else :expr="exprRef" />
+	<div class="ExprScope" :class="{hovered}">
+		<div
+			class="hover-region"
+			@pointerenter="$emit('update:hovered', true)"
+			@pointerleave="$emit('update:hovered', false)"
+		/>
+		<Row
+			v-for="[path, e] in items"
+			:key="path"
+			:expr="e"
+			@update:expr="set(path, $event)"
+			@confirm="tagHistory"
+			@cancel="cancelTweak"
+		>
+			<template #label>{{ path }}:</template>
+		</Row>
 	</div>
 </template>
 
@@ -83,18 +60,15 @@ function set(path: string, expr: G.Expr) {
 .ExprScope
 	position relative
 	font-family var(--font-ui)
-
-	& > .expanded
-		display flex
-		flex-direction column
-		gap var(--ui-input-row-margin)
-
-.items
-	position relative
 	display flex
 	flex-direction column
 	gap var(--ui-input-row-margin)
 	padding-left var(--ui-inspector-tree-icon-size)
+
+	.hovered:before
+		border-color var(--color-primary)
+		border-left-width 2px
+		border-bottom-width 2px
 
 	+box-before()
 		top calc(var(--ui-input-row-margin) * -1)
@@ -105,4 +79,12 @@ function set(path: string, expr: G.Expr) {
 		border-top 0
 		width calc(var(--ui-input-row-margin) * .75)
 		border-bottom-left-radius 9999px
+
+.hover-region
+	position absolute
+	left 0
+	top calc(var(--ui-input-row-margin) * -1)
+	bottom 0
+	width var(--ui-inspector-tree-icon-size)
+	z-index 10
 </style>

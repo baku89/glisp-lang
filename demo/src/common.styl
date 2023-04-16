@@ -36,7 +36,7 @@ input($focus-selector = ':focus')
 		color var(--color-error)
 		--border-color var(--color-error)
 
-	&:hover, &:focus, &:focus-within
+	&:hover, &.hovered, &:focus, &:focus-within
 		box-shadow 0 0 0 0 inset var(--border-color), 0 0 0 1px inset var(--border-color)
 
 	&:focus, &:focus-within, &{$focus-selector}
