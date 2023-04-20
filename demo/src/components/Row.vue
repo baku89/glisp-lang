@@ -6,7 +6,7 @@ import {inject, provide, ref} from 'vue'
 
 import {useExpr} from '../use/useExpr'
 import {useGlispManager} from '../use/useGlispManager'
-import Expr from './ExprAll.vue'
+import Expr from './Expr.vue'
 import ExprEvaluated from './ExprEvaluated.vue'
 import ExprLiteral from './ExprLiteral.vue'
 import ExprSymbol from './ExprSymbol.vue'
