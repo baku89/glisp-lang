@@ -12,9 +12,11 @@ const props = withDefaults(
 	defineProps<{
 		expr: G.Symbol
 		expectedType?: G.Value
+		hovered?: boolean
 	}>(),
 	{
 		expectedType: () => G.all,
+		hovered: false,
 	}
 )
 
@@ -25,6 +27,7 @@ const emits = defineEmits<{
 	(e: 'update:expr', newExpr: G.Expr): void
 	(e: 'confirm'): void
 	(e: 'cancel'): void
+	(e: 'update:hovered', hovered: boolean): void
 }>()
 
 const symbolName = computed(() => exprRef.value.print())
@@ -134,8 +137,10 @@ const mouse = useMouse()
 		</span>
 		<ExprEvaluated
 			v-if="!editing"
+			:hovered="hovered"
 			:expr="exprRef"
 			:expectedType="expectedType"
+			@update:hovered="$emit('update:hovered', $event)"
 		/>
 		<InputString
 			v-else
@@ -181,6 +186,7 @@ const mouse = useMouse()
 .ExprSymbol
 	text-align center
 	position relative
+	overflow hidden
 .arrow-icon
 	display block
 	top 0

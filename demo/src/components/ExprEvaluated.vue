@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import * as G from 'glisp'
-import {computed, watchEffect} from 'vue'
+import {computed} from 'vue'
 
 import {useExpr, useExprEvaluated} from '../use/useExpr'
 import {useGlispManager} from '../use/useGlispManager'
@@ -15,6 +15,7 @@ const props = withDefaults(
 	{
 		expectedType: () => G.all,
 		hovered: false,
+		invalid: false,
 	}
 )
 
@@ -24,8 +25,6 @@ const emits = defineEmits<{
 
 const {exprRef} = useExpr(props)
 const evaluated = useExprEvaluated(exprRef)
-
-watchEffect(() => console.log(evaluated.value))
 
 const invalidType = computed(() => {
 	return !props.expectedType.isTypeFor(evaluated.value)
@@ -48,7 +47,8 @@ function onHoverChange(hovered: boolean) {
 <template>
 	<ValueNumber
 		v-if="isNumber"
-		:class="{hovered}"
+		:hovered="hovered"
+		:invalid="invalidType"
 		:value="(evaluated as G.Number)"
 		@update:hovered="onHoverChange($event)"
 	/>

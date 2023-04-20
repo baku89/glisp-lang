@@ -11,11 +11,15 @@ import ExprEvaluated from './ExprEvaluated.vue'
 import ExprLiteral from './ExprLiteral.vue'
 import ExprSymbol from './ExprSymbol.vue'
 
-interface Props {
-	expr: G.Expr
-}
-
-const props = defineProps<Props>()
+const props = withDefaults(
+	defineProps<{
+		expr: G.Expr
+		expectedType?: G.Value
+	}>(),
+	{
+		expectedType: () => G.all,
+	}
+)
 
 const {exprRef} = useExpr(props)
 
@@ -112,6 +116,7 @@ provide(
 		<component
 			:is="collapsedExprComponent"
 			:expr="expr"
+			:expectedType="expectedType"
 			:hovered="hovered"
 			layout="collapsed"
 			@update:hovered="exprHovered = $event"

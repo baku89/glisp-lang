@@ -6,6 +6,7 @@ import {useExpr, useExprEvaluated} from '../use/useExpr'
 import {useGlispManager} from '../use/useGlispManager'
 import ExprApp from './ExprApp.vue'
 import ExprDictLiteral from './ExprDictLiteral.vue'
+import ExprEvaluated from './ExprEvaluated.vue'
 import ExprLiteral from './ExprLiteral.vue'
 import ExprProgram from './ExprProgram.vue'
 import ExprScope from './ExprScope.vue'
@@ -50,7 +51,7 @@ const exprComponent = computed(() => {
 		case 'DictLiteral':
 			return ExprDictLiteral
 		default:
-			return null
+			return ExprEvaluated
 	}
 })
 
@@ -59,16 +60,20 @@ const manager = useGlispManager()
 const referrable = computed(() => {
 	return evaluated.value.isSubtypeOf(manager.symbolType.value)
 })
+
+const invalidType = computed(() => {
+	return !props.expectedType.isTypeFor(evaluated.value)
+})
 </script>
 
 <template>
 	<component
 		:is="exprComponent"
-		v-if="exprComponent !== null"
 		:expr="expr"
 		:expectedType="expectedType"
 		:referrable="referrable"
 		:hovered="hovered"
+		:invalid="invalidType"
 		v-bind="$attrs"
 		@update:expr="$emit('update:expr', $event)"
 		@update:hovered="$emit('update:hovered', $event)"
@@ -76,7 +81,6 @@ const referrable = computed(() => {
 		@pointerenter="manager.onPointerEnter(expr)"
 		@pointerleave="manager.onPointerLeave()"
 	/>
-	<div v-else class="text">{{ evaluated.print() }}</div>
 </template>
 
 <style lang="stylus" scoped>

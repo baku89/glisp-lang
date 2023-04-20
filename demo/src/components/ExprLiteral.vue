@@ -11,11 +11,13 @@ interface Props {
 	expr: G.Literal
 	expectedType?: G.Value
 	hovered?: boolean
+	invalid?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
 	expectedType: () => G.all,
 	hovered: false,
+	invalid: false,
 })
 
 const emits = defineEmits<{
@@ -61,6 +63,7 @@ function onUnhover() {
 			:is="inputComponent"
 			:modelValue="value"
 			:hovered="hovered"
+			:invalid="invalid"
 			@update:modelValue="onInput"
 			@confirm="$emit('confirm')"
 			@pointerenter="onHover"
