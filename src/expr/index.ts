@@ -291,7 +291,6 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	}
 
 	#clearEvalCache() {
-		// console.log('clearing eval cache of:' + this.print())
 		changedExprs.add(this)
 		this.evalCache.delete(Env.global)
 		this.evalDep.forEach(e => e.#clearEvalCache())
@@ -392,10 +391,7 @@ export class Symbol extends BaseExpr {
 		this.props = props
 	}
 
-	#resolved: ResolveResult | null = null
-	#resolve(env: Env): ResolveResult {
-		if (this.#resolved) return this.#resolved
-
+	resolve(env: Env = Env.global): ResolveResult {
 		let expr: Expr | null = this.innerParent
 		let isFirstPath = true
 
@@ -484,9 +480,6 @@ export class Symbol extends BaseExpr {
 		}
 
 		return {type: 'global', expr}
-	}
-	resolve(env: Env = Env.global): ResolveResult {
-		return (this.#resolved ??= this.#resolve(env))
 	}
 
 	protected forceEval(env: Env): Value {
@@ -587,11 +580,6 @@ export class Symbol extends BaseExpr {
 
 	clone() {
 		return new Symbol(this.paths)
-	}
-
-	clearCache(): void {
-		super.clearCache()
-		this.#resolved = null
 	}
 }
 
