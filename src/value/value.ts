@@ -199,9 +199,7 @@ interface IFnLike extends IFnType {
 }
 
 export class Unit extends BaseValue {
-	get type() {
-		return 'Unit' as const
-	}
+	readonly type = 'Unit' as const
 
 	get superType() {
 		return All.instance
@@ -237,9 +235,7 @@ export class Unit extends BaseValue {
 export const unit = Unit.instance
 
 export class All extends BaseValue {
-	get type() {
-		return 'All' as const
-	}
+	readonly type = 'All' as const
 
 	private constructor() {
 		super()
@@ -293,9 +289,7 @@ export class All extends BaseValue {
 export const all = All.instance
 
 export class Never extends BaseValue {
-	get type() {
-		return 'Never' as const
-	}
+	readonly type = 'Never' as const
 
 	private constructor() {
 		super()
@@ -339,9 +333,7 @@ export class Never extends BaseValue {
 export const never = Never.instance
 
 export class Prim<T = any> extends BaseValue {
-	get type() {
-		return 'Prim' as const
-	}
+	readonly type = 'Prim' as const
 
 	constructor(value: T, superType: PrimType<T>) {
 		super()
@@ -387,9 +379,7 @@ interface PrimTypeOption<T> {
 }
 
 export class PrimType<T = any> extends BaseValue {
-	get type() {
-		return 'PrimType' as const
-	}
+	readonly type = 'PrimType' as const
 
 	constructor(
 		private readonly name: string,
@@ -492,9 +482,7 @@ export const number: (value: number) => Number = NumberType.of.bind(NumberType)
 export const string: (value: string) => String = StringType.of.bind(StringType)
 
 export class Enum extends BaseValue {
-	get type() {
-		return 'Enum' as const
-	}
+	readonly type = 'Enum' as const
 
 	constructor(public readonly name: string) {
 		super()
@@ -539,9 +527,7 @@ export class Enum extends BaseValue {
 }
 
 export class EnumType extends BaseValue {
-	get type() {
-		return 'EnumType' as const
-	}
+	readonly type = 'EnumType' as const
 
 	public readonly name: string
 	public readonly types: Enum[]
@@ -617,11 +603,9 @@ export const False = BooleanType.getEnum('false')
 export const boolean = (value: boolean) => (value ? True : False)
 
 export class TypeVar extends BaseValue {
-	#id = Symbol()
+	readonly type = 'TypeVar' as const
 
-	get type() {
-		return 'TypeVar' as const
-	}
+	#id = Symbol()
 	readonly superType = All.instance
 
 	public readonly name: string
@@ -673,9 +657,7 @@ export class TypeVar extends BaseValue {
 export const typeVar = (name: string) => new TypeVar(name)
 
 export class Fn extends BaseValue implements IFnLike {
-	get type() {
-		return 'Fn' as const
-	}
+	readonly type = 'Fn' as const
 
 	constructor(
 		public readonly superType: FnType,
@@ -737,9 +719,7 @@ export const fn = (fnType: FnType, fnObj: IFn, body?: Expr) =>
 	new Fn(fnType, fnObj, body)
 
 export class FnType extends BaseValue implements IFnType {
-	get type() {
-		return 'FnType' as const
-	}
+	readonly type = 'FnType' as const
 
 	get superType() {
 		return All.instance
@@ -925,9 +905,7 @@ export const fnType: IFnTypeConstructor = (
 ) => new FnType(params, retOrOptionalPos as any, rest as any, ret as any)
 
 export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
-	get type() {
-		return 'Vec' as const
-	}
+	readonly type = 'Vec' as const
 
 	get superType() {
 		return All.instance
@@ -1122,9 +1100,7 @@ export const vec = <V extends Value = Value>(
 export class Dict<
 	TItems extends Record<string, Value> = Record<string, Value>
 > extends BaseValue {
-	get type() {
-		return 'Dict' as const
-	}
+	readonly type = 'Dict' as const
 
 	constructor(
 		public readonly items: TItems,
@@ -1263,9 +1239,7 @@ export class Dict<
 export const dict = Dict.of
 
 export class UnionType extends BaseValue {
-	get type() {
-		return 'UnionType' as const
-	}
+	readonly type = 'UnionType' as const
 
 	get superType() {
 		return All.instance

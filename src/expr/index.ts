@@ -307,9 +307,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
  * Also used to represent empty input (only whitespaces, delimiters, comments)
  */
 export class Program extends BaseExpr {
-	get type() {
-		return 'Program' as const
-	}
+	readonly type = 'Program' as const
 
 	constructor(
 		public before: string,
@@ -362,9 +360,7 @@ type ResolveResult =
  * AST representing any identifier
  */
 export class Symbol extends BaseExpr {
-	get type() {
-		return 'Symbol' as const
-	}
+	readonly type = 'Symbol' as const
 
 	public readonly paths: readonly Path[]
 	public readonly props: readonly Key[]
@@ -595,9 +591,7 @@ export const symbol = (
  * e.g. DOM，Image
  */
 export class Container<V extends Value = Value> extends BaseExpr {
-	get type() {
-		return 'Container' as const
-	}
+	readonly type = 'Container' as const
 
 	constructor(public readonly value: V) {
 		super()
@@ -639,9 +633,7 @@ export const container = <V extends Value = Value>(value: V) =>
  * AST representing numeric literal
  */
 export class Literal extends BaseExpr {
-	get type() {
-		return 'Literal' as const
-	}
+	readonly type = 'Literal' as const
 
 	constructor(public readonly value: number | string) {
 		super()
@@ -704,9 +696,7 @@ interface NativeFnBody {
  * (=> [x: Number] (+ x 1))
  */
 export class FnDef extends BaseExpr {
-	get type() {
-		return 'FnDef' as const
-	}
+	readonly type = 'FnDef' as const
 
 	public readonly typeVars?: TypeVarsDef
 	public readonly params: ParamsDef
@@ -962,9 +952,8 @@ export const fnDef = (
 ) => new FnDef(typeVars, param, returnType, body)
 
 export class ParamsDef {
-	get type() {
-		return 'ParamsDef' as const
-	}
+	readonly type = 'ParamsDef' as const
+
 	parent!: FnDef
 
 	public items: Record<string, Expr>
@@ -1119,9 +1108,7 @@ export class TypeVarsDef {
 }
 
 export class VecLiteral extends BaseExpr {
-	get type() {
-		return 'VecLiteral' as const
-	}
+	readonly type = 'VecLiteral' as const
 
 	public readonly items: Expr[]
 	public optionalPos: number
@@ -1324,9 +1311,7 @@ export const vecLiteral = (
 ) => new VecLiteral(items, optionalPos, rest)
 
 export class DictLiteral extends BaseExpr {
-	get type() {
-		return 'DictLiteral' as const
-	}
+	readonly type = 'DictLiteral' as const
 
 	public readonly items: Record<string, Expr>
 	public readonly optionalKeys: Set<string>
@@ -1437,9 +1422,7 @@ export const dictLiteral = (
  * AST representing unit literal `()` and function application
  */
 export class App extends BaseExpr {
-	get type() {
-		return 'App' as const
-	}
+	readonly type = 'App' as const
 
 	fn?: Expr
 	args: Expr[]
@@ -1735,9 +1718,7 @@ export const app = (fn?: Expr, ...args: Expr[]) => new App(fn, ...args)
  * AST representing scope expression
  */
 export class Scope extends BaseExpr {
-	get type() {
-		return 'Scope' as const
-	}
+	readonly type = 'Scope' as const
 
 	public items: Record<string, Expr>
 	public ret: Expr | null
@@ -1923,9 +1904,7 @@ export const scope = (items?: Record<string, Expr>, ret?: Expr) =>
  *        default ;; omittable
  */
 export class Match extends BaseExpr {
-	get type() {
-		return 'Match' as const
-	}
+	readonly type = 'Match' as const
 
 	public readonly captureName: string
 	public readonly subject: Expr
@@ -2068,9 +2047,7 @@ export const match = (
 ) => new Match(captureName, subject, cases, otherwise)
 
 export class InfixNumber extends BaseExpr {
-	get type() {
-		return 'InfixNumber' as const
-	}
+	readonly type = 'InfixNumber' as const
 
 	public readonly args: number[]
 
@@ -2142,9 +2119,7 @@ export const infix = (op: string, ...args: number[]) => {
 }
 
 export class ValueMeta extends BaseExpr {
-	get type() {
-		return 'ValueMeta' as const
-	}
+	readonly type = 'ValueMeta' as const
 
 	extras?: {delimiters: [string, string]}
 
