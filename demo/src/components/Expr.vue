@@ -60,10 +60,6 @@ const manager = useGlispManager()
 const referrable = computed(() => {
 	return evaluated.value.isSubtypeOf(manager.symbolType.value)
 })
-
-const invalidType = computed(() => {
-	return !props.expectedType.isTypeFor(evaluated.value)
-})
 </script>
 
 <template>
@@ -73,7 +69,6 @@ const invalidType = computed(() => {
 		:expectedType="expectedType"
 		:referrable="referrable"
 		:hovered="hovered"
-		:invalid="invalidType"
 		v-bind="$attrs"
 		@update:expr="$emit('update:expr', $event)"
 		@update:hovered="$emit('update:hovered', $event)"

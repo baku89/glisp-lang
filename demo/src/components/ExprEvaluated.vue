@@ -13,9 +13,8 @@ const props = withDefaults(
 		hovered?: boolean
 	}>(),
 	{
-		expectedType: () => G.all,
 		hovered: false,
-		invalid: false,
+		expectedType: () => G.all,
 	}
 )
 
@@ -23,13 +22,8 @@ const emits = defineEmits<{
 	(e: 'update:hovered', hovered: boolean): void
 }>()
 
-const {exprRef} = useExpr(props)
+const {exprRef, typeInvalid} = useExpr(props)
 const evaluated = useExprEvaluated(exprRef)
-
-const invalidType = computed(() => {
-	return !props.expectedType.isTypeFor(evaluated.value)
-})
-
 const manager = useGlispManager()
 
 const isNumber = computed(() => G.NumberType.isTypeFor(evaluated.value))
@@ -48,14 +42,14 @@ function onHoverChange(hovered: boolean) {
 	<ValueNumber
 		v-if="isNumber"
 		:hovered="hovered"
-		:invalid="invalidType"
+		:invalid="typeInvalid"
 		:value="(evaluated as G.Number)"
 		@update:hovered="onHoverChange($event)"
 	/>
 	<div
 		v-else
 		class="ExprEvalauted"
-		:class="{invalidType, hovered}"
+		:class="{typeInvalid, hovered}"
 		@pointerenter="onHoverChange(true)"
 		@pointerleave="onHoverChange(false)"
 	>
@@ -86,7 +80,7 @@ function onHoverChange(hovered: boolean) {
 
 	&:hover, &.hovered
 		--color-border var(--color-primary)
-	&.invalidType
+	&.typeInvalid
 		color var(--color-error)
 		--color-border var(--color-error)
 </style>

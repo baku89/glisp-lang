@@ -52,17 +52,6 @@ const collapsedExprComponent = computed(() => {
 	}
 })
 
-const icon = computed(() => {
-	const type = exprRef.value.type
-	if (type === 'App') {
-		return 'schema'
-	} else if (type === 'Scope') {
-		return 'schema'
-	} else {
-		return null
-	}
-})
-
 const manager = useGlispManager()
 
 // Expr hover/unhover
@@ -118,7 +107,6 @@ provide(
 			:expr="expr"
 			:expectedType="expectedType"
 			:hovered="hovered"
-			layout="collapsed"
 			@update:hovered="exprHovered = $event"
 			@update:expr="$emit('update:expr', $event)"
 			@confirm="$emit('confirm')"

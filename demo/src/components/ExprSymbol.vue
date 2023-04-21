@@ -3,7 +3,7 @@ import {useElementBounding, useMouse} from '@vueuse/core'
 import * as G from 'glisp'
 import {computed, ref} from 'vue'
 
-import {useExpr, useExprEvaluated} from '../use/useExpr'
+import {useExpr} from '../use/useExpr'
 import {useGlispManager} from '../use/useGlispManager'
 import ExprEvaluated from './ExprEvaluated.vue'
 import InputString from './InputString.vue'
@@ -20,8 +20,7 @@ const props = withDefaults(
 	}
 )
 
-const {exprRef} = useExpr(props)
-const evaluated = useExprEvaluated(exprRef)
+const {exprRef, typeInvalid} = useExpr(props)
 
 const emits = defineEmits<{
 	(e: 'update:expr', newExpr: G.Expr): void
@@ -51,10 +50,6 @@ function onBlur() {
 }
 
 const manager = useGlispManager()
-
-const invalidType = computed(() => {
-	return !props.expectedType.isTypeFor(evaluated.value)
-})
 
 // Tweak UI
 const inputEl = ref<any>(null)
@@ -147,7 +142,7 @@ const mouse = useMouse()
 			ref="inputEl"
 			class="input"
 			:modelValue="symbolName"
-			:invalid="isSymbolNameInvalid || invalidType"
+			:invalid="isSymbolNameInvalid || typeInvalid"
 			:tweaked="editing"
 			@update:modelValue="onInput"
 			@blur="onBlur"

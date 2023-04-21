@@ -1,8 +1,9 @@
 import {Expr, Value} from 'glisp'
-import {ShallowRef, shallowRef, triggerRef, watchEffect} from 'vue'
+import {computed, ShallowRef, shallowRef, triggerRef, watchEffect} from 'vue'
 
 interface Props<T extends Expr> {
 	expr: T
+	expectedType: Value
 }
 
 /**
@@ -16,7 +17,13 @@ export function useExpr<T extends Expr>(props: Props<T>) {
 		exprRef.value.on('edit', () => triggerRef(exprRef))
 	})
 
-	return {exprRef}
+	const inferred = computed(() => exprRef.value.infer())
+
+	const typeInvalid = computed(() => {
+		return !inferred.value.isSubtypeOf(props.expectedType)
+	})
+
+	return {exprRef, inferred, typeInvalid}
 }
 
 export function useExprEvaluated(exprRef: ShallowRef<Expr>): ShallowRef<Value> {

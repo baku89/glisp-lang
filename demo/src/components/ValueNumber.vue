@@ -6,11 +6,13 @@ import InputNumber from './InputNumber.vue'
 interface Props {
 	value: G.Number
 	hovered?: boolean
+	invalid?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
 	expectedType: () => G.all,
 	hovered: false,
+	invalid: false,
 })
 
 const emits = defineEmits<{
@@ -31,6 +33,7 @@ function onUnhover() {
 		<InputNumber
 			:modelValue="value.value"
 			:hovered="hovered"
+			:invalid="invalid"
 			disabled
 			@pointerenter="onHover"
 			@pointerleave="onUnhover"
