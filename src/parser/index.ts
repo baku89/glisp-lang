@@ -105,6 +105,8 @@ const Comment = seq(
 
 const Whitespace = P.alt(P.whitespace, P.string(',')).desc('whitespace')
 
+const TripleDots = P.string('...')
+
 const _ = seq(
 	zeroOrOne(Whitespace),
 	many(seq(zeroOrOne(Comment), P.newline, many(Whitespace))),
@@ -119,7 +121,7 @@ const __ = _.assert(
 const OptionalMark = zeroOrOne(P.string('?')).map(r => !!r)
 
 const followedByColon = <T>(parser: P.Parser<T>): P.Parser<T> => {
-	return P.seqMap(parser, P.string(':'), p => p)
+	return parser.skip(P.string(':'))
 }
 
 const sepBy1__ = <T>(parser: P.Parser<T>): P.Parser<[T[], string[]]> => {
@@ -182,6 +184,7 @@ interface IParser {
 	ParamsDef: ParamsDef
 	FnDef: FnDef
 	App: App
+	Unit: App
 	VecLiteral: VecLiteral
 	DictEntry: [boolean, string, Expr, [string, string]]
 	DictLiteral: DictLiteral
@@ -212,6 +215,7 @@ export const Parser = P.createLanguage<IParser>({
 			r.Match,
 			r.FnDef,
 			r.App,
+			r.Unit,
 			r.VecLiteral,
 			r.DictLiteral,
 			r.Symbol,
@@ -253,7 +257,7 @@ export const Parser = P.createLanguage<IParser>({
 			// Items part
 			r.DictEntry.many(),
 			// Rest part
-			opt(P.seq(P.string('...'), followedByColon(NameKey), _, r.Expr, _))
+			opt(P.seq(TripleDots, followedByColon(NameKey), _, r.Expr, _))
 		)
 			.wrap(P.string('['), P.string(']'))
 			.map(([d0, pairs, restDs]) => {
@@ -288,7 +292,7 @@ export const Parser = P.createLanguage<IParser>({
 		return P.seqMap(
 			_,
 			P.string('=>'),
-			_,
+			__,
 			// Type variables part
 			opt(P.seq(r.TypeVarsDef, _)),
 			// Parameters part
@@ -332,19 +336,24 @@ export const Parser = P.createLanguage<IParser>({
 		).wrap(P.string('('), P.string(')'))
 	},
 	App(r) {
-		return P.seq(_, P.seq(r.Expr, _).many())
+		return P.seq(_, sepBy1__(r.Expr), _)
 			.wrap(P.string('('), P.string(')'))
-			.map(([d0, itemDs]) => {
-				const [items, ds] = zip(itemDs)
-
-				const delimiters = [d0, ...ds]
-
+			.map(([_0, [items, __1s], _2]) => {
 				const expr = new App(...items)
+
+				const delimiters = [_0, ...__1s, _2]
 				expr.extras = {delimiters}
 
 				return expr
 			})
 			.desc('function application')
+	},
+	Unit() {
+		return P.seqMap(P.string('('), _, P.string(')'), (_paren, _0) => {
+			const expr = new App()
+			expr.extras = {delimiters: [_0]}
+			return expr
+		}).desc('unit')
 	},
 	ScopeEntry(r) {
 		return P.seq(followedByColon(NameKey), _, r.Expr).map(
@@ -404,7 +413,7 @@ export const Parser = P.createLanguage<IParser>({
 		return P.seq(
 			_,
 			P.string('match'),
-			_,
+			__,
 			P.seq(followedByColon(NameKey), _, r.Expr, _),
 			P.seq(followedByColon(r.Expr), _, r.Expr, _).many(),
 			opt(P.seq(r.Expr, _))
@@ -434,26 +443,51 @@ export const Parser = P.createLanguage<IParser>({
 			})
 	},
 	VecLiteral(r) {
-		return P.seq(
+		const Open = P.string('[')
+		const Close = P.string(']')
+
+		// e.g. [], [  ]
+		const empty = _.wrap(Open, Close).map(_0 => {
+			const expr = new VecLiteral()
+			expr.extras = {delimiters: [_0]}
+			return expr
+		})
+
+		// e.g. [...x], [ ...x ]
+		const onlyRest = P.seq(_, TripleDots.then(r.Expr), _)
+			.wrap(Open, Close)
+			.map(([_0, rest, _1]) => {
+				const expr = new VecLiteral([], null, rest)
+				expr.extras = {delimiters: [_0, _1]}
+				return expr
+			})
+
+		// e.g. [a ...x] [a b]
+		const both = P.seq(
 			_,
-			// Items part
-			P.seq(OptionalMark, r.Expr, _).many(),
-			// Rest part
-			opt(P.seq(P.string('...'), r.Expr, _))
+			sepBy1__(P.seq(OptionalMark, r.Expr)),
+			opt(P.seq(__, TripleDots.then(r.Expr))),
+			_
 		)
-			.wrap(P.string('['), P.string(']'))
-			.map(([d0, ItemsPart, RestPart]) => {
-				const [optionalFlags, items, ds] = zip(ItemsPart)
-				const [, rest, dl] = RestPart ?? [null, null, null]
+			.wrap(Open, Close)
+			.map(([_0, [itemsPart, __1s], restPart, _3]) => {
+				const [optionalFlags, items] = zip(itemsPart)
 
 				const optionalPos = getOptionalPos(optionalFlags, 'item')
 
-				const delimiters = [d0, ...ds, ...(dl !== null ? [dl] : [])]
+				const [__2, rest] = restPart ?? [null, null]
+
+				const delimiters = [_0, ...__1s]
+				if (__2 !== null) delimiters.push(__2)
+				delimiters.push(_3)
 
 				const expr = new VecLiteral(items, optionalPos, rest)
 				expr.extras = {delimiters}
+
 				return expr
 			})
+
+		return P.alt(empty, onlyRest, both)
 	},
 	DictEntry(r) {
 		return P.seq(
@@ -466,58 +500,85 @@ export const Parser = P.createLanguage<IParser>({
 		})
 	},
 	DictLiteral(r) {
-		return P.seq(
+		const Open = P.string('{')
+		const Close = P.string('}')
+		const Entry = P.seq(OptionalMark, followedByColon(NameKey), _, r.Expr)
+
+		// e.g. {} { }
+		const empty = _.wrap(Open, Close).map(_0 => {
+			const expr = new DictLiteral()
+			expr.extras = {delimiters: [_0]}
+			return expr
+		})
+
+		// e.g. {...x}
+		const onlyRest = P.seq(_, TripleDots.then(r.Expr), _)
+			.wrap(Open, Close)
+			.map(([_0, rest, _1]) => {
+				const expr = new DictLiteral({}, null, rest)
+				expr.extras = {delimiters: [_0, _1]}
+				return expr
+			})
+
+		// e.g. {a:1} {a:1 ...b}
+		const oneOrMore = P.seq(
 			_,
-			// Pairs part
-			r.DictEntry.many(),
-			// Rest part
-			opt(P.seq(P.string('...'), r.Expr, _))
+			sepBy1__(Entry),
+			opt(P.seq(__.skip(TripleDots), r.Expr)),
+			_
 		)
-			.wrap(P.string('{'), P.string('}'))
-			.map(([d0, pairsPart, restPart]) => {
-				const [, rest, dl] = restPart ?? [null, null, null]
+			.wrap(Open, Close)
+			.map(([_0, [entries, __1s], restPart, _3]) => {
+				const [__2, rest] = restPart ?? [null, null]
 
 				const optionalKeys = new Set<string>()
-				const delimiters = [d0]
+				const delimiters = [_0]
 
 				const items: DictLiteral['items'] = {}
-				for (const [optional, key, value, ds] of pairsPart) {
+
+				for (const [i, [optional, key, _1, value]] of entries.entries()) {
 					if (key in items) throw new Error(`Duplicated key: ${key}`)
 
 					items[key] = value
 					if (optional) optionalKeys.add(key)
 
-					delimiters.push(...ds)
+					delimiters.push(_1)
+
+					if (i < __1s.length) {
+						delimiters.push(__1s[i])
+					}
 				}
 
-				if (dl !== null) delimiters.push(dl)
+				if (__2 !== null) delimiters.push(__2)
+				delimiters.push(_3)
 
 				const expr = new DictLiteral(items, optionalKeys, rest)
 				expr.extras = {delimiters}
 				return expr
 			})
+
+		return P.alt(empty, onlyRest, oneOrMore)
 	},
 	Symbol() {
-		return P.notFollowedBy(P.string('...')).then(
+		// First path must not be begin with IndexKey
+		const FirstPath = P.alt<Path>(PUpPath, PCurrentPath, NameKey)
+
+		// Rest paths can be whichever
+		const RestPath = P.alt<Path>(
+			PUpPath,
+			PCurrentPath,
+			NameKey,
+			IndexKey,
+			P.string('=>'),
+			P.string('return')
+		)
+
+		return P.notFollowedBy(TripleDots).then(
 			P.seq(
 				// Paths (xx/yy/zz/1/2/3)
-				P.seq(
-					// First path must not be begin with IndexKey
-					P.alt<Path>(PUpPath, PCurrentPath, NameKey),
-					// Rest paths can be whichever
-					P.seqMap(
-						P.string('/'),
-						P.alt<Path>(
-							PUpPath,
-							PCurrentPath,
-							NameKey,
-							IndexKey,
-							P.string('=>'),
-							P.string('return')
-						),
-						(_, path) => path
-					).many()
-				).map<Path[]>(([first, rest]) => [first, ...rest]),
+				P.seq(FirstPath, P.string('/').then(RestPath).many()).map<Path[]>(
+					([first, rest]) => [first, ...rest]
+				),
 				// PropKeys (x.y.z.1.2.3)
 				P.seqMap(
 					P.string('.'),
@@ -528,8 +589,8 @@ export const Parser = P.createLanguage<IParser>({
 		)
 	},
 	ValueMeta(r) {
-		return P.seq(P.string('^'), _, r.Expr, _, r.Expr)
-			.map(([, d0, fields, d1, expr]) => {
+		return P.seq(P.string('^').then(_), r.Expr, _, r.Expr)
+			.map(([d0, fields, d1, expr]) => {
 				const meta = new ValueMeta(fields, expr)
 				meta.extras = {delimiters: [d0, d1]}
 				return meta

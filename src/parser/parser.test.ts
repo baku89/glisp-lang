@@ -129,12 +129,14 @@ describe('parsing app expressions', () => {
 	testParsing(' ( 0 1 2 ) ', app(literal(0), literal(1), literal(2)))
 	testParsing('(+ 1 2)', app(symbol('+'), literal(1), literal(2)))
 	testParsing('(* 1 2)', app(symbol('*'), literal(1), literal(2)))
-	testParsing('(()2())', app(app(), literal(2), app()))
+	testParsing('(( ) 2 ( ))', app(app(), literal(2), app()))
 	testParsing('(x _)', app(x, all))
 	testParsing('(x ())', app(x, app()))
 	testParsing('(x)', app(x))
 	testParsing('(0 false)', app(literal(1), symbol('false')))
 	testParsing('((true) x)', app(app(symbol('true')), x))
+
+	testErrorParsing('(()())')
 })
 
 describe('parsing infix literals', () => {
@@ -193,7 +195,6 @@ describe('parsing vector', () => {
 	testParsing('[    1  ]', vec([literal(1)]))
 	testParsing('[1 2 3]', vec([literal(1), literal(2), literal(3)]))
 	testParsing('[1 [2] 3]', vec([literal(1), vec([literal(2)]), literal(3)]))
-	testParsing('[1[2] 3]', vec([literal(1), vec([literal(2)]), literal(3)]))
 	testParsing(
 		'[(+) false (+) +]',
 		vec([app(symbol('+')), symbol('false'), app(symbol('+')), symbol('+')])
@@ -207,11 +208,15 @@ describe('parsing vector', () => {
 		vec([literal(1), literal(2), literal(3)], 1, literal(4))
 	)
 
+	testErrorParsing('[[][]]')
+	testErrorParsing('[1[]2]')
 	testErrorParsing('[?1 2]')
 	testErrorParsing('[?1 2 ?3 ?4]')
 })
 
 describe('parsing dictionary', () => {
+	testParsing('{}', dict())
+	testParsing('{   }', dict())
 	testParsing('{   a:    1 }', dict({a: literal(1)}))
 	testParsing('{\tfoo_bar: 1\t}', dict({foo_bar: literal(1)}))
 	testParsing('{   }', dict({}))
@@ -231,6 +236,7 @@ describe('parsing dictionary', () => {
 	)
 
 	testErrorParsing('{"a": 0}')
+	// testErrorParsing('{a:[]b:0}')
 })
 
 describe('parsing parameters in function definition', () => {
@@ -264,8 +270,8 @@ describe('parsing function definition', () => {
 		fnDef(null, {x: Number, y: Boolean}, null, x)
 	)
 	testParsing('(=> [] _)', fnDef(null, {}, null, all))
-	testParsing('(=>[]_)', fnDef(null, {}, null, all))
-	testParsing('(=>()[]_)', fnDef([], {}, null, all))
+	testParsing('(=> [] _)', fnDef(null, {}, null, all))
+	testParsing('(=> () [] _)', fnDef([], {}, null, all))
 	testParsing('(=> [] ())', fnDef(null, {}, null, app()))
 	testParsing(
 		'(=> [] (+ 1 2))',
@@ -301,9 +307,9 @@ describe('parsing function type', () => {
 	testParsing('(=> [a:[...x]]: x)', fnDef(null, {a: vec([], 0, x)}, x))
 	testParsing('(=> [x:[]]: ())', fnDef(null, {x: vec()}, app()))
 	testParsing('(=> []: z)', fnDef(null, {}, z))
-	testParsing('(=>[]:z)', fnDef(null, {}, z))
-	testParsing('(=>()[]:z)', fnDef([], {}, z))
-	testParsing('(\n=>[]:z\n)', fnDef(null, {}, z))
+	testParsing('(=> []:z)', fnDef(null, {}, z))
+	testParsing('(=> () []:z)', fnDef([], {}, z))
+	testParsing('(\n=> []:z\n)', fnDef(null, {}, z))
 	testParsing('(=> []: [])', fnDef(null, {}, vec()))
 	testParsing('(=> [x:x]: z)', fnDef(null, {x}, z))
 
