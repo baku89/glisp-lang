@@ -73,6 +73,20 @@ export abstract class BaseValue {
 		return this.#meta
 	}
 
+	public getMetaValue<T extends Value = Value>(
+		key: string,
+		type: Value = all
+	): T | null {
+		if (!this.#meta) return null
+		if (!(key in this.#meta)) return null
+
+		const value = this.#meta[key]
+
+		if (!value.isSubtypeOf(type)) return null
+
+		return value as T
+	}
+
 	abstract isEqualTo(value: Value): boolean
 
 	isSubtypeOf(ty: Value): boolean {
