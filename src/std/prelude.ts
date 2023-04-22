@@ -223,14 +223,19 @@ first: (=> (T) [coll:[...T]] (coll 0))
 
 id: (=> (T) [x:T] x)
 
-sqrt: (=> [x:Number]
-        (match r: (<= 0 x)
-               true: (** x 0.5)
-               (log 0 "warn" "Negative Number")))
+sqrt: 
+^{doc: "Returns a square root of \`x\`"
+  returns: "The square root of \`x\`, a nonnegative number. If \`x < 0\`, returns \`0\`"}
+(=> [x: ^{doc: "A number greater than or equal to 0"
+          min: 0}
+        Number]
+    (match r: (<= 0 x)
+           true: (** x 0.5)
+           (log 0 "warn" "Negative Number")))
 
-square: (=> [x:Number] (** x 2))
-
-hypot:  (=> [x:Number y:Number] (sqrt (+ (* x x) (* y y))))
+hypot:
+^{doc: "Retruns the square root of the sum of squares of its arguments"}
+(=> [x:Number y:Number] (sqrt (+ (* x x) (* y y))))
 
 $%: (=> [percent:Number] (div percent 100))
 $rad: (=> [radians:Number] (div (* radians 180) PI))
