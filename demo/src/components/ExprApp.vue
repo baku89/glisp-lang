@@ -45,11 +45,9 @@ const argInfos = computed<ArgInfo[]>(() => {
 
 	const names: ArgInfo[] = entries(fnType.params).map(
 		([name, expectedType]) => {
-			if (expectedType.meta) {
-				const labelValue = expectedType.meta['label']
-				if (labelValue && G.StringType.isTypeFor(labelValue)) {
-					name = labelValue.value
-				}
+			const label = expectedType.getMetaValue<G.String>('label', G.StringType)
+			if (label) {
+				name = label.value
 			}
 
 			return {
@@ -64,11 +62,9 @@ const argInfos = computed<ArgInfo[]>(() => {
 		const expectedType = fnType.rest.value
 		const restArgNum = exprRef.value.args.length - names.length
 
-		if (expectedType.meta) {
-			const labelValue = expectedType.meta['label']
-			if (labelValue && G.StringType.isTypeFor(labelValue)) {
-				name = labelValue.value
-			}
+		const label = expectedType.getMetaValue<G.String>('label', G.StringType)
+		if (label) {
+			name = label.value
 		}
 
 		names.push(
