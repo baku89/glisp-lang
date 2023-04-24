@@ -76,7 +76,7 @@ export type InnerExpr = App | Scope | Match | FnDef | VecLiteral | DictLiteral
 /**
  * シンボルのパスからは原則として無視される式
  */
-type UtilExpr = ValueMeta | ParamsDef | TypeVarsDef | Program
+type UtilExpr = ValueMeta | ParamsDef | TypeVarsDef | Program | TypeSignature
 
 export interface PrintOptions {
 	omitMeta?: boolean
@@ -102,7 +102,8 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 				expr.type !== 'Program' &&
 				expr.type !== 'ValueMeta' &&
 				expr.type !== 'ParamsDef' &&
-				expr.type !== 'TypeVarDef'
+				expr.type !== 'TypeVarDef' &&
+				expr.type !== 'TypeSignature'
 			) {
 				break
 			}
@@ -2116,6 +2117,62 @@ export class InfixNumber extends BaseExpr {
 
 export const infix = (op: string, ...args: number[]) => {
 	return new InfixNumber(op, ...args)
+}
+
+export class TypeSignature extends BaseExpr {
+	readonly type = 'TypeSignature' as const
+
+	constructor(public readonly body: Expr, public readonly signature: Expr) {
+		super()
+
+		body.parent = this
+		signature.parent = this
+	}
+
+	protected forceEval(env: Env): Value {
+		const evaluated = this.body.eval(env)
+		const type = this.signature.eval(env)
+
+		if (type.isTypeFor(evaluated)) {
+			return evaluated
+		} else {
+			return type.defaultValue.withLog({
+				level: 'error',
+				ref: this,
+				reason: `${evaluated.print()} is not a value of type ${type.print()}`,
+			})
+		}
+	}
+
+	protected forceInfer(env: Env): Value {
+		return this.signature.eval(env)
+	}
+
+	extras?: {delimiters: [string, string]}
+
+	print(options?: PrintOptions): string {
+		if (!this.extras) {
+			this.extras = {delimiters: ['', '']}
+		}
+
+		const [_0, _1] = this.extras.delimiters
+
+		return (
+			this.body.print(options) + _0 + '::' + _1 + this.signature.print(options)
+		)
+	}
+
+	clone() {
+		return new TypeSignature(this.body, this.signature)
+	}
+
+	isSameTo(expr: AnyExpr): boolean {
+		return (
+			this.type === expr.type &&
+			this.body.isSameTo(expr.body) &&
+			this.signature.isSameTo(expr.signature)
+		)
+	}
 }
 
 export class ValueMeta extends BaseExpr {
