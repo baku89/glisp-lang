@@ -103,13 +103,11 @@ const Comment = seq(
 	many(P.notFollowedBy(P.newline).then(P.any))
 ).desc('comment')
 
-const Whitespace = P.alt(P.whitespace, P.string(',')).desc('whitespace')
-
 const TripleDots = P.string('...')
 
 const _ = seq(
-	zeroOrOne(Whitespace),
-	many(seq(zeroOrOne(Comment), P.newline, many(Whitespace))),
+	zeroOrOne(P.whitespace),
+	many(seq(zeroOrOne(Comment), P.newline, many(P.whitespace))),
 	zeroOrOne(Comment.skip(P.eof))
 ).desc('delimiter')
 
