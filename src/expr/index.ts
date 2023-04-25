@@ -2122,7 +2122,10 @@ export const infix = (op: string, ...args: number[]) => {
 export class TypeSignature extends BaseExpr {
 	readonly type = 'TypeSignature' as const
 
-	constructor(public readonly body: Expr, public readonly signature: Expr) {
+	constructor(
+		public readonly body: Exclude<Expr, TypeSignature>,
+		public readonly signature: Exclude<Expr, TypeSignature>
+	) {
 		super()
 
 		body.parent = this

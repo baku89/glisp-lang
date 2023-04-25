@@ -10,6 +10,7 @@ import {
 	paramsDef,
 	scope,
 	symbol,
+	TypeSignature,
 	valueMeta,
 	vecLiteral as vec,
 } from '../expr'
@@ -361,6 +362,13 @@ describe('parsing value metadata', () => {
 
 	testErrorParsing('Boolean^true')
 	testErrorParsing('^{true}Boolean')
+})
+
+describe('parsing type signature', () => {
+	testParsing('0::Number', new TypeSignature(literal(0), symbol('Number')))
+	testParsing('0\n::\tNumber', new TypeSignature(literal(0), symbol('Number')))
+
+	testErrorParsing('0 :: Number :: String')
 })
 
 /*

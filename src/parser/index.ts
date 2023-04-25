@@ -17,6 +17,7 @@ import {
 	ValueMeta,
 	VecLiteral,
 } from '../expr'
+import {TypeSignature} from '../expr'
 import {CurrentPath, Path, UpPath} from '../expr/path'
 
 function zip<T1, T2, T3, T4>(
@@ -184,6 +185,7 @@ interface IParser {
 	Symbol: Symbol
 	ValueMeta: ValueMeta
 	InfixNumber: InfixNumber
+	TypeSignature: TypeSignature
 }
 
 export const Parser = P.createLanguage<IParser>({
@@ -201,6 +203,7 @@ export const Parser = P.createLanguage<IParser>({
 	},
 	Expr(r) {
 		return P.alt(
+			r.TypeSignature,
 			r.InfixNumber,
 			r.NumberLiteral,
 			r.StringLiteral,
@@ -622,6 +625,31 @@ export const Parser = P.createLanguage<IParser>({
 		})
 
 		return P.alt(Multiple, Unary)
+	},
+	TypeSignature(r) {
+		const ExprBody = P.alt(
+			r.InfixNumber,
+			r.NumberLiteral,
+			r.StringLiteral,
+			r.Scope,
+			r.Match,
+			r.FnDef,
+			r.App,
+			r.Unit,
+			r.VecLiteral,
+			r.DictLiteral,
+			r.Symbol,
+			r.ValueMeta
+		) as P.Parser<Exclude<Expr, TypeSignature>>
+
+		return P.seq(ExprBody, _.skip(P.string('::')), _, ExprBody).map(
+			([body, _0, _1, signature]) => {
+				const expr = new TypeSignature(body, signature)
+				expr.extras = {delimiters: [_0, _1]}
+
+				return expr
+			}
+		)
 	},
 })
 
