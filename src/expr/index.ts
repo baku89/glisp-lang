@@ -2142,7 +2142,7 @@ export class TypeSignature extends BaseExpr {
 			return type.defaultValue.withLog({
 				level: 'error',
 				ref: this,
-				reason: `${evaluated.print()} is not a value of type ${type.print()}`,
+				reason: `\`${evaluated.print()}\` is not a value of type \`${type.print()}\``,
 			})
 		}
 	}
