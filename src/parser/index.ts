@@ -156,9 +156,6 @@ const FiniteNumericString = seq(
 
 const ReservedNumericString = P.alt(P.regex(/-?Infinity/), P.string('NaN'))
 
-// TODO: allow other characters that would not affect to the parsing logic
-const InfixName = P.regex(/[a-z!$%&*_=|]+/i)
-
 const PUpPath = P.string('..').map<typeof UpPath>(() => UpPath)
 const PCurrentPath = P.string('.').map<typeof CurrentPath>(() => CurrentPath)
 
@@ -175,7 +172,6 @@ interface IParser {
 	Expr: Expr
 	NumberLiteral: Literal
 	StringLiteral: Literal
-	ScopeEntry: [string, string, Expr]
 	Scope: Scope
 	Match: Match
 	TypeVarsDef: TypeVarsDef
@@ -184,7 +180,6 @@ interface IParser {
 	App: App
 	Unit: App
 	VecLiteral: VecLiteral
-	DictEntry: [boolean, string, Expr, [string, string]]
 	DictLiteral: DictLiteral
 	Symbol: Symbol
 	ValueMeta: ValueMeta
@@ -250,10 +245,19 @@ export const Parser = P.createLanguage<IParser>({
 			})
 	},
 	ParamsDef(r) {
+		const DictEntry = P.seq(
+			followedByColon(P.seq(OptionalMark, NameKey)),
+			_,
+			r.Expr,
+			_
+		).map(([[optional, key], d0, expr, d1]) => {
+			return [optional, key, expr, [d0, d1]] as const
+		})
+
 		return P.seq(
 			_,
 			// Items part
-			r.DictEntry.many(),
+			DictEntry.many(),
 			// Rest part
 			opt(P.seq(TripleDots, followedByColon(NameKey), _, r.Expr, _))
 		)
@@ -353,17 +357,16 @@ export const Parser = P.createLanguage<IParser>({
 			return expr
 		}).desc('unit')
 	},
-	ScopeEntry(r) {
-		return P.seq(followedByColon(NameKey), _, r.Expr).map(
-			([name, _0, expr]) => [name, _0, expr]
-		)
-	},
 	Scope(r) {
+		const ScopeEntry = P.seq(followedByColon(NameKey), _, r.Expr).map(
+			([name, _0, expr]) => [name, _0, expr] as const
+		)
+
 		return P.seq(
 			_,
 			P.string('let'),
 			// Key-value pairs part
-			opt(P.seq(__, sepBy1__(r.ScopeEntry))),
+			opt(P.seq(__, sepBy1__(ScopeEntry))),
 			// Return value part
 			opt(P.seq(__, r.Expr)),
 			_
@@ -487,16 +490,6 @@ export const Parser = P.createLanguage<IParser>({
 
 		return P.alt(empty, onlyRest, both)
 	},
-	DictEntry(r) {
-		return P.seq(
-			followedByColon(P.seq(OptionalMark, NameKey)),
-			_,
-			r.Expr,
-			_
-		).map(([[optional, key], d0, expr, d1]) => {
-			return [optional, key, expr, [d0, d1]]
-		})
-	},
 	DictLiteral(r) {
 		const Open = P.string('{')
 		const Close = P.string('}')
@@ -596,35 +589,39 @@ export const Parser = P.createLanguage<IParser>({
 			.desc('value metadata')
 	},
 	InfixNumber(r) {
-		return P.alt(
-			// 2e2, 3v3v3
-			P.seq(
-				FiniteNumericString,
-				P.seq(InfixName, FiniteNumericString).atLeast(1)
-			).map(([first, rest]) => {
-				const [[op, ...opRest], restArgs] = zip(rest)
+		// TODO: allow other characters that would not affect to the parsing logic
+		const InfixName = P.regex(/[a-z!$%&*_=|]+/i)
 
-				const args = [parseFloat(first), ...restArgs.map(parseFloat)]
+		// 2e2, 3v3v3
+		const Multiple = P.seq(
+			FiniteNumericString,
+			P.seq(InfixName, FiniteNumericString).atLeast(1)
+		).map(([first, rest]) => {
+			const [[op, ...opRest], restArgs] = zip(rest)
 
-				if (opRest.some(r => op !== r)) {
-					throw new Error('Invalid infix literals')
-				}
+			const args = [parseFloat(first), ...restArgs.map(parseFloat)]
 
-				const expr = new InfixNumber(op, ...args)
+			if (opRest.some(r => op !== r)) {
+				throw new Error('Invalid infix literals')
+			}
 
-				const raw = [first, ...restArgs]
+			const expr = new InfixNumber(op, ...args)
 
-				expr.extras = {raw}
+			const raw = [first, ...restArgs]
 
-				return expr
-			}),
-			// 100%, 20mm
-			P.seq(r.NumberLiteral, InfixName).map(([arg, op]) => {
-				const expr = new InfixNumber(op, arg.value as number)
-				expr.extras = {raw: [arg.extras?.raw as string]}
-				return expr
-			})
-		)
+			expr.extras = {raw}
+
+			return expr
+		})
+
+		// 100%, 20mm
+		const Unary = P.seq(r.NumberLiteral, InfixName).map(([arg, op]) => {
+			const expr = new InfixNumber(op, arg.value as number)
+			expr.extras = {raw: [arg.extras?.raw as string]}
+			return expr
+		})
+
+		return P.alt(Multiple, Unary)
 	},
 })
 
