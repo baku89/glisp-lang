@@ -1473,7 +1473,7 @@ export class App extends BaseExpr {
 		const fn = this.fn.eval(env)
 
 		// Check if it's not a function
-		if (!('fn' in fn)) {
+		if (!('f' in fn)) {
 			return fn
 		}
 
@@ -1562,7 +1562,7 @@ export class App extends BaseExpr {
 		// Call the function
 		let result: Value
 		try {
-			result = fn.fn(...args)
+			result = fn.f(...args)
 		} catch (err) {
 			// 既に式への参照を持ったエラーであればそのまま上へ投げる
 			if (err instanceof EvalError) {

@@ -137,14 +137,14 @@ export const PreludeScope = scope({
 	map: defn(
 		'(=> (T U) [f: (=> [t:T]: U) coll:[...T]]: [...U])',
 		(f: Fn, coll: Vec) => {
-			return vec(coll.items.map(f.fn))
+			return vec(coll.items.map(f.f))
 		}
 	),
 	filter: defn(
 		'(=> (T) [pred: (=> [x: T]: Boolean) coll: [...T]]: [...T])',
 		(f: Fn, coll: Vec) => {
 			const items = coll.items.filter(it => {
-				return f.fn(it).isEqualTo(True)
+				return f.f(it).isEqualTo(True)
 			})
 			return vec(items)
 		}
@@ -153,7 +153,7 @@ export const PreludeScope = scope({
 		'(=> (T U) [f: (=> [u:U t:T]: U) coll: [...T] initial: U]: U)',
 		(f: Fn, coll: Vec, initial: Value) => {
 			return coll.items.reduce(
-				(prev: Value, curt: Value) => f.fn(prev, curt),
+				(prev: Value, curt: Value) => f.f(prev, curt),
 				initial
 			)
 		}

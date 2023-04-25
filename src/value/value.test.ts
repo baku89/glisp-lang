@@ -242,7 +242,7 @@ describe('default values of types', () => {
 
 			if (fn) {
 				if (dv.type !== 'Fn') throw new Error('Got=' + dv.print())
-				dv = dv.fn()
+				dv = dv.f()
 			}
 
 			if (!dv.isEqualTo(ev)) {

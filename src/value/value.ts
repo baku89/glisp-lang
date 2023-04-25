@@ -209,7 +209,7 @@ interface IFnType {
 }
 
 interface IFnLike extends IFnType {
-	fn: IFn
+	f: IFn
 }
 
 export class Unit extends BaseValue {
@@ -675,7 +675,7 @@ export class Fn extends BaseValue implements IFnLike {
 
 	constructor(
 		public readonly superType: FnType,
-		public readonly fn: IFn,
+		public readonly f: IFn,
 		public readonly body?: Expr
 	) {
 		super()
@@ -718,14 +718,14 @@ export class Fn extends BaseValue implements IFnLike {
 			typeVars.length > 0 ? typeVars : null,
 			paramsDef(params, fnType.optionalPos, rest),
 			fnType.ret.toExpr(),
-			this.body ? this.body.clone() : {type: 'NativeFnBody', f: this.fn}
+			this.body ? this.body.clone() : {type: 'NativeFnBody', f: this.f}
 		)
 	}
 
 	declare clone: () => Fn
 
 	protected cloneOnlyProps() {
-		return new Fn(this.superType, this.fn, this.body)
+		return new Fn(this.superType, this.f, this.body)
 	}
 }
 
@@ -1047,7 +1047,7 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 		return this.items[i]
 	}
 
-	get fn(): IFn {
+	get f(): IFn {
 		return this.#fn
 	}
 

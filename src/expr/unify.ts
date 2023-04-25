@@ -262,10 +262,7 @@ export class Unifier {
 				return unionType(...types)
 			}
 			case 'Fn':
-				return fn(
-					this.substitute(value.superType, unshadow) as FnType,
-					value.fn
-				)
+				return fn(this.substitute(value.superType, unshadow) as FnType, value.f)
 			case 'Vec': {
 				const items = value.items.map(it => this.substitute(it, unshadow))
 				const rest = value.rest
