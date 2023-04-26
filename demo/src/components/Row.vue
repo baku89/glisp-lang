@@ -86,22 +86,24 @@ provide(
 		:class="{expanded, hovered}"
 		:style="{'--ui-inspector-label-width': rowKeyWidth + 'px'}"
 	>
-		<div
-			class="key"
+		<button
+			class="icon material-symbols-rounded"
+			:class="{expandable}"
+			@click="onClickChevron"
 			@pointerenter="onHoverLabel"
 			@pointerleave="onUnhoverLabel"
 		>
-			<button
-				class="icon material-symbols-rounded"
-				:class="{expandable}"
-				@click="onClickChevron"
-			>
-				{{ expandable ? 'chevron_right' : '・' }}
-			</button>
-			<div v-if="$slots.label" class="label">
-				<slot name="label" />
-			</div>
+			{{ expandable ? 'chevron_right' : '・' }}
+		</button>
+		<div
+			v-if="$slots.label"
+			class="label"
+			@pointerenter="onHoverLabel"
+			@pointerleave="onUnhoverLabel"
+		>
+			<slot name="label" />
 		</div>
+
 		<component
 			:is="collapsedExprComponent"
 			:expr="expr"
@@ -130,28 +132,25 @@ provide(
 
 .Row
 	display grid
-	grid-template-columns var(--ui-inspector-label-width) 1fr
+	grid-template-columns var(--ui-inspector-tree-icon-size) var(--ui-inspector-label-width) 1fr
 	gap var(--ui-input-row-margin) 0
 	--color-chevron var(--color-outline)
 
 	&.expanded
-		& > .key > .icon
+		margin-bottom var(--ui-inspector-group-margin)
+		& > .icon
 			transform rotate(90deg)
 
-	&.hovered > .key > .icon
+	&.hovered > .icon
 		color var(--color-primary)
-.key
-	user-select none
-	display flex
-	align-items center
-	font-size var(--ui-input-font-size)
-	height var(--ui-input-height)
+		text-shadow @color 0.5px 0px, @color 0.5px 0.5px, @color 0px 0.5px, @color -0.5px 0.5px, @color -0.5px 0px, @color -0.5px -0.5px, @color 0px -0.5px, @color 0.5px -0.5px
+
 .icon
 	// background red
 	font-size var(--ui-inspector-tree-icon-size)
 	width var(--ui-inspector-tree-icon-size)
-	height var(--ui-inspector-tree-icon-size)
-	input-transition(transform, color)
+	height calc(var(--ui-input-height) * 0.85)
+	input-transition(transform, color, text-shadow)
 	color var(--color-chevron)
 
 	&:not(.expandable)
@@ -159,10 +158,11 @@ provide(
 		transform none !important
 
 .label
-	width var(--ui-inspector-header-width)
 	line-height var(--ui-input-height)
 	padding-left .2em
+	height var(--ui-input-height)
+	font-size var(--ui-input-font-size)
 
 .detail
-	grid-column 1 / span 2
+	grid-column 1 / span 3
 </style>

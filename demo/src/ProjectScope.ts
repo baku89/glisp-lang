@@ -1,5 +1,6 @@
 import chroma from 'chroma-js'
 import * as G from 'glisp'
+import {clamp} from 'lodash'
 
 export const IO = G.primType('IO', () => {
 	return
@@ -7,35 +8,41 @@ export const IO = G.primType('IO', () => {
 
 export const Color = G.primType('Color', chroma('black'), {
 	primToExpr(prim) {
-		const rgba = prim.value.rgba().map(G.literal)
-		return G.app(G.symbol('rgba'), ...rgba)
+		const rgba: number[] = prim.value.rgba()
+		if (rgba[3] === 1) {
+			rgba.pop()
+		}
+
+		return G.app(G.symbol('Color'), ...rgba.map(G.literal))
 	},
 	primEqual(a, b) {
 		return a.hex() === b.hex()
+	},
+	fn(Color) {
+		return {
+			f: (red: G.Number, green: G.Number, blue: G.Number, alpha: G.Number) => {
+				return Color.of(
+					chroma([red.value, green.value, blue.value, clamp(alpha.value, 0, 1)])
+				)
+			},
+			fnType: G.fnType(
+				{
+					red: G.NumberType,
+					green: G.NumberType,
+					blue: G.NumberType,
+					alpha: G.NumberType.withDefault(G.number(1)),
+				},
+				3,
+				null,
+				Color
+			),
+		}
 	},
 })
 
 export const replScope = G.PreludeScope.extend({
 	IO: G.container(IO),
 	Color: G.container(Color),
-	rgba: G.container(
-		G.fn(
-			G.fnType(
-				{
-					red: G.NumberType,
-					green: G.NumberType,
-					blue: G.NumberType,
-					alpha: G.NumberType,
-				},
-				Color
-			),
-			(red: G.Number, green: G.Number, blue: G.Number, alpha: G.Number) => {
-				return Color.of(
-					chroma([red.value, green.value, blue.value, alpha.value])
-				)
-			}
-		)
-	),
 	'set!': G.container(
 		G.fn(
 			G.fnType({name: G.StringType, value: G.all}, IO),

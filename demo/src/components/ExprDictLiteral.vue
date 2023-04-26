@@ -48,7 +48,7 @@ function onUnhover() {
 </script>
 
 <template>
-	<div class="ExprScope" :class="{hovered}">
+	<div class="ExprDictLiteral" :class="{hovered}">
 		<div
 			class="hover-region"
 			@pointerenter="onHover"
@@ -70,7 +70,7 @@ function onUnhover() {
 <style lang="stylus" scoped>
 @import '@/common.styl'
 
-.ExprScope
+.ExprDictLiteral
 	position relative
 	font-family var(--font-ui)
 	display flex

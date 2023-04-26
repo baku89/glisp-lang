@@ -110,7 +110,7 @@ function onUnhover() {
 			@confirm="tagHistory"
 			@cancel="cancelTweak"
 		>
-			<template #label>ƒ</template>
+			<template #label>f</template>
 		</Row>
 		<Row
 			v-for="(arg, i) in exprRef.args"
