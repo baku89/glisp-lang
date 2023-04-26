@@ -390,9 +390,13 @@ export class Prim<T = any> extends BaseValue {
 interface PrimTypeOption<T> {
 	primToExpr: (prim: Prim<T>) => Expr
 	primEqual: (a: T, b: T) => boolean
+	fn?: (primType: PrimType<T>) => {
+		f: IFn
+		fnType: FnType
+	}
 }
 
-export class PrimType<T = any> extends BaseValue {
+export class PrimType<T = any> extends BaseValue implements IFnLike {
 	readonly type = 'PrimType' as const
 
 	readonly isType = true
@@ -408,6 +412,15 @@ export class PrimType<T = any> extends BaseValue {
 		super()
 
 		this.#initialDefaultValue = new Prim(initialDefaultValue, this)
+
+		if (option.fn) {
+			const {f, fnType} = option.fn(this)
+			this.f = f
+			this.fnType = fnType
+		} else {
+			this.f = () => this
+			this.fnType = new FnType({}, all)
+		}
 
 		return this
 	}
@@ -425,6 +438,9 @@ export class PrimType<T = any> extends BaseValue {
 	get initialDefaultValue(): Prim<T> {
 		return this.#initialDefaultValue
 	}
+
+	fnType!: FnType
+	f!: IFn
 
 	// TODO: fix this
 	protected toExprExceptMeta() {
@@ -472,28 +488,6 @@ export function primType<T>(
 ) {
 	return new PrimType(name, initialDefaultValue, option)
 }
-
-export type Number = Prim<number>
-export type String = Prim<string>
-
-export const NumberType = new PrimType('Number', 0, {
-	primToExpr(prim) {
-		return literal(prim.value)
-	},
-	primEqual(a, b) {
-		return a === b || (isNaN(a) && isNaN(b))
-	},
-})
-
-export const StringType = new PrimType('String', '', {
-	primToExpr(prim) {
-		return literal(prim.value)
-	},
-	primEqual: (a, b) => a === b,
-})
-
-export const number: (value: number) => Number = NumberType.of.bind(NumberType)
-export const string: (value: string) => String = StringType.of.bind(StringType)
 
 export class Enum extends BaseValue {
 	readonly type = 'Enum' as const
@@ -752,13 +746,13 @@ export class FnType extends BaseValue implements IFnType {
 	constructor(
 		params: FnType['params'],
 		optionalPos: number | null,
-		rest: FnType['rest'],
+		rest: FnType['rest'] | null,
 		ret: Value
 	)
 	constructor(
 		params: FnType['params'],
 		retOrOptionalPos: number | Value | null,
-		rest?: FnType['rest'],
+		rest?: FnType['rest'] | null,
 		ret?: Value
 	) {
 		super()
@@ -780,7 +774,7 @@ export class FnType extends BaseValue implements IFnType {
 
 		this.params = params
 		this.optionalPos = optionalPos
-		this.rest = rest
+		this.rest = rest ?? undefined
 
 		if (retOrOptionalPos && typeof retOrOptionalPos !== 'number') {
 			this.ret = retOrOptionalPos
@@ -902,13 +896,13 @@ interface IFnTypeConstructor {
 	(
 		params: FnType['params'],
 		optionalPos: number | null,
-		rest: FnType['rest'],
+		rest: FnType['rest'] | null,
 		ret: Value
 	): FnType
 	(
 		params: FnType['params'],
 		retOrOptionalPos: number | Value | null,
-		rest?: FnType['rest'],
+		rest?: FnType['rest'] | null,
 		ret?: Value
 	): FnType
 }
@@ -1026,7 +1020,7 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 		)
 	}
 
-	get fnType() {
+	get fnType(): FnType {
 		return new FnType({index: NumberType}, unionType(...this.items))
 	}
 
@@ -1326,6 +1320,28 @@ export class UnionType extends BaseValue {
 
 	static of = unionType
 }
+
+export type Number = Prim<number>
+export type String = Prim<string>
+
+export const NumberType = new PrimType('Number', 0, {
+	primToExpr(prim) {
+		return literal(prim.value)
+	},
+	primEqual(a, b) {
+		return a === b || (isNaN(a) && isNaN(b))
+	},
+})
+
+export const StringType = new PrimType('String', '', {
+	primToExpr(prim) {
+		return literal(prim.value)
+	},
+	primEqual: (a, b) => a === b,
+})
+
+export const number: (value: number) => Number = NumberType.of.bind(NumberType)
+export const string: (value: string) => String = StringType.of.bind(StringType)
 
 export function isEqual(a: Value, b: Value): boolean {
 	return a.isEqualTo(b)
