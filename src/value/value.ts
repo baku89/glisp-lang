@@ -215,6 +215,8 @@ interface IFnLike extends IFnType {
 export class Unit extends BaseValue {
 	readonly type = 'Unit' as const
 
+	readonly isType = false
+
 	get superType() {
 		return All.instance
 	}
@@ -230,8 +232,6 @@ export class Unit extends BaseValue {
 	isEqualTo(value: Value) {
 		return this.type === value.type
 	}
-
-	isType = false
 
 	protected toExprExceptMeta() {
 		return app()
@@ -250,6 +250,8 @@ export const unit = Unit.instance
 
 export class All extends BaseValue {
 	readonly type = 'All' as const
+
+	readonly isType = true
 
 	private constructor() {
 		super()
@@ -281,8 +283,6 @@ export class All extends BaseValue {
 		return this.isEqualTo(value)
 	}
 
-	isType = true
-
 	withDefault(defaultValue: Atomic): All {
 		const value = this.clone()
 		value.#defaultValue = defaultValue
@@ -304,6 +304,8 @@ export const all = All.instance
 
 export class Never extends BaseValue {
 	readonly type = 'Never' as const
+
+	readonly isType = true
 
 	private constructor() {
 		super()
@@ -333,8 +335,6 @@ export class Never extends BaseValue {
 		return true
 	}
 
-	isType = true
-
 	declare clone: () => Never
 
 	protected cloneOnlyProps() {
@@ -348,6 +348,8 @@ export const never = Never.instance
 
 export class Prim<T = any> extends BaseValue {
 	readonly type = 'Prim' as const
+
+	readonly isType = false
 
 	constructor(value: T, superType: PrimType<T>) {
 		super()
@@ -378,8 +380,6 @@ export class Prim<T = any> extends BaseValue {
 		)
 	}
 
-	isType = false
-
 	declare clone: () => Prim<T>
 
 	cloneOnlyProps(): Prim<T> {
@@ -394,6 +394,8 @@ interface PrimTypeOption<T> {
 
 export class PrimType<T = any> extends BaseValue {
 	readonly type = 'PrimType' as const
+
+	readonly isType = true
 
 	constructor(
 		private readonly name: string,
@@ -416,7 +418,7 @@ export class PrimType<T = any> extends BaseValue {
 
 	#defaultValue?: Prim<T>
 	get defaultValue(): Prim<T> {
-		return (this.#defaultValue ??= this.#initialDefaultValue)
+		return this.#defaultValue ?? this.#initialDefaultValue
 	}
 
 	#initialDefaultValue: Prim<T>
@@ -432,8 +434,6 @@ export class PrimType<T = any> extends BaseValue {
 	isEqualTo(value: Value) {
 		return this.type === value.type && this.name === value.name
 	}
-
-	isType = true
 
 	of(value: T): Prim<T> {
 		return new Prim(value, this)
@@ -498,6 +498,8 @@ export const string: (value: string) => String = StringType.of.bind(StringType)
 export class Enum extends BaseValue {
 	readonly type = 'Enum' as const
 
+	readonly isType = false
+
 	constructor(public readonly name: string) {
 		super()
 	}
@@ -525,8 +527,6 @@ export class Enum extends BaseValue {
 		)
 	}
 
-	isType = false
-
 	declare clone: () => Enum
 
 	protected cloneOnlyProps() {
@@ -542,6 +542,8 @@ export class Enum extends BaseValue {
 
 export class EnumType extends BaseValue {
 	readonly type = 'EnumType' as const
+
+	readonly isType = true
 
 	public readonly name: string
 	public readonly types: Enum[]
@@ -578,8 +580,6 @@ export class EnumType extends BaseValue {
 		return this.type === value.type && this.name === value.name
 	}
 
-	isType = true
-
 	getEnum(label: string) {
 		const en = this.types.find(t => t.name === label)
 		if (!en) throw new Error('Cannot find label')
@@ -597,6 +597,8 @@ export class EnumType extends BaseValue {
 		value.#defaultValue = defaultValue
 		return value
 	}
+
+	declare clone: () => EnumType
 
 	cloneOnlyProps() {
 		const value = new EnumType(
@@ -618,6 +620,8 @@ export const boolean = (value: boolean) => (value ? True : False)
 
 export class TypeVar extends BaseValue {
 	readonly type = 'TypeVar' as const
+
+	readonly isType = true
 
 	#id = Symbol()
 	readonly superType = All.instance
@@ -646,8 +650,6 @@ export class TypeVar extends BaseValue {
 		return value.type === 'TypeVar' && this.#id === value.#id
 	}
 
-	isType = true
-
 	declare clone: () => TypeVar
 
 	protected cloneOnlyProps(): Value {
@@ -672,6 +674,8 @@ export const typeVar = (name: string) => new TypeVar(name)
 
 export class Fn extends BaseValue implements IFnLike {
 	readonly type = 'Fn' as const
+
+	readonly isType = false
 
 	constructor(
 		public readonly superType: FnType,
@@ -698,8 +702,6 @@ export class Fn extends BaseValue implements IFnLike {
 	isEqualTo(value: Value) {
 		return this === value
 	}
-
-	isType = false
 
 	protected toExprExceptMeta(): Expr {
 		const fnType = this.fnType
@@ -734,6 +736,8 @@ export const fn = (fnType: FnType, fnObj: IFn, body?: Expr) =>
 
 export class FnType extends BaseValue implements IFnType {
 	readonly type = 'FnType' as const
+
+	readonly isType = true
 
 	get superType() {
 		return All.instance
@@ -796,7 +800,7 @@ export class FnType extends BaseValue implements IFnType {
 
 	#defaultValue?: Fn
 	get defaultValue() {
-		return (this.#defaultValue ??= this.initialDefaultValue)
+		return this.#defaultValue ?? this.initialDefaultValue
 	}
 
 	#initialDefaultValue?: Fn
@@ -872,8 +876,6 @@ export class FnType extends BaseValue implements IFnType {
 
 		return valueParam.isSubtypeOf(thisParam) && this.ret.isSubtypeOf(value.ret)
 	}
-
-	isType = true
 
 	declare isTypeFor: (value: Value) => value is Fn
 
@@ -951,7 +953,7 @@ export class Vec<V extends Value = Value> extends BaseValue implements IFnLike {
 
 	#defaultValue?: Vec
 	get defaultValue() {
-		return (this.#defaultValue ??= this.initialDefaultValue)
+		return this.#defaultValue ?? this.initialDefaultValue
 	}
 
 	#initialDefaultValue?: Vec
@@ -1134,7 +1136,7 @@ export class Dict<
 
 	#defaultValue?: Dict
 	get defaultValue() {
-		return (this.#defaultValue ??= this.initialDefaultValue)
+		return this.#defaultValue ?? this.initialDefaultValue
 	}
 
 	get initialDefaultValue(): Dict {
@@ -1255,6 +1257,8 @@ export const dict = Dict.of
 export class UnionType extends BaseValue {
 	readonly type = 'UnionType' as const
 
+	readonly isType = true
+
 	get superType() {
 		return All.instance
 	}
@@ -1266,7 +1270,7 @@ export class UnionType extends BaseValue {
 
 	#defaultValue!: Atomic
 	get defaultValue() {
-		return (this.#defaultValue ??= this.initialDefaultValue)
+		return this.#defaultValue ?? this.initialDefaultValue
 	}
 
 	get initialDefaultValue(): Atomic {
@@ -1297,10 +1301,6 @@ export class UnionType extends BaseValue {
 		return this.types.some(s.isSubtypeOf.bind(s))
 	}
 
-	isType = true
-
-	declare clone: () => UnionType
-
 	withDefault(defaultValue: Atomic): Value {
 		if (!this.isTypeFor(defaultValue)) throw new Error('Invalid default value')
 
@@ -1308,6 +1308,8 @@ export class UnionType extends BaseValue {
 		value.#defaultValue = defaultValue
 		return value
 	}
+
+	declare clone: () => UnionType
 
 	protected cloneOnlyProps() {
 		const value = new UnionType(this.types)
