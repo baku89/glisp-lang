@@ -172,7 +172,7 @@ export const PreludeScope = scope({
 	),
 	show: defn('(=> [value:_]: String)', (value: Value) => string(value.print())),
 	'++': defn('(=> [...xs:String]: String)', (...xs: String[]) => {
-		return string(xs.reduce((a, b) => a + b, ''))
+		return string(xs.reduce((a, b) => a + b.value, ''))
 	}),
 	join: defn(
 		'(=> [delimiter: String ...xs: String]: String)',
