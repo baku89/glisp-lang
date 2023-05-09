@@ -69,12 +69,12 @@ export type AtomExpr = Symbol | Container | Literal | InfixNumber
 export type ParentExpr = InnerExpr | UtilExpr
 
 /**
- * シンボルのパスを解決するのに用いられる内部ノード
+ * An internal node used to resolve a symbol
  */
 export type InnerExpr = App | Scope | Match | FnDef | VecLiteral | DictLiteral
 
 /**
- * シンボルのパスからは原則として無視される式
+ * An expression that is generally ignored from a hierarchy on symbol resolution
  */
 type UtilExpr = ValueMeta | ParamsDef | TypeVarsDef | Program | TypeSignature
 
@@ -493,13 +493,14 @@ export class Symbol extends BaseExpr {
 			value = resolved.expr.eval(env)
 		}
 
-		// 仮引数を参照しており、かつそれが関数呼び出し時ではなく
-		// 束縛されている値が環境に見当たらない場合、自由変数なんでデフォルト値を返す
+		// When the symbol is referring a parameter of function definition
+		// during global context, thus it's a free variable and should return
+		// the default value of parameter .
 		if (resolved.type === 'param') {
 			value = value.defaultValue.usesParamDefault()
 		}
 
-		// 値の内部値にアクセスする
+		// Accessing the properties of the evaluated value
 		for (const key of this.props) {
 			if (!value) break
 			value = value.get(key)
@@ -822,7 +823,8 @@ export class FnDef extends BaseExpr {
 			// Evaluates return type. Uses All type when no return type is defined.
 			let returnType: Value = all
 			if (this.returnType) {
-				// Paramの評価時にenvをPushするのは、型変数をデフォルト値にさせないため
+				// The reason we need to call env.push() is to prevent any typeVar to be
+				// evaluated as its default value (unit).
 				returnType = this.returnType.eval(env.push())
 			}
 
