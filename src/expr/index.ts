@@ -35,7 +35,7 @@ import {Action} from './action'
 import {changedExprs, editedExprs, evaluatingExprs, inferringExprs} from './dep'
 import {Env} from './env'
 import {FailedResolution} from './FailedResolution'
-import {CurrentPath, Key, Path, UpPath} from './path'
+import {Key, Path} from './path'
 import {
 	createListDelimiters,
 	increaseDelimiter,
@@ -406,9 +406,9 @@ export class Symbol extends BaseExpr {
 				}
 			}
 
-			if (path === UpPath) {
+			if (path === '..') {
 				expr = expr.innerParent
-			} else if (path === CurrentPath) {
+			} else if (path === '.') {
 				// Do nothing
 			} else {
 				// typeof path === Key
@@ -558,13 +558,7 @@ export class Symbol extends BaseExpr {
 	}
 
 	print() {
-		const paths = this.paths
-			.map(p => {
-				if (p === UpPath) return '..'
-				if (p === CurrentPath) return '.'
-				return p
-			})
-			.join('/')
+		const paths = this.paths.join('/')
 		const properties = this.props.map(p => '.' + p).join('')
 
 		if (paths.endsWith('.') && properties !== '') {

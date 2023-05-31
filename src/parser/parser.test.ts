@@ -14,7 +14,6 @@ import {
 	valueMeta,
 	vecLiteral as vec,
 } from '../expr'
-import {CurrentPath, UpPath} from '../expr/path'
 import {parse} from '.'
 import {Parser} from '.'
 
@@ -97,12 +96,12 @@ describe('parsing symbols', () => {
 })
 
 describe('parsing path symbols', () => {
-	testParsing('./x', symbol([CurrentPath, 'x']))
+	testParsing('./x', symbol(['.', 'x']))
 	testParsing('x/y', symbol(['x', 'y']))
-	testParsing('x/.', symbol(['x', CurrentPath]))
-	testParsing('../x', symbol([UpPath, 'x']))
-	testParsing('x/..', symbol(['x', UpPath]))
-	testParsing('./0', symbol([CurrentPath, 0]))
+	testParsing('x/.', symbol(['x', '.']))
+	testParsing('../x', symbol(['..', 'x']))
+	testParsing('x/..', symbol(['x', '..']))
+	testParsing('./0', symbol(['.', 0]))
 	testParsing('x/111/222', symbol(['x', 111, 222]))
 	testParsing('x.x', symbol('x', 'x'))
 	testParsing('x.0', symbol('x', 0))

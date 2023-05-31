@@ -1,5 +1,5 @@
 import {AnyExpr, Expr, InnerExpr, Symbol} from '.'
-import {CurrentPath, Path, UpPath} from './path'
+import {Path} from './path'
 
 function getInnerAncestors(expr: Expr) {
 	const ancestors: InnerExpr[] = []
@@ -21,7 +21,7 @@ function getInnerAncestors(expr: Expr) {
  */
 export function computeSymbol(from: Expr, to: Expr): Symbol | null {
 	if (from === to) {
-		return new Symbol(CurrentPath)
+		return new Symbol('.')
 	}
 
 	// 共通の祖先があるかをチェック
@@ -52,9 +52,9 @@ export function computeSymbol(from: Expr, to: Expr): Symbol | null {
 			upwardPaths.splice(0, upwardPaths.length)
 		} else {
 			if (upwardPaths.length === 0 && from.type === 'Symbol') {
-				upwardPaths.push(CurrentPath)
+				upwardPaths.push('.')
 			} else {
-				upwardPaths.push(UpPath)
+				upwardPaths.push('..')
 			}
 		}
 	}

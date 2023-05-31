@@ -18,7 +18,7 @@ import {
 	VecLiteral,
 } from '../expr'
 import {TypeSignature} from '../expr'
-import {CurrentPath, Path, UpPath} from '../expr/path'
+import {Path} from '../expr/path'
 
 function zip<T1, T2, T3, T4>(
 	coll: [T1, T2, T3?, T4?][]
@@ -157,8 +157,8 @@ const FiniteNumericString = seq(
 
 const ReservedNumericString = P.alt(P.regex(/-?Infinity/), P.string('NaN'))
 
-const PUpPath = P.string('..').map<typeof UpPath>(() => UpPath)
-const PCurrentPath = P.string('.').map<typeof CurrentPath>(() => CurrentPath)
+const PUpPath = P.string('..')
+const PCurrentPath = P.string('.')
 
 const NameKey = seq(
 	AllowedCharForName,
