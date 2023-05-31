@@ -1,6 +1,6 @@
 import {tryParse} from '..'
 import {Parser} from '../parser'
-import {testEval} from '../util/TestUtil'
+import {testEval} from '../util/testUtil'
 import {
 	all,
 	dict,

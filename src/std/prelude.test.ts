@@ -1,4 +1,4 @@
-import {testEval} from '../util/TestUtil'
+import {testEval} from '../util/testUtil'
 import {NumberType, unionType, unit} from '../value'
 
 describe('functions in the prelude module', () => {
