@@ -126,7 +126,8 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	inferDep = new IterableWeakSet<BaseExpr>()
 
 	/**
-	 * シンボル解決中に、現在の式に存在しないパスを参照された場合に記録する
+	 * シンボル解決中、現在の式に存在しないキーを参照された場合に、そのキーと参照元のシンボルの対を記録する
+	 * 将来的に現在の式が編集されそのキーがvalidなものとなった際に、シンボルを再評価する
 	 * TODO: 値を弱参照にする
 	 */
 	failedResolution = new FailedResolution()
@@ -539,7 +540,7 @@ export class Symbol extends BaseExpr {
 				break
 		}
 
-		// 値の内部値にアクセスする
+		// Accessing the properties of the value
 		for (const prop of this.props) {
 			if (!value) break
 			value = value.getTypeFor(prop)
@@ -2203,16 +2204,14 @@ export class ValueMeta extends BaseExpr {
 		// Check if the metadata is dictionary
 		if (fields.type !== 'Dict') {
 			// NOTE: これ、inferした時点でDictじゃなければ切る、でも良いのでは?
-			log.add({
+			// Just returns a value with logs
+			return value.withLog({
 				level: 'error',
 				ref: this,
 				reason:
 					'Type metadata should be a dictionary, ' +
 					`but got \`${fields.type}\``,
 			})
-
-			// Just returns a value with logs
-			return value
 		}
 
 		const meta: Meta = {...fields.items}
