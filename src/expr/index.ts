@@ -78,6 +78,16 @@ export type InnerExpr = App | Scope | Match | FnDef | VecLiteral | DictLiteral
  */
 type UtilExpr = ValueMeta | ParamsDef | TypeVarsDef | Program | TypeSignature
 
+function isUtilExpr(expr: AnyExpr): expr is UtilExpr {
+	return (
+		expr.type === 'Program' ||
+		expr.type === 'ValueMeta' ||
+		expr.type === 'ParamsDef' ||
+		expr.type === 'TypeVarDef' ||
+		expr.type === 'TypeSignature'
+	)
+}
+
 export interface PrintOptions {
 	omitMeta?: boolean
 }
@@ -98,16 +108,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	get innerParent(): InnerExpr | null {
 		let expr: AnyExpr | null = this.parent
 		while (expr) {
-			if (
-				expr.type !== 'Program' &&
-				expr.type !== 'ValueMeta' &&
-				expr.type !== 'ParamsDef' &&
-				expr.type !== 'TypeVarDef' &&
-				expr.type !== 'TypeSignature'
-			) {
-				break
-			}
-
+			if (!isUtilExpr(expr)) break
 			expr = expr.parent
 		}
 
