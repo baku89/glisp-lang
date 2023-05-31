@@ -16,12 +16,13 @@ class CallStack {
 
 	pop() {
 		const callee = this.#stack.pop()
-		if (callee) {
-			const log = this.#sets.get(callee) ?? new Set()
-			this.#sets.delete(callee)
-			return log
+		if (!callee) {
+			throw new Error('Invalid CallStack')
 		}
-		throw new Error('Invalid CallStack')
+
+		const log = this.#sets.get(callee) ?? new Set()
+		this.#sets.delete(callee)
+		return log
 	}
 
 	get callee() {
