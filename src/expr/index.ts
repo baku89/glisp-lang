@@ -632,7 +632,7 @@ export const container = <V extends Value = Value>(value: V) =>
 	new Container(value)
 
 /**
- * AST representing numeric literal
+ * AST representing numeric/string literal
  */
 export class Literal extends BaseExpr {
 	readonly type = 'Literal' as const
