@@ -559,12 +559,12 @@ export class Symbol extends BaseExpr {
 
 	print() {
 		const paths = this.paths.join('/')
-		const properties = this.props.map(p => '.' + p).join('')
+		const props = this.props.map(p => '.' + p).join('')
 
-		if (paths.endsWith('.') && properties !== '') {
-			return paths + '/' + properties
+		if (paths.endsWith('.') && props !== '') {
+			return paths + '/' + props
 		} else {
-			return paths + properties
+			return paths + props
 		}
 	}
 
