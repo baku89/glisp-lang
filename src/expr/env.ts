@@ -1,4 +1,5 @@
 import {Value} from '../value'
+import {BaseExpr} from '.'
 
 /**
  * 関数のコールスタックのようなもの。引数名-引数のセットを保持する.
@@ -9,6 +10,9 @@ import {Value} from '../value'
 export class Env {
 	#outer!: Env | null
 	#arg: Record<string, Value>
+
+	evalCache = new WeakMap<BaseExpr, Value>()
+	inferCache = new WeakMap<BaseExpr, Value>()
 
 	private constructor(
 		outer: Env | null = null,

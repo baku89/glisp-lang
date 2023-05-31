@@ -132,9 +132,6 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 	 */
 	failedResolution = new FailedResolution()
 
-	evalCache = new WeakMap<Env, Value>()
-	inferCache = new WeakMap<Env, Value>()
-
 	abstract print(options?: PrintOptions): string
 
 	protected abstract forceEval(env: Env): Value
@@ -220,7 +217,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 			this.inferDep.add(inferCallee)
 		}
 
-		let cache = this.evalCache.get(env)
+		let cache = env.evalCache.get(this)
 
 		if (!cache) {
 			if (evaluatingExprs.has(this)) {
@@ -246,7 +243,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 
 			cache.source = this as any as Expr
 
-			this.evalCache.set(env, cache)
+			env.evalCache.set(this, cache)
 		}
 
 		return cache
@@ -258,7 +255,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 			this.inferDep.add(inferCallee)
 		}
 
-		let cache = this.inferCache.get(env)
+		let cache = env.inferCache.get(this)
 
 		if (!cache) {
 			if (inferringExprs.has(this)) {
@@ -282,7 +279,7 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 				}
 			}
 
-			this.inferCache.set(env, cache)
+			env.inferCache.set(this, cache)
 		}
 
 		return cache
@@ -295,12 +292,12 @@ export abstract class BaseExpr extends EventEmitter<ExprEventTypes> {
 
 	#clearEvalCache() {
 		changedExprs.add(this)
-		this.evalCache.delete(Env.global)
+		Env.global.evalCache.delete(this)
 		this.evalDep.forEach(e => e.#clearEvalCache())
 	}
 
 	#clearInferCache() {
-		this.inferCache.delete(Env.global)
+		Env.global.inferCache.delete(this)
 		this.inferDep.forEach(e => e.#clearInferCache())
 	}
 }
