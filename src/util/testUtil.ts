@@ -1,9 +1,9 @@
 import {tryParse} from '..'
-import type {Expr} from '../expr'
+import type {Value} from '../ast'
 import {Log} from '../Log'
 import type {Value} from '../value'
 
-export function evaluate(input: string | Expr): Value {
+export function evaluate(input: string | Value): Value {
 	if (typeof input === 'string') {
 		return tryParse(input).eval()
 	}
