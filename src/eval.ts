@@ -68,7 +68,12 @@ function evaluateDict(ast: DictLiteral, env: Env): Dict {
 }
 
 function evaluateSym(ast: Sym, env: Env): Value {
-	const resolved = resolvePath(ast.path, ast, env)
+	let resolved: Env
+	try {
+		resolved = resolvePath(ast.path, ast, env)
+	} catch (e) {
+		return unit
+	}
 
 	const value = evaluate(resolved.ast, resolved.parent)
 
