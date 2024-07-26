@@ -1,6 +1,6 @@
 import {identity} from 'lodash'
 
-import {scope, Type} from './ast'
+import {fn, scope, Type} from './ast'
 
 export const Number = new Type<number>({
 	id: 'number',
@@ -29,4 +29,17 @@ export const Prelude = scope({
 	Number,
 	String,
 	Boolean,
+
+	// Arithmetic
+	'+': fn((...xs: number[]) => xs.reduce((acc, x) => acc + x, 0), {
+		restArg: Number,
+		return: Number,
+	}),
+
+	π: Math.PI,
+	τ: Math.PI * 2,
+
+	PI: Math.PI,
+	TAU: Math.PI * 2,
+	E: Math.E,
 })
