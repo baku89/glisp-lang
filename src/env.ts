@@ -8,7 +8,7 @@ export class Env {
 	constructor(readonly ast: Ast, readonly parent?: Env) {}
 
 	/**
-	 * この環境に新しいASTを追加した新しい環境を返す。
+	 * この環境に子ASTを追加した新しい環境を返す。
 	 */
 	push(ast: Ast): Env {
 		return new Env(ast, this)
