@@ -1,3 +1,5 @@
+import {expect, test} from 'vitest'
+
 import {createUniqueName} from './NameCollision'
 
 test('creating name collision', () => {
