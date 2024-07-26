@@ -47,6 +47,10 @@ export class List extends BaseAst {
 	}
 }
 
+export function list(...items: Ast[]) {
+	return new List(items)
+}
+
 /**
  * スコープ。
  * 重複したキーを持つ辞書型は許容せず、パースエラーとする。
@@ -63,6 +67,8 @@ export function scope(vars: Dict, ret?: Value): Scope {
 	return new Scope(vars, ret)
 }
 
+export type IFn = (...args: any[]) => Value
+
 export class Fn extends BaseAst {
 	readonly type = 'Fn' as const
 
@@ -74,9 +80,25 @@ export class Fn extends BaseAst {
 export class FnType extends BaseAst {
 	readonly type = 'FnType' as const
 
-	constructor(readonly args: Dict, readonly ret: Value) {
+	constructor(
+		readonly args: Dict,
+		readonly restArg: Value | undefined,
+		readonly ret: Value
+	) {
 		super()
 	}
+}
+
+export function fn(
+	fn: IFn,
+	type: {
+		args?: Dict
+		return: Value
+		restArg?: Value
+	}
+) {
+	const fnType = new FnType(type.args ?? {}, type.restArg, type.return)
+	return new Fn(fn, fnType)
 }
 
 /**
@@ -122,6 +144,13 @@ export class Sym extends BaseAst {
 	constructor(readonly path: readonly Key[], readonly props: readonly Prop[]) {
 		super()
 	}
+}
+
+/**
+ * テンプレート構文で s`+` のように呼び出して、Symのインスタンスを返す
+ */
+export function s(strings: TemplateStringsArray): Sym {
+	return new Sym(strings.raw, [])
 }
 
 /**
