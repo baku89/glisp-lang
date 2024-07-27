@@ -5,7 +5,7 @@ import {findAstByKey} from './findAstByKey'
 export function resolvePath(path: readonly Key[], ast: Ast, env: Env): Env {
 	// path が空の場合
 	if (path.length === 0) {
-		return env.push(ast)
+		return env.pushed(ast)
 	}
 
 	const [first, ...rest] = path
@@ -13,7 +13,7 @@ export function resolvePath(path: readonly Key[], ast: Ast, env: Env): Env {
 	// . から始まる場合
 	if (first === Current) {
 		if (rest.length === 0) {
-			return env.push(ast)
+			return env.pushed(ast)
 		}
 
 		const [second, ...rest1] = rest
@@ -28,7 +28,7 @@ export function resolvePath(path: readonly Key[], ast: Ast, env: Env): Env {
 		// ./x/y だった場合、現在のastから x に該当する「子」のASTを探し、
 		// そこを基準として ./y を解決する
 		const child = findAstByKey(ast, second)
-		const innerEnv = env.push(ast)
+		const innerEnv = env.pushed(ast)
 		return resolvePath([Current, ...rest1], child, innerEnv)
 	} else if (first === Parent) {
 		// .. だった場合、現在の環境を返す

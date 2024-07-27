@@ -10,7 +10,7 @@ export class Env {
 	/**
 	 * この環境に子ASTを追加した新しい環境を返す。
 	 */
-	push(ast: Ast): Env {
+	pushed(ast: Ast): Env {
 		return new Env(ast, this)
 	}
 }

@@ -21,7 +21,6 @@ export type Expr = List | Scope | Sym | VectorLiteral | DictLiteral
 type Primitive = string | number | boolean
 
 export const Meta = Symbol('ExprMeta')
-export const ParserInfo = Symbol('ParserMeta')
 
 export function isAstObject(
 	value: any
@@ -45,6 +44,10 @@ export class List extends BaseAst {
 		this.car = items[0] ?? unit
 		this.cdr = items.slice(1)
 	}
+
+	get length() {
+		return this.items.length
+	}
 }
 
 export function list(...items: Ast[]) {
@@ -58,7 +61,7 @@ export function list(...items: Ast[]) {
 export class Scope extends BaseAst {
 	readonly type = 'Scope' as const
 
-	constructor(readonly vars: Dict, readonly ret?: Value) {
+	constructor(readonly vars: Record<string, Ast>, readonly ret?: Value) {
 		super()
 	}
 }
@@ -141,7 +144,10 @@ export type Prop = string | number
 export class Sym extends BaseAst {
 	readonly type = 'Sym' as const
 
-	constructor(readonly path: readonly Key[], readonly props: readonly Prop[]) {
+	constructor(
+		readonly path: readonly Key[],
+		readonly props: readonly Prop[] = []
+	) {
 		super()
 	}
 }
@@ -222,9 +228,17 @@ export type Vector = Value[]
 export class VectorLiteral extends BaseAst {
 	readonly type = 'VectorLiteral' as const
 
-	constructor(readonly items: readonly Expr[]) {
+	constructor(readonly items: readonly Ast[]) {
 		super()
 	}
+
+	get length() {
+		return this.items.length
+	}
+}
+
+export function vector(...items: Ast[]) {
+	return new VectorLiteral(items)
 }
 
 /**
@@ -240,7 +254,7 @@ export interface Dict {
 export class DictLiteral extends BaseAst {
 	readonly type = 'DictLiteral' as const
 
-	constructor(readonly entries: [string, Value][]) {
+	constructor(readonly entries: readonly (readonly [string, Ast])[]) {
 		super()
 	}
 }

@@ -40,7 +40,7 @@ export function evaluate(ast: Ast, env = GlobalEnv): Value {
 }
 
 function evaluateList(ast: List, env: Env): Value {
-	const innerEnv = env.push(ast)
+	const innerEnv = env.pushed(ast)
 	const f = evaluate(ast.car, innerEnv)
 	const args = ast.cdr.map(e => evaluate(e, innerEnv))
 
@@ -52,12 +52,12 @@ function evaluateList(ast: List, env: Env): Value {
 }
 
 function evaluateVector(ast: VectorLiteral, env: Env): Vector {
-	const innerEnv = env.push(ast)
+	const innerEnv = env.pushed(ast)
 	return ast.items.map(e => evaluate(e, innerEnv))
 }
 
 function evaluateDict(ast: DictLiteral, env: Env): Dict {
-	const innerEnv = env.push(ast)
+	const innerEnv = env.pushed(ast)
 
 	return Object.fromEntries(
 		ast.entries.map(([k, v]) => [k, evaluate(v, innerEnv)])
@@ -78,7 +78,7 @@ function evaluateSym(ast: Sym, env: Env): Value {
 }
 
 function evaluateScope(ast: Scope, env: Env): Value {
-	const innerEnv = env.push(ast)
+	const innerEnv = env.pushed(ast)
 	if (ast.ret) {
 		return evaluate(ast.ret, innerEnv)
 	} else {
