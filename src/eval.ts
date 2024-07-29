@@ -16,41 +16,33 @@ import {
 import {Env} from './env'
 import {Prelude} from './prelude'
 import {resolvePath} from './resolvePath'
+import {NestedWeakMap, NestedWeakSet} from './util/NestedWeak'
 
 export const GlobalEnv = new Env(Prelude)
 
-const EvalCache = new WeakMap<Env, WeakMap<Expr, Value>>()
+const EvalCache = new NestedWeakMap<Env, Expr, Value>()
 
-const Evaluating = new WeakMap<Env, WeakSet<Expr>>()
+const Evaluating = new NestedWeakSet<Env, Expr>()
 
 export function evaluate(ast: Ast, env = GlobalEnv): Value {
 	if (isValue(ast)) {
 		return ast
 	}
 
-	// キャッシュがなければ作る
-	if (!EvalCache.has(env)) {
-		EvalCache.set(env, new WeakMap())
-	}
-
 	// キャッシュがあればそれを返す
-	const cache = EvalCache.get(env)!
-	if (cache.has(ast)) {
-		return cache.get(ast)!
+	const cache = EvalCache.get(env, ast)
+	if (cache) {
+		return cache
 	}
 
 	// 循環参照を検出
-	if (!Evaluating.has(env)) {
-		Evaluating.set(env, new WeakSet())
-	}
-	const evaluating = Evaluating.get(env)!
-	if (evaluating.has(ast)) {
+	if (Evaluating.has(env, ast)) {
 		// throw new Error('Cyclic reference')
 		return unit
 	}
 
 	// 評価中の式としてマーク
-	evaluating.add(ast)
+	Evaluating.add(env, ast)
 
 	// 評価
 	let ret: Value
@@ -74,11 +66,10 @@ export function evaluate(ast: Ast, env = GlobalEnv): Value {
 		}
 	} finally {
 		// 評価中の式としてのマークを外す
-		evaluating.delete(ast)
+		Evaluating.delete(env, ast)
 	}
 
-	// キャッシュする
-	cache.set(ast, ret)
+	EvalCache.set(env, ast, ret)
 
 	return ret
 }

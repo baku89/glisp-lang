@@ -30,6 +30,11 @@ describe('detecting circular reference', () => {
 		expect(ret).toBe(unit)
 	})
 
+	test('{x = y y = x x} should throw', () => {
+		const ret = evaluate(scope({x: s`y`, y: s`x`}, s`x`))
+		expect(ret).toBe(unit)
+	})
+
 	// testEval('(let x: y y: x x)', '()', true)
 
 	// testEval('[./0]', '()', true)
