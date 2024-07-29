@@ -6,6 +6,7 @@ import {
 	DictLiteral,
 	Key,
 	List,
+	Parent,
 	Scope,
 	Sym,
 	unit,
@@ -55,8 +56,8 @@ const OneOrMoreDigits = P.regex(/[0-9]+/)
 const Dot = P.string('.')
 const TripleDots = P.string('...')
 
-const PCurrentPath = P.string('.').of(Current)
-const PParentPath = P.string('..').of(Current)
+const PCurrentPath = P.string('.').result(Current)
+const PParentPath = P.string('..').result(Parent)
 
 const Punctuation = P.oneOf('()[]{}"@#^:;.,?/\\')
 
@@ -68,7 +69,7 @@ const Reserved = new Set(['=>', 'match', 'Infinity', '-Infinity', 'NaN'])
 
 const NameKey = seq(
 	AllowedCharForName,
-	many(P.alt(P.digit, P.string('?'), AllowedCharForName))
+	many(P.alt(P.digit, AllowedCharForName))
 ).assert(name => !Reserved.has(name), 'cannot use reserved keyword as a symbol')
 
 const IndexKey = P.regex(/([1-9][0-9]*|0)/).map(parseInt)
@@ -161,21 +162,14 @@ const Parser = P.createLanguage<IParser>({
 		const FirstKey = P.alt<Key>(PParentPath, PCurrentPath, NameKey)
 
 		// Rest paths can be whichever
-		const RestKey = P.alt<Key>(
-			PParentPath,
-			PCurrentPath,
-			NameKey,
-			IndexKey,
-			P.string('=>'),
-			P.string('return')
-		)
+		const RestKey = P.alt<Key>(PParentPath, PCurrentPath, NameKey, IndexKey)
 
 		// Paths (xx/yy/zz/1/2/3)
 		const Path = P.seq(FirstKey, P.string('/').then(RestKey).many()).map<Key[]>(
 			([first, rest]) => [first, ...rest]
 		)
 
-		// PropKeys (x.y.z.1.2.3)
+		// PropKeys (.y.z.1.2.3)
 		const Props = P.seqMap(
 			P.string('.'),
 			P.alt<string | number>(NameKey, IndexKey),
@@ -210,6 +204,7 @@ const Parser = P.createLanguage<IParser>({
 		const Entry = P.seq(NameKey, _, P.string(':'), _, r.Ast).map(
 			([key, , , , value]) => [key, value] as const
 		)
+
 		return P.seq(_, sep__(Entry), _)
 			.wrap(P.string('{'), P.string('}'))
 			.map(([_0, [entries, __1s], _2]) => {

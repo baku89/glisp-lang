@@ -1,4 +1,4 @@
-import {Ast, Current, isAstObject, Parent, Scope, Sym} from './ast'
+import {Ast, Current, DictLiteral, isAstObject, Parent, Scope, Sym} from './ast'
 import {getDelimiters} from './parse'
 
 export function print(ast: Ast): string {
@@ -13,30 +13,29 @@ export function print(ast: Ast): string {
 		default:
 			if (isAstObject(ast)) {
 				switch (ast.type) {
+					case 'All':
+						return '***'
+					case 'Unit':
+						return '()'
+					case 'Never':
+						return '_|_'
 					case 'Sym':
 						return printSym(ast)
 					case 'List':
 						return printSeq(ast.items, '(', ')', getDelimiters(ast))
 					case 'VectorLiteral':
 						return printSeq(ast.items, '[', ']', getDelimiters(ast))
-
-					// 			switch (ast[EType]) {
-					// 				case 'Sym':
-					// 					return [ast.path.join('/'), ...ast.keys.map(String)].join('.')
-					// 				case 'App':
-					// 					return (
-					// 						'(' + print(ast.fn) + ' ' + ast.args.map(print).join(' ') + ')'
-					// 					)
-					case 'Scope': {
-						const vars = Object.entries(ast.vars).map(
-							([k, e]) => `${k} = ${print(e)}`
-						)
-						const ret = ast.ret ? [print(ast.ret)] : []
-						return '{' + [...vars, ...ret].join(' ') + '}'
-					}
+					case 'DictLiteral':
+						return printDictLiteral(ast)
+					case 'Scope':
+						return printScope(ast)
+					case 'Atom':
+						return print(ast.toAst())
 				}
 			}
 	}
+
+	throw new Error('Not yet implemented')
 }
 
 function printSeq(
@@ -62,12 +61,17 @@ function printSym(ast: Sym) {
 	return path + props
 }
 
-function printScope(ast: Scope) {
-	const vars = Object.entries(ast.vars)
+function printDictLiteral(ast: DictLiteral) {
+	const vars = ast.entries.map(([k, e]) => {
+		return `${k}: ${print(e)}`
+	})
+	return '{' + vars.join(' ') + '}'
+}
 
-	// const vars = Object.entries(ast.vars).map(
-	// 	([k, e]) => `${k} = ${print(e)}`
-	// )
-	// const ret = ast.ret ? [print(ast.ret)] : []
-	// return '{' + [...vars, ...ret].join(' ') + '}'
+function printScope(ast: Scope) {
+	const vars = Object.entries(ast.vars).map(([k, e]) => {
+		return `${k} = ${print(e)}`
+	})
+	const ret = ast.ret ? [print(ast.ret)] : []
+	return '{' + [...vars, ...ret].join(' ') + '}'
 }

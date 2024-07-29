@@ -1,29 +1,31 @@
 import {identity} from 'lodash'
 
-import {fn, scope, Type} from './ast'
+import {all, fn, never, scope, Type} from './ast'
 
 export const Number = new Type<number>({
 	id: 'number',
 	defaultValue: 0,
-	toExpr: identity,
+	toAst: identity,
 	toPrimitive: identity,
 })
 
 export const String = new Type<string>({
 	id: 'string',
 	defaultValue: '',
-	toExpr: identity,
+	toAst: identity,
 	toPrimitive: identity,
 })
 
 export const Boolean = new Type<boolean>({
 	id: 'boolean',
 	defaultValue: false,
-	toExpr: identity,
+	toAst: identity,
 	toPrimitive: identity,
 })
 
 export const Prelude = scope({
+	'***': all,
+	'_|_': never,
 	true: true,
 	false: false,
 	Number,

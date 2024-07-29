@@ -170,25 +170,25 @@ export class Type<T = any> extends BaseAst {
 	/**
 	 * その値と同値な値へと評価される式を返す
 	 */
-	readonly toExpr: (value: T) => Value
+	readonly toAst: (value: T) => Value
 
 	readonly toPrimitive?: (value: T) => Primitive
 
 	constructor({
 		id,
 		defaultValue,
-		toExpr,
+		toAst,
 		toPrimitive,
 	}: {
 		id: string
 		defaultValue: T
-		toExpr: (value: T) => Value
+		toAst: (value: T) => Value
 		toPrimitive?: (value: T) => Primitive
 	}) {
 		super()
 		this.id = id
 		this.defaultValue = defaultValue
-		this.toExpr = toExpr
+		this.toAst = toAst
 		this.toPrimitive = toPrimitive
 	}
 }
@@ -216,6 +216,10 @@ export class Atom<T = any> extends BaseAst {
 
 	toPrimitive() {
 		return this.superType.toPrimitive?.(this.value)
+	}
+
+	toAst() {
+		return this.superType.toAst(this.value)
 	}
 }
 
@@ -257,4 +261,8 @@ export class DictLiteral extends BaseAst {
 	constructor(readonly entries: readonly (readonly [string, Ast])[]) {
 		super()
 	}
+}
+
+export function dict(...entries: (readonly [string, Ast])[]) {
+	return new DictLiteral(entries)
 }

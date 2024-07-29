@@ -1,26 +1,8 @@
-// import {
-// 	app,
-// 	dictLiteral as dict,
-// 	Expr,
-// 	fnDef,
-// 	infix,
-// 	literal,
-// 	match,
-// 	ParamsDef,
-// 	paramsDef,
-// 	scope,
-// 	symbol,
-// 	TypeSignature,
-// 	valueMeta,
-// 	vecLiteral as vec,
-// } from '../expr'
-// import {parse} from '.'
-// import {Parser} from '.'
-
 import {describe, expect, test} from 'vitest'
 
-import {Current, list, Sym} from './ast'
+import {Current, dict, list, Parent, s, Sym, vector} from './ast'
 import {_, parse} from './parse'
+import {print} from './print'
 test('parsing delimiter', () => {
 	expect(_.tryParse('')).toBe('')
 	expect(_.tryParse(' ')).toBe(' ')
@@ -56,63 +38,40 @@ describe('parsing literals', () => {
 	testParsing('"hello, world"', 'hello, world')
 })
 
-// describe('parsing symbols', () => {
-// 	testParsing('a', 'a')
-// 	testParsing('$', '$')
-// 	testParsing('false', 'false')
-// 	testParsing('true', 'true')
-// 	testParsing('foo', 'foo')
-// 	testParsing('BAR', 'BAR')
-// 	testParsing('true1', 'true1')
-// 	testParsing('a12', 'a12')
-// 	testParsing('abc12', 'abc12')
-// 	testParsing('+-*&|<=>_', '+-*&|<=>_')
-// 	testParsing('変数', '変数')
-// 	testParsing('🍡', '🍡')
-// 	testParsing('`_`', '_')
-// 	testParsing('->', '->')
-// 	testParsing('try', 'try')
-// 	testParsing('even?', 'even?')
+describe('parsing symbols', () => {
+	testParsing('a', s`a`)
+	testParsing('$', s`$`)
+	testParsing('false', s`false`)
+	testParsing('true', s`true`)
+	testParsing('foo', s`foo`)
+	testParsing('BAR', s`BAR`)
+	testParsing('true1', s`true1`)
+	testParsing('a12', s`a12`)
+	testParsing('abc12', s`abc12`)
+	testParsing('+-*&|<=>_', s`+-*&|<=>_`)
+	testParsing('変数', s`変数`)
+	testParsing('🍡', s`🍡`)
+	testParsing('_', s`_`)
+	testParsing('->', s`->`)
+	testParsing('try', s`try`)
 
-// 	testErrorParsing('10deg')
-// 	testErrorParsing('10 20')
-// 	testErrorParsing('/')
-// 	testErrorParsing('@')
-// 	testErrorParsing('=>')
-// 	testErrorParsing('let')
-// 	testErrorParsing(';')
-// 	testErrorParsing('Infinity')
-// 	testErrorParsing('-Infinity')
-// 	testErrorParsing('NaN')
+	testErrorParsing('10deg')
+	testErrorParsing('10 20')
+	testErrorParsing('/')
+	testErrorParsing('@')
+	testErrorParsing('=>')
+	testErrorParsing('baku?')
 
-// 	function testParsing(input: string, name: string) {
-// 		it(`parsing ${input} to be a symbol with name '${name}'`, () => {
-// 			Parser.Symbol.tryParse(input).isSameTo(symbol(name))
-// 		})
-// 	}
-
-// 	function testErrorParsing(input: string) {
-// 		it(`parsing ${input} throws an error`, () => {
-// 			expect(() => {
-// 				const parsed = Parser.Symbol.tryParse(input)
-// 				// eslint-disable-next-line no-console
-// 				console.log(parsed)
-// 			}).toThrow()
-// 		})
-// 	}
-// })
-
-describe('parsing path symbols', () => {
 	testParsing('./x', new Sym([Current, 'x']))
-	// 	testParsing('x/y', symbol(['x', 'y']))
-	// 	testParsing('x/.', symbol(['x', '.']))
-	// 	testParsing('../x', symbol(['..', 'x']))
-	// 	testParsing('x/..', symbol(['x', '..']))
-	// 	testParsing('./0', symbol(['.', 0]))
-	// 	testParsing('x/111/222', symbol(['x', 111, 222]))
-	// 	testParsing('x.x', symbol('x', 'x'))
-	// 	testParsing('x.0', symbol('x', 0))
-	// 	testParsing('x/y.0.z.2', symbol(['x', 'y'], [0, 'z', 2]))
+	testParsing('x/y', new Sym(['x', 'y']))
+	testParsing('x/.', new Sym(['x', Current]))
+	testParsing('../x', new Sym([Parent, 'x']))
+	testParsing('x/..', new Sym(['x', Parent]))
+	testParsing('./0', new Sym([Current, 0]))
+	testParsing('x/111/222', new Sym(['x', 111, 222]))
+	testParsing('x.x', new Sym(['x'], ['x']))
+	testParsing('x.0', new Sym(['x'], [0]))
+	testParsing('x/y.0.z.2', new Sym(['x', 'y'], [0, 'z', 2]))
 })
 
 describe('parsing line comment', () => {
@@ -136,16 +95,16 @@ describe('parsing app expressions', () => {
 	testParsing('( )', list())
 	testParsing(' (  \t   ) ', list())
 	testParsing(' ( 0 1 2 ) ', list(0, 1, 2))
-	// testParsing('(+ 1 2)', list(s`+`, 1, 2))
-	// testParsing('(* 1 2)', list(s`*`, 1, 2))
+	testParsing('(+ 1 2)', list(s`+`, 1, 2))
+	testParsing('(* 1 2)', list(s`*`, 1, 2))
 	testParsing('(( ) 2 ( ))', list(list(), 2, list()))
-	// testParsing('(x ***)', list(s`x`, all))
-	// testParsing('(x ())', list(s`x`, list()))
-	// testParsing('(x)', list(s`x`))
-	// testParsing('(0 false)', list(1, s`false`))
-	// testParsing('((true) x)', list(list(s`true`), s`x`))
+	testParsing('(x ***)', list(s`x`, s`***`))
+	testParsing('(x ())', list(s`x`, list()))
+	testParsing('(x)', list(s`x`))
+	testParsing('(0 false)', list(0, s`false`))
+	testParsing('((true) x)', list(list(s`true`), s`x`))
 
-	// 	testErrorParsing('(()())')
+	testErrorParsing('(()())')
 })
 
 // describe('parsing infix literals', () => {
@@ -198,55 +157,52 @@ describe('parsing app expressions', () => {
 // 	testParsing('(match x: y "a")', match('x', symbol('y'), [], 'a'))
 // })
 
-// describe('parsing vector', () => {
-// 	testParsing('[]', vector())
-// 	testParsing('[   ]', vector())
-// 	testParsing('[    1  ]', vector([1]))
-// 	testParsing('[1 2 3]', vector([1, 2, 3]))
-// 	testParsing('[1 [2] 3]', vector([1, vector([2]), 3]))
-// 	testParsing(
-// 		'[(+) false (+) +]',
-// 		vector([list(symbol('+')), symbol('false'), list(symbol('+')), symbol('+')])
-// 	)
-// 	testParsing('[...1]', vector([], 0, 1))
-// 	testParsing('[?1]', vector([1], 0))
-// 	testParsing('[?1 ...2]', vector([1], 0, 2))
-// 	testParsing('[1 ?2]', vector([1, 2], 1))
-// 	testParsing(
-// 		'[1 ?2 ?3 ...4]',
-// 		vector([1, 2, 3], 1, 4)
-// 	)
+describe('parsing vector', () => {
+	testParsing('[]', vector())
+	testParsing('[   ]', vector())
+	testParsing('[    1  ]', vector(1))
+	testParsing('[1 2 3]', vector(1, 2, 3))
+	testParsing('[1 [2] 3]', vector(1, vector(2), 3))
+	testParsing(
+		'[(+) false (+) +]',
+		vector(list(s`+`), s`false`, list(s`+`), s`+`)
+	)
+	// testParsing('[...1]', vector([], 0, 1))
+	// testParsing('[?1]', vector([1], 0))
+	// testParsing('[?1 ...2]', vector([1], 0, 2))
+	// testParsing('[1 ?2]', vector([1, 2], 1))
+	// testParsing('[1 ?2 ?3 ...4]', vector([1, 2, 3], 1, 4))
 
-// 	testErrorParsing('[[][]]')
-// 	testErrorParsing('[1[]2]')
-// 	testErrorParsing('[?1 2]')
-// 	testErrorParsing('[?1 2 ?3 ?4]')
-// })
+	// 	testErrorParsing('[[][]]')
+	// 	testErrorParsing('[1[]2]')
+	// 	testErrorParsing('[?1 2]')
+	// 	testErrorParsing('[?1 2 ?3 ?4]')
+})
 
-// describe('parsing dictionary', () => {
-// 	testParsing('{}', dict())
-// 	testParsing('{   }', dict())
-// 	testParsing('{   a:    1 }', dict({a: 1}))
-// 	testParsing('{\tfoo_bar: 1\t}', dict({foo_bar: 1}))
-// 	testParsing('{   }', dict({}))
-// 	testParsing('{a: A b: B}', dict({a: symbol('A'), b: symbol('B')}))
-// 	testParsing('{a: {a: 1}}', dict({a: dict({a: 1})}))
-// 	testParsing('{?a:1}', dict({a: 1}, ['a']))
-// 	testParsing(
-// 		'{?a:1 b:2 ...c}',
-// 		dict(
-// 			{
-// 				a: 1,
-// 				b: 2,
-// 			},
-// 			['a'],
-// 			symbol('c')
-// 		)
-// 	)
+describe('parsing dictionary', () => {
+	testParsing('{}', dict())
+	testParsing('{   }', dict())
+	testParsing('{   a:    1 }', dict(['a', 1]))
+	testParsing('{\tfoo_bar: 1\t}', dict(['foo_bar', 1]))
 
-// 	testErrorParsing('{"a": 0}')
-// 	// testErrorParsing('{a:[]b:0}')
-// })
+	testParsing('{a: A b: B}', dict(['a', s`A`], ['b', s`B`]))
+	testParsing('{a: {a: 1}}', dict(['a', dict(['a', 1])]))
+	// 	testParsing('{?a:1}', dict({a: 1}, ['a']))
+	// 	testParsing(
+	// 		'{?a:1 b:2 ...c}',
+	// 		dict(
+	// 			{
+	// 				a: 1,
+	// 				b: 2,
+	// 			},
+	// 			['a'],
+	// 			symbol('c')
+	// 		)
+	// 	)
+
+	testErrorParsing('{"a": 0}')
+	testErrorParsing('{a:[]b:0}')
+})
 
 // describe('parsing parameters in function definition', () => {
 // 	testParsing('[]', paramsDef())
@@ -398,7 +354,7 @@ describe('parsing app expressions', () => {
 // */
 
 function testParsing(input: string, expected: any) {
-	test(`parsing '${input}' to be ${expected}`, () => {
+	test(`parsing '${input}' to be ${print(expected)}`, () => {
 		expect(parse(input)).toStrictEqual(expected)
 	})
 }
@@ -406,9 +362,7 @@ function testParsing(input: string, expected: any) {
 function testErrorParsing(input: string) {
 	test(`parsing '${input}' throws an error`, () => {
 		expect(() => {
-			const parsed = parse(input)
-			// eslint-disable-next-line no-console
-			console.log(parsed)
+			parse(input)
 		}).toThrow()
 	})
 }
