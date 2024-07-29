@@ -1,7 +1,7 @@
 import {Ast, Current, isCompoundAst, Key, Parent, Scope} from './ast'
 import {Env} from './env'
-import {GlobalEnv} from './eval'
 import {findAstByKey} from './findAstByKey'
+import {PreludeEnv} from './prelude'
 
 /**
  * ASTを辿り、シンボル解決をする
@@ -13,7 +13,7 @@ import {findAstByKey} from './findAstByKey'
 export function resolvePath(
 	path: readonly Key[],
 	ast: Ast,
-	env = GlobalEnv
+	env = PreludeEnv
 ): {ast: Ast; env?: Env} {
 	// path が空の場合
 	if (path.length === 0) {

@@ -5,7 +5,7 @@ import {CompoundAst} from './ast'
  * そのASTの直近の親から始まり、最終的にはグローバルな環境に至るまでの連結リスト。
  */
 export class Env {
-	constructor(readonly ast: CompoundAst, readonly parent?: Env) {}
+	private constructor(readonly ast: CompoundAst, readonly parent?: Env) {}
 
 	/**
 	 * この環境に子ASTを追加した新しい環境を返す。

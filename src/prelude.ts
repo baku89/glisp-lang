@@ -1,6 +1,7 @@
 import {identity} from 'lodash'
 
 import {all, fn, never, scope, Type} from './ast'
+import {Env} from './env'
 
 export const Number = new Type<number>({
 	id: 'number',
@@ -23,7 +24,7 @@ export const Boolean = new Type<boolean>({
 	toPrimitive: identity,
 })
 
-export const Prelude = scope({
+const Prelude = scope({
 	'***': all,
 	'_|_': never,
 	true: true,
@@ -45,3 +46,5 @@ export const Prelude = scope({
 	TAU: Math.PI * 2,
 	E: Math.E,
 })
+
+export const PreludeEnv = new (Env as any)(Prelude)

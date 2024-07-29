@@ -14,17 +14,15 @@ import {
 	VectorLiteral,
 } from './ast'
 import {Env} from './env'
-import {Prelude} from './prelude'
+import {PreludeEnv} from './prelude'
 import {resolvePath} from './resolvePath'
 import {NestedWeakMap, NestedWeakSet} from './util/NestedWeak'
-
-export const GlobalEnv = new Env(Prelude)
 
 const EvalCache = new NestedWeakMap<Env, Expr, Value>()
 
 const Evaluating = new NestedWeakSet<Env, Expr>()
 
-export function evaluate(ast: Ast, env = GlobalEnv): Value {
+export function evaluate(ast: Ast, env = PreludeEnv): Value {
 	if (isValue(ast)) {
 		return ast
 	}
