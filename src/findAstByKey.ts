@@ -2,9 +2,10 @@ import {keys} from 'lodash'
 
 import {
 	Ast,
+	CompoundAst,
 	DictLiteral,
 	Fn,
-	isAstObject,
+	isCompoundExpr,
 	List,
 	Scope,
 	VectorLiteral,
@@ -13,12 +14,8 @@ import {
 /**
  * そのASTの中から指定されたキーを持つASTを返す。シンボル解決に使う。
  */
-export function findAstByKey(ast: Ast, key: number | string): Ast {
-	if (typeof ast !== 'object') {
-		throw new Error('Not an object')
-	}
-
-	if (isAstObject(ast)) {
+export function findAstByKey(ast: CompoundAst, key: number | string): Ast {
+	if (isCompoundExpr(ast)) {
 		switch (ast.type) {
 			case 'List':
 				return findFromList(ast, key)
@@ -29,8 +26,6 @@ export function findAstByKey(ast: Ast, key: number | string): Ast {
 			case 'VectorLiteral':
 				return findFromVector(ast, key)
 		}
-
-		throw new Error(`Not has key ${key}`)
 	}
 
 	if (Array.isArray(ast)) {

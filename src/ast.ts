@@ -1,6 +1,12 @@
+import {isPlainObject} from 'lodash'
+
 export type Ast = Value | Expr
 
+/**
+ * 値。いかなる式をも含まず、評価時には必ずそのまま返される
+ */
 export type Value =
+	| CompoundValue
 	| Primitive
 	| Atom
 	| Type
@@ -10,10 +16,33 @@ export type Value =
 	| All
 	| Unit
 	| Never
-	| Vector
-	| Dict
 
-export type Expr = List | Scope | Sym | VectorLiteral | DictLiteral
+/** 複合値 */
+export type CompoundValue = Vector | Dict
+
+export function isCompoundValue(ast: Ast): ast is CompoundValue {
+	return Array.isArray(ast) || isPlainObject(ast)
+}
+
+/**
+ * Expression = 式。評価時には何らかの処理をし、値を求める必要がある。
+ */
+export type Expr = CompoundExpr | Sym
+
+/**
+ * 複合式。式をその内側に含む
+ */
+export type CompoundExpr = List | Scope | VectorLiteral | DictLiteral
+
+export function isCompoundExpr(ast: Ast): ast is CompoundExpr {
+	return ast instanceof BaseExpr && ast.type !== 'Sym'
+}
+
+export type CompoundAst = CompoundExpr | CompoundValue
+
+export function isCompoundAst(ast: Ast): ast is CompoundAst {
+	return isCompoundExpr(ast) || isCompoundValue(ast)
+}
 
 /**
  * JSのプリミティブ
@@ -28,11 +57,24 @@ export function isAstObject(
 	return value instanceof BaseAst
 }
 
+export function isValue(ast: Ast): ast is Value {
+	return (
+		typeof ast !== 'object' ||
+		ast instanceof BaseValue ||
+		Array.isArray(ast) ||
+		isPlainObject(ast)
+	)
+}
+
 class BaseAst {
 	readonly [Meta]?: Dict
 }
 
-export class List extends BaseAst {
+class BaseExpr extends BaseAst {}
+
+class BaseValue extends BaseAst {}
+
+export class List extends BaseExpr {
 	readonly type = 'List' as const
 
 	readonly car: Ast
@@ -58,7 +100,7 @@ export function list(...items: Ast[]) {
  * スコープ。
  * 重複したキーを持つ辞書型は許容せず、パースエラーとする。
  */
-export class Scope extends BaseAst {
+export class Scope extends BaseExpr {
 	readonly type = 'Scope' as const
 
 	constructor(readonly vars: Record<string, Ast>, readonly ret?: Value) {
@@ -72,7 +114,7 @@ export function scope(vars: Dict, ret?: Value): Scope {
 
 export type IFn = (...args: any[]) => Value
 
-export class Fn extends BaseAst {
+export class Fn extends BaseValue {
 	readonly type = 'Fn' as const
 
 	constructor(readonly fn: (...args: any[]) => Value, readonly fnType: FnType) {
@@ -80,7 +122,7 @@ export class Fn extends BaseAst {
 	}
 }
 
-export class FnType extends BaseAst {
+export class FnType extends BaseValue {
 	readonly type = 'FnType' as const
 
 	constructor(
@@ -107,7 +149,7 @@ export function fn(
 /**
  * すべての値を表す型。TypeScriptの`unknown`に相当する。
  */
-export class All extends BaseAst {
+export class All extends BaseValue {
 	readonly type = 'All' as const
 }
 
@@ -117,7 +159,7 @@ export const all: All = new All()
  * 何にでも評価される値を表す型。TypeScriptの`any`に相当する。
  * Haskellの`()`に相当する。
  */
-export class Unit extends BaseAst {
+export class Unit extends BaseValue {
 	readonly type = 'Unit' as const
 }
 
@@ -126,7 +168,7 @@ export const unit = new Unit()
 /**
  * 絶対に存在しない値を表す型。TypeScriptの`never`に相当する。
  */
-export class Never extends BaseAst {
+export class Never extends BaseValue {
 	readonly type = 'Never' as const
 }
 
@@ -141,7 +183,7 @@ export type Prop = string | number
 /**
  * シンボル。Glispにおけるシンボルは、構文木における特定の位置を相対パスで参照するもの。
  */
-export class Sym extends BaseAst {
+export class Sym extends BaseExpr {
 	readonly type = 'Sym' as const
 
 	constructor(
@@ -162,7 +204,7 @@ export function s(strings: TemplateStringsArray): Sym {
 /**
  * 型を表す値。
  */
-export class Type<T = any> extends BaseAst {
+export class Type<T = any> extends BaseValue {
 	readonly type = 'Type' as const
 	readonly id: string
 	readonly defaultValue: T
@@ -198,7 +240,7 @@ export class Type<T = any> extends BaseAst {
  * 配列型やタプル型、辞書型なども、ひとまず実装をシンプルにするためにこれを用いる。
  * `number[]` が `(Vector Number)`、`Record<string, boolean`が`(Dict Boolean)`など。
  */
-export class Typeclass extends BaseAst {
+export class Typeclass extends BaseValue {
 	readonly type = 'Typeclass' as const
 
 	constructor(readonly id: string, readonly args: readonly Value[]) {
@@ -206,7 +248,7 @@ export class Typeclass extends BaseAst {
 	}
 }
 
-export class Atom<T = any> extends BaseAst {
+export class Atom<T = any> extends BaseValue {
 	readonly type = 'Atom' as const;
 	readonly [Meta] = {}
 
@@ -229,7 +271,7 @@ export function isAtom(value: Value): value is Atom {
 
 export type Vector = Value[]
 
-export class VectorLiteral extends BaseAst {
+export class VectorLiteral extends BaseExpr {
 	readonly type = 'VectorLiteral' as const
 
 	constructor(readonly items: readonly Ast[]) {
@@ -252,10 +294,14 @@ export interface Dict {
 	readonly [key: string]: Value
 }
 
+export function isDict(ast: Ast): ast is Dict {
+	return isPlainObject(ast)
+}
+
 /**
  * 辞書リテラル。
  */
-export class DictLiteral extends BaseAst {
+export class DictLiteral extends BaseExpr {
 	readonly type = 'DictLiteral' as const
 
 	constructor(readonly entries: readonly (readonly [string, Ast])[]) {

@@ -35,7 +35,7 @@ export function print(ast: Ast): string {
 			}
 	}
 
-	throw new Error('Not yet implemented')
+	throw new Error('Not yet implemented ' + JSON.stringify(ast))
 }
 
 function printSeq(

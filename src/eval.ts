@@ -3,7 +3,7 @@ import {
 	Dict,
 	DictLiteral,
 	Fn,
-	isAstObject,
+	isValue,
 	List,
 	Scope,
 	Sym,
@@ -16,10 +16,10 @@ import {Env} from './env'
 import {Prelude} from './prelude'
 import {resolvePath} from './resolvePath'
 
-const GlobalEnv = new Env(Prelude)
+export const GlobalEnv = new Env(Prelude)
 
 export function evaluate(ast: Ast, env = GlobalEnv): Value {
-	if (!isAstObject(ast)) {
+	if (isValue(ast)) {
 		return ast
 	}
 
@@ -35,8 +35,6 @@ export function evaluate(ast: Ast, env = GlobalEnv): Value {
 		case 'DictLiteral':
 			return evaluateDict(ast, env)
 	}
-
-	return ast
 }
 
 function evaluateList(ast: List, env: Env): Value {
@@ -65,14 +63,14 @@ function evaluateDict(ast: DictLiteral, env: Env): Dict {
 }
 
 function evaluateSym(ast: Sym, env: Env): Value {
-	let resolved: Env
+	let resolved: {ast: Ast; env?: Env}
 	try {
 		resolved = resolvePath(ast.path, ast, env)
 	} catch (e) {
 		return unit
 	}
 
-	const value = evaluate(resolved.ast, resolved.parent)
+	const value = evaluate(resolved.ast, resolved.env)
 
 	return value
 }
