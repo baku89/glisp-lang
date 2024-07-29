@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest'
 
-import {all, list, never, s, scope, unit} from './ast'
+import {all, list, never, s, scope, unit, vector} from './ast'
 import {evaluate} from './eval'
 
 test('evaluating literals', () => {
@@ -35,15 +35,35 @@ describe('detecting circular reference', () => {
 		expect(ret).toBe(unit)
 	})
 
-	// testEval('(let x: y y: x x)', '()', true)
+	test('[./0] should throw', () => {
+		const ret = evaluate(vector(s`./0`))
+		expect(ret).toStrictEqual([unit])
+	})
 
-	// testEval('[./0]', '()', true)
-	// testEval('[./1 ./2 ./0]', '()', true)
+	test('[./1 ./2 ./0] should throw', () => {
+		const ret = evaluate(vector(s`./1`, s`./2`, s`./0`))
+		expect(ret).toStrictEqual([unit, unit, unit])
+	})
 
-	// testEval('{x: ./x}', '()', true)
-	// testEval('{x: ./y y: ./x}', '()', true)
-	// testEval('{x: ./y y: [../x]}', '()', true)
-	// testEval('{x: ./y/0 y: [../x]}', '()', true)
+	test('{x = ./x} should throw', () => {
+		const ret = evaluate(scope({x: s`./x`}, s`x`))
+		expect(ret).toBe(unit)
+	})
+
+	test('{x = ./y y = ./x} should throw', () => {
+		const ret = evaluate(scope({x: s`./y`, y: s`./x`}, s`x`))
+		expect(ret).toBe(unit)
+	})
+
+	test('{x: ./y y: [../x]} should throw', () => {
+		const ret = evaluate(scope({x: s`./y`, y: vector(s`../x`)}, s`x`))
+		expect(ret).toBe(unit)
+	})
+
+	test('{x: ./y/0 y: [../x]} should throw', () => {
+		const ret = evaluate(scope({x: s`./y/0`, y: vector(s`../x`)}, s`x`))
+		expect(ret).toBe(unit)
+	})
 
 	// TODO: Let the below tests pass
 	// testEval('(+ ./1)', '()', true)
