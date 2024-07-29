@@ -1,15 +1,61 @@
 import {describe, expect, test} from 'vitest'
 
 import {Current, dict, list, Parent, s, Sym, vector} from './ast'
-import {_, parse} from './parse'
+import {__, parse} from './parse'
 import {print} from './print'
-test('parsing delimiter', () => {
-	expect(_.tryParse('')).toBe('')
-	expect(_.tryParse(' ')).toBe(' ')
-	expect(_.tryParse('//comment')).toBe('//comment')
-	expect(_.tryParse('//comment\n')).toBe('//comment\n')
-	expect(_.tryParse('//comment\n ')).toBe('//comment\n ')
-	expect(_.tryParse('//comment')).toBe('//comment')
+
+describe('parsing delimiter', () => {
+	test('delimiter cannot be empty string', () => {
+		expect(() => __.tryParse('')).toThrow()
+	})
+
+	test('" " can be a delimiter', () => {
+		expect(() => __.tryParse(' ')).not.toThrow()
+	})
+
+	test('"\t" can be a delimiter', () => {
+		expect(() => __.tryParse('\t')).not.toThrow()
+	})
+
+	test('"\n" can be a delimiter', () => {
+		expect(() => __.tryParse('\n')).not.toThrow()
+	})
+
+	test('"\r" can be a delimiter', () => {
+		expect(() => __.tryParse('\r')).not.toThrow()
+	})
+
+	test('"\r\n" can be a delimiter', () => {
+		expect(() => __.tryParse('\r\n')).not.toThrow()
+	})
+
+	test('"  \t \n \r\n  " can be a delimiter', () => {
+		expect(() => __.tryParse('  \t \n \r\n  ')).not.toThrow()
+	})
+
+	test('"not a delimiter" cannot be a delimiter', () => {
+		expect(() => __.tryParse('not a delimiter')).toThrow()
+	})
+
+	test('"//comment" can be a delimiter', () => {
+		expect(() => __.tryParse('//comment')).not.toThrow()
+	})
+
+	test('"//comment\n" can be a delimiter', () => {
+		expect(() => __.tryParse('//comment\n')).not.toThrow()
+	})
+
+	test('"\n//comment" can be a delimiter', () => {
+		expect(() => __.tryParse('\n//comment')).not.toThrow()
+	})
+
+	test('"\n//comment\n" can be a delimiter', () => {
+		expect(() => __.tryParse('\n//comment\n')).not.toThrow()
+	})
+
+	test('"//comment\nnot a comment" cannot be a delimiter', () => {
+		expect(() => __.tryParse('\n not a comment')).toThrow()
+	})
 })
 
 describe('parsing literals', () => {

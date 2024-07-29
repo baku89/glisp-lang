@@ -106,13 +106,13 @@ const ReservedNumericString = P.alt(P.regex(/-?Infinity/), P.string('NaN'))
 /**
  * 0文字以上の区切り文字。
  */
-export const _ = seq(
+const _ = seq(
 	P.optWhitespace,
 	many(seq(zeroOrOne(Comment), P.newline, P.optWhitespace)),
 	zeroOrOne(Comment.skip(P.eof))
 ).desc('delimiter')
 
-const __ = _.assert(
+export const __ = _.assert(
 	s => s.length > 0,
 	'zero-length delimiter is not allowed'
 ).desc('non-zero length delimiter')
