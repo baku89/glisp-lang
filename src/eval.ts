@@ -18,31 +18,38 @@ import {PreludeEnv} from './prelude'
 import {resolvePath} from './resolvePath'
 import {NestedWeakMap, NestedWeakSet} from './util/NestedWeak'
 
+/**
+ * The cache for the evaluation result
+ */
 const EvalCache = new NestedWeakMap<Env, Expr, Value>()
 
+/**
+ * The set for the expressions being evaluated, for detecting cyclic reference
+ */
 const Evaluating = new NestedWeakSet<Env, Expr>()
 
 export function evaluate(ast: Ast, env = PreludeEnv): Value {
+	// Return as it is if it is a Value
 	if (isValue(ast)) {
 		return ast
 	}
 
-	// キャッシュがあればそれを返す
+	// Return the cache if it exists
 	const cache = EvalCache.get(env, ast)
 	if (cache) {
 		return cache
 	}
 
-	// 循環参照を検出
+	// Detect cyclic reference
 	if (Evaluating.has(env, ast)) {
 		// throw new Error('Cyclic reference')
 		return unit
 	}
 
-	// 評価中の式としてマーク
+	// Mark as an expression being evaluated
 	Evaluating.add(env, ast)
 
-	// 評価
+	// Evaluate the expression
 	let ret: Value
 	try {
 		switch (ast.type) {
@@ -63,7 +70,7 @@ export function evaluate(ast: Ast, env = PreludeEnv): Value {
 				break
 		}
 	} finally {
-		// 評価中の式としてのマークを外す
+		// Unmark as an expression being evaluated
 		Evaluating.delete(env, ast)
 	}
 
