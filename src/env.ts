@@ -13,10 +13,12 @@ export class Env {
 	 * 環境はmemoizedされる
 	 */
 	pushed(ast: CompoundAst): Env {
-		if (!this.#childEnvs.has(ast)) {
-			this.#childEnvs.set(ast, new Env(ast, this))
+		let innerEnv = this.#childEnvs.get(ast)
+		if (!innerEnv) {
+			innerEnv = new Env(ast, this)
+			this.#childEnvs.set(ast, innerEnv)
 		}
-		return this.#childEnvs.get(ast)!
+		return innerEnv
 	}
 
 	#childEnvs = new WeakMap<CompoundAst, Env>()
