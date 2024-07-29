@@ -2,6 +2,7 @@ import {
 	Ast,
 	Dict,
 	DictLiteral,
+	Expr,
 	Fn,
 	isValue,
 	List,
@@ -18,23 +19,68 @@ import {resolvePath} from './resolvePath'
 
 export const GlobalEnv = new Env(Prelude)
 
+const EvalCache = new WeakMap<Env, WeakMap<Expr, Value>>()
+
+const Evaluating = new WeakMap<Env, WeakSet<Expr>>()
+
 export function evaluate(ast: Ast, env = GlobalEnv): Value {
 	if (isValue(ast)) {
 		return ast
 	}
 
-	switch (ast.type) {
-		case 'List':
-			return evaluateList(ast, env)
-		case 'Scope':
-			return evaluateScope(ast, env)
-		case 'Sym':
-			return evaluateSym(ast, env)
-		case 'VectorLiteral':
-			return evaluateVector(ast, env)
-		case 'DictLiteral':
-			return evaluateDict(ast, env)
+	// キャッシュがなければ作る
+	if (!EvalCache.has(env)) {
+		EvalCache.set(env, new WeakMap())
 	}
+
+	// キャッシュがあればそれを返す
+	const cache = EvalCache.get(env)!
+	if (cache.has(ast)) {
+		return cache.get(ast)!
+	}
+
+	// 循環参照を検出
+	if (!Evaluating.has(env)) {
+		Evaluating.set(env, new WeakSet())
+	}
+	const evaluating = Evaluating.get(env)!
+	if (evaluating.has(ast)) {
+		// throw new Error('Cyclic reference')
+		return unit
+	}
+
+	// 評価中の式としてマーク
+	evaluating.add(ast)
+
+	// 評価
+	let ret: Value
+	try {
+		switch (ast.type) {
+			case 'List':
+				ret = evaluateList(ast, env)
+				break
+			case 'Scope':
+				ret = evaluateScope(ast, env)
+				break
+			case 'Sym':
+				ret = evaluateSym(ast, env)
+				break
+			case 'VectorLiteral':
+				ret = evaluateVector(ast, env)
+				break
+			case 'DictLiteral':
+				ret = evaluateDict(ast, env)
+				break
+		}
+	} finally {
+		// 評価中の式としてのマークを外す
+		evaluating.delete(ast)
+	}
+
+	// キャッシュする
+	cache.set(ast, ret)
+
+	return ret
 }
 
 function evaluateList(ast: List, env: Env): Value {

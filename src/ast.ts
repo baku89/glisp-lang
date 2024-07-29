@@ -103,12 +103,12 @@ export function list(...items: Ast[]) {
 export class Scope extends BaseExpr {
 	readonly type = 'Scope' as const
 
-	constructor(readonly vars: Record<string, Ast>, readonly ret?: Value) {
+	constructor(readonly vars: Record<string, Ast>, readonly ret?: Ast) {
 		super()
 	}
 }
 
-export function scope(vars: Dict, ret?: Value): Scope {
+export function scope(vars: Record<string, Ast>, ret?: Ast): Scope {
 	return new Scope(vars, ret)
 }
 
