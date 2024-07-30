@@ -12,7 +12,7 @@ export function memoize() {
 				return original.apply(this, arg)
 			}
 			if (!memoized.has(arg)) {
-				memoized.set(arg, original.apply(this, arg))
+				memoized.set(arg, original.call(this, arg))
 			}
 			return memoized.get(arg)
 		}
