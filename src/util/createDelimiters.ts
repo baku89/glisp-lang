@@ -1,8 +1,18 @@
-import {List, Scope, VectorLiteral} from '../ast'
+import {CompoundExpr, Scope} from '../ast'
 
-export function createSeqDelimiters(seq: List | VectorLiteral) {
-	const length = seq.length
+export function createDelimiters(ast: CompoundExpr): readonly string[] {
+	switch (ast.type) {
+		case 'List':
+		case 'VectorLiteral':
+			return createSeqDelimiters(ast.items.length)
+		case 'DictLiteral':
+			return createDictDelimiters(ast.entries.length, ['', ' '])
+		case 'Scope':
+			return createScopeDelimiters(ast)
+	}
+}
 
+function createSeqDelimiters(length: number): string[] {
 	if (length === 0) {
 		return ['']
 	} else if (length === 1) {
@@ -12,28 +22,47 @@ export function createSeqDelimiters(seq: List | VectorLiteral) {
 	}
 }
 
-export function createDictDelimiters(length: number) {
+/**
+ * キー
+ * @param length エントリーの個数
+ * @returns
+ */
+function createDictDelimiters(
+	length: number,
+	infixDelimiters: [string, string]
+) {
 	if (length === 0) {
+		// { _ }
 		return ['']
 	} else if (length === 1) {
-		// { _ a _ : __ 20 _ }
-		return ['', '', ' ', '']
-	} else {
-		// { _ a _ : _ 20 __ b _ : _ 30 _ }
 		return [
+			// { _
 			'',
+			// a (infix0) × (infix1) A
+			...infixDelimiters,
+			// _ }
+			'',
+		]
+	} else {
+		return [
+			// { _
+			'',
+			//   a (infix0) × (infix1) A __
+			//   b (infix0) × (infix1) B __
 			...Array(length - 1)
-				.fill(['', '', ' '])
+				.fill([...infixDelimiters, ' '])
 				.flat(),
-			'',
-			' ',
+			//   c (infix0) × (infix1) C
+			...infixDelimiters,
+			//  _ }
 			'',
 		]
 	}
 }
 
-export function createScopeDelimiters(scope: Scope) {
-	const delimiters = createDictDelimiters(scope.vars)
+function createScopeDelimiters(scope: Scope): readonly string[] {
+	const entriesLength = Object.entries(scope.vars).length
+	const delimiters = createDictDelimiters(entriesLength, [' ', ' '])
 
 	if (scope.ret) {
 		delimiters.pop()

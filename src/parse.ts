@@ -2,6 +2,7 @@ import P from 'parsimmon'
 
 import {
 	Ast,
+	CompoundExpr,
 	Current,
 	DictLiteral,
 	Key,
@@ -12,11 +13,7 @@ import {
 	unit,
 	VectorLiteral,
 } from './ast'
-import {
-	createDictDelimiters,
-	createScopeDelimiters,
-	createSeqDelimiters,
-} from './util/createDelimiters'
+import {createDelimiters} from './util/createDelimiters'
 
 function zip<T1, T2>(coll: [T1, T2][]): [T1[], T2[]] {
 	const as: T1[] = []
@@ -232,20 +229,12 @@ const ParseInfo = new WeakMap<
 	{delimiters: string[]}
 >()
 
-export function getDelimiters(ast: List | VectorLiteral | DictLiteral | Scope) {
+export function getDelimiters(ast: CompoundExpr) {
 	const delimiters = ParseInfo.get(ast)?.delimiters
 
 	if (delimiters) {
 		return delimiters
 	}
 
-	switch (ast.type) {
-		case 'List':
-		case 'VectorLiteral':
-			return createSeqDelimiters(ast)
-		case 'DictLiteral':
-			return createDictDelimiters(ast.entries.length)
-		case 'Scope':
-			return createScopeDelimiters(ast)
-	}
+	return createDelimiters(ast)
 }
