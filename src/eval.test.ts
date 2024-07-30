@@ -1,7 +1,8 @@
 import {describe, expect, test} from 'vitest'
 
 import {all, list, never, s, scope, unit, vector} from './ast'
-import {evaluate} from './eval'
+import {evaluate, getLogs} from './eval'
+import {PreludeEnv} from './prelude'
 
 describe('evaluating literals', () => {
 	test('0 evaluates to 0', () => {
@@ -64,8 +65,10 @@ describe('detecting circular reference', () => {
 	})
 
 	test('{x = y y = x x} should throw', () => {
-		const ret = evaluate(scope({x: s`y`, y: s`x`}, s`x`))
+		const ast = scope({x: s`y`, y: s`x`}, s`x`)
+		const ret = evaluate(ast, PreludeEnv)
 		expect(ret).toBe(unit)
+		expect(getLogs(ast, PreludeEnv)).lengthOf(1)
 	})
 
 	test('[./0] should throw', () => {
