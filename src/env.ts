@@ -1,4 +1,5 @@
 import {CompoundAst} from './ast'
+import {memoize} from './util/memoize'
 
 /**
  * Glispにおける環境（計算機の状態を保持するオブジェクト）は、
@@ -12,14 +13,8 @@ export class Env {
 	 * 0や関数値といった、値（Value）を親に持つ式は存在しないため、Expr型のみを受け取る。
 	 * 環境はmemoizedされる
 	 */
+	@memoize()
 	pushed(ast: CompoundAst): Env {
-		let innerEnv = this.#childEnvs.get(ast)
-		if (!innerEnv) {
-			innerEnv = new Env(ast, this)
-			this.#childEnvs.set(ast, innerEnv)
-		}
-		return innerEnv
+		return new Env(ast, this)
 	}
-
-	#childEnvs = new WeakMap<CompoundAst, Env>()
 }
