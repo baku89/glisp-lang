@@ -38,6 +38,34 @@ const Prelude = scope({
 		restArg: Number,
 		return: Number,
 	}),
+	'*': fn((...xs: number[]) => xs.reduce((acc, x) => acc * x, 1), {
+		restArg: Number.withDefault(1),
+		return: Number,
+	}),
+	'-': fn(
+		(...xs: number[]) => {
+			if (xs.length === 0) return 0
+			if (xs.length === 1) return -xs[0]
+			const [first, ...rest] = xs
+			return rest.reduce((acc, x) => acc - x, first)
+		},
+		{
+			restArg: Number,
+			return: Number,
+		}
+	),
+	'/': fn(
+		(...xs: number[]) => {
+			if (xs.length === 0) return 1
+			if (xs.length === 1) return 1 / xs[0]
+			const [first, ...rest] = xs
+			return rest.reduce((acc, x) => acc / x, first)
+		},
+		{
+			restArg: Number.withDefault(1),
+			return: Number,
+		}
+	),
 
 	π: Math.PI,
 	τ: Math.PI * 2,

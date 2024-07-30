@@ -207,6 +207,9 @@ export class Type<T = any> extends BaseValue {
 	 */
 	readonly toAst: (value: T) => Value
 
+	/**
+	 * number, string, booleanに変換する
+	 */
 	readonly toPrimitive?: (value: T) => Primitive
 
 	constructor({
@@ -225,6 +228,10 @@ export class Type<T = any> extends BaseValue {
 		this.defaultValue = defaultValue
 		this.toAst = toAst
 		this.toPrimitive = toPrimitive
+	}
+
+	withDefault(defaultValue: T): Type<T> {
+		return new Type({...this, defaultValue})
 	}
 }
 
