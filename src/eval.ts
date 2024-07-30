@@ -14,6 +14,7 @@ import {
 	VectorLiteral,
 } from './ast'
 import {Env} from './env'
+import {Log} from './Log'
 import {PreludeEnv} from './prelude'
 import {resolvePath} from './resolvePath'
 import {NestedWeakMap, NestedWeakSet} from './util/NestedWeak'
@@ -27,6 +28,15 @@ const EvalCache = new NestedWeakMap<Env, Expr, Value>()
  * The set for the expressions being evaluated, for detecting cyclic reference
  */
 const Evaluating = new NestedWeakSet<Env, Expr>()
+
+const EvalLog = new NestedWeakMap<Env, Expr, Log[]>()
+
+function throwLog(log: Log): void {
+	Evaluating.forEach((env, ast) => {
+		const logs = EvalLog.get(env, ast) ?? []
+		EvalLog.set(env, ast, [...logs, log])
+	})
+}
 
 export function evaluate(ast: Ast, env = PreludeEnv): Value {
 	// Return as it is if it is a Value
@@ -42,7 +52,11 @@ export function evaluate(ast: Ast, env = PreludeEnv): Value {
 
 	// Detect cyclic reference
 	if (Evaluating.has(env, ast)) {
-		// throw new Error('Cyclic reference')
+		throwLog({
+			level: 'error',
+			reason: ['Cyclic reference'],
+			callstack: {ast, env},
+		})
 		return unit
 	}
 
@@ -109,6 +123,11 @@ function evaluateSym(ast: Sym, env: Env): Value {
 	try {
 		resolved = resolvePath(ast.path, ast, env)
 	} catch (e) {
+		throwLog({
+			level: 'error',
+			reason: ['Symbol ', ast, ' is not defined'],
+			callstack: {ast, env},
+		})
 		return unit
 	}
 

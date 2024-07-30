@@ -24,10 +24,10 @@ export class NestedWeakMap<K1 extends object, K2 extends object, V> {
 
 export class NestedWeakSet<K1 extends object, K2 extends object> {
 	constructor() {
-		this.#map = new WeakMap()
+		this.#map = new Map()
 	}
 
-	#map: WeakMap<K1, WeakSet<K2>>
+	#map: Map<K1, Set<K2>>
 
 	has(key1: K1, key2: K2): boolean {
 		const inner = this.#map.get(key1)
@@ -37,16 +37,27 @@ export class NestedWeakSet<K1 extends object, K2 extends object> {
 	add(key1: K1, key2: K2): void {
 		let inner = this.#map.get(key1)
 		if (!inner) {
-			inner = new WeakSet()
+			inner = new Set()
 			this.#map.set(key1, inner)
 		}
 		inner.add(key2)
+	}
+
+	forEach(fn: (key1: K1, key2: K2) => void): void {
+		this.#map.forEach((inner, key1) => {
+			inner.forEach(key2 => {
+				fn(key1, key2)
+			})
+		})
 	}
 
 	delete(key1: K1, key2: K2): void {
 		const inner = this.#map.get(key1)
 		if (inner) {
 			inner.delete(key2)
+		}
+		if (inner?.size === 0) {
+			this.#map.delete(key1)
 		}
 	}
 }
