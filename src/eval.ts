@@ -1,3 +1,5 @@
+import ordinal from 'ordinal'
+
 import {
 	Ast,
 	Dict,
@@ -14,10 +16,13 @@ import {
 	VectorLiteral,
 } from './ast'
 import {Env} from './env'
-import {Log} from './Log'
+import {defaultOf} from './getDefault'
+import {argTypeMismatchLog, Log} from './Log'
 import {PreludeEnv} from './prelude'
 import {resolvePath} from './resolvePath'
+import {isInstance} from './TypeOperations'
 import {NestedWeakMap, NestedWeakSet} from './util/NestedWeak'
+import {range} from 'lodash'
 
 /**
  * The cache for the evaluation result
@@ -105,11 +110,40 @@ function evaluateList(ast: List, env: Env): Value {
 	const f = evaluate(ast.car, innerEnv)
 	const args = ast.cdr.map(e => evaluate(e, innerEnv))
 
-	if (f instanceof Fn) {
-		return f.fn(...args)
-	} else {
+	if (!(f instanceof Fn)) {
+		// 関数呼び出しできない場合、定数関数としてそれ自身を返す
 		return f
 	}
+
+	// 型検査。引数の評価後の型が正しいか
+	const {fnType} = f
+
+	const expectedTypes = fnType.argsByLength(args.length)
+
+	for (const index of range(expectedTypes.length)) {
+		const arg = args[index]
+		const [name, expectedType] = expectedTypes[index]
+
+		if (!isInstance(arg, expectedType)) {
+			// 実引数の型が仮引数の型と一致しない場合、ログを出力してデフォルト値を使う
+			const defaultValue = defaultOf(expectedType)
+
+			throwLog(
+				argTypeMismatchLog({
+					index,
+					name,
+					arg,
+					expectedType,
+					defaultValue,
+					callstack: {ast, env},
+				})
+			)
+
+			args[index] = defaultValue
+		}
+	}
+
+	return f.fn(...args)
 }
 
 function evaluateVector(ast: VectorLiteral, env: Env): Vector {

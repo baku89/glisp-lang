@@ -35,11 +35,11 @@ const Prelude = scope({
 
 	// Arithmetic
 	'+': fn((...xs: number[]) => xs.reduce((acc, x) => acc + x, 0), {
-		restArg: Number,
+		rest: {name: 'xs', arg: Number},
 		return: Number,
 	}),
 	'*': fn((...xs: number[]) => xs.reduce((acc, x) => acc * x, 1), {
-		restArg: Number.withDefault(1),
+		rest: {name: 'xs', arg: Number.withDefault(1)},
 		return: Number,
 	}),
 	'-': fn(
@@ -50,7 +50,7 @@ const Prelude = scope({
 			return rest.reduce((acc, x) => acc - x, first)
 		},
 		{
-			restArg: Number,
+			rest: {name: 'xs', arg: Number},
 			return: Number,
 		}
 	),
@@ -62,7 +62,7 @@ const Prelude = scope({
 			return rest.reduce((acc, x) => acc / x, first)
 		},
 		{
-			restArg: Number.withDefault(1),
+			rest: {name: 'xs', arg: Number.withDefault(1)},
 			return: Number,
 		}
 	),

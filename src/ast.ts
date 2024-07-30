@@ -127,10 +127,27 @@ export class FnType extends BaseValue {
 
 	constructor(
 		readonly args: Dict,
-		readonly restArg: Value | undefined,
+		readonly rest: {name: string; arg: Value} | undefined,
 		readonly ret: Value
 	) {
 		super()
+	}
+
+	argsByLength(length: number): [name: string, type: Value][] {
+		const argEntries = Object.entries(this.args)
+
+		if (argEntries.length < length && this.rest) {
+			// 可変長引数の分を追加
+			const numRest = length - argEntries.length
+			const {name, arg} = this.rest
+			const restArgs = Array(numRest)
+				.fill(arg)
+				.map((a, i) => [`${name}.${i}`, a] as [string, Value])
+
+			argEntries.push(...restArgs)
+		}
+
+		return argEntries
 	}
 }
 
@@ -139,10 +156,10 @@ export function fn(
 	type: {
 		args?: Dict
 		return: Value
-		restArg?: Value
+		rest?: {name: string; arg: Value}
 	}
 ) {
-	const fnType = new FnType(type.args ?? {}, type.restArg, type.return)
+	const fnType = new FnType(type.args ?? {}, type.rest, type.return)
 	return new Fn(fn, fnType)
 }
 

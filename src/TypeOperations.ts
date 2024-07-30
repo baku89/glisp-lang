@@ -6,11 +6,46 @@ import {
 	isDict,
 	Never,
 	Typeclass,
+	Unit,
 	Value,
 	Vector,
 } from './ast'
 import {isEqual} from './isEqual'
 import {Boolean, Number, String} from './prelude'
+
+export function isInstance(a: Value, b: Value): boolean {
+	if (b instanceof All) {
+		return true
+	}
+	if (b instanceof Never) {
+		return false
+	}
+
+	switch (typeof a) {
+		case 'number':
+			return isEqual(b, Number)
+		case 'string':
+			return isEqual(b, String)
+		case 'boolean':
+			return isEqual(b, Boolean)
+	}
+
+	if (isAstObject(a)) {
+		switch (a.type) {
+			case 'All':
+			case 'Type':
+				return false
+			case 'Unit':
+				return b instanceof Unit
+			case 'Never':
+				return false
+			case 'Atom':
+				return isEqual(a.superType, b)
+		}
+	}
+
+	throw new Error('Not yet implemented')
+}
 
 export function isSubtypeOf(a: Value, b: Value): boolean {
 	if (isEqual(a, b)) {
@@ -23,10 +58,6 @@ export function isSubtypeOf(a: Value, b: Value): boolean {
 
 	if (b instanceof Never) {
 		return false
-	}
-
-	if (a instanceof Never) {
-		return true
 	}
 
 	switch (typeof a) {
@@ -44,6 +75,8 @@ export function isSubtypeOf(a: Value, b: Value): boolean {
 			case 'Unit':
 			case 'Type':
 				return false
+			case 'Never':
+				return true
 			case 'Atom':
 				return isEqual(a.superType, b)
 			case 'Fn':

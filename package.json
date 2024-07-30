@@ -2,11 +2,12 @@
 	"name": "glisp-lang",
 	"version": "0.0.0",
 	"description": "The core library for Glisp language (https://glisp.app)",
-	"main": "src/index.ts",
+	"type": "module",
+	"module": "./lib/index.js",
+	"types": "./lib/index.d.ts",
 	"repository": "https://github.com/baku89/glisp-lang/",
 	"author": "Baku Hashimoto <mail@baku89.com> (https://baku89.com)",
 	"license": "MIT",
-	"private": true,
 	"scripts": {
 		"build": "tsc",
 		"dev": "yarn workspace demo run dev",
@@ -14,13 +15,6 @@
 		"test": "vitest",
 		"serve": "yarn run test -- --watch"
 	},
-	"typings": "./lib/index.d.ts",
-	"bin": {
-		"glisp": "./bin/glisp"
-	},
-	"workspaces": [
-		"demo"
-	],
 	"dependencies": {
 		"@types/parsimmon": "^1.10.6",
 		"eventemitter3": "^5.0.0",
