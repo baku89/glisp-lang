@@ -1,7 +1,8 @@
 import {describe, expect, test} from 'vitest'
 
-import {all, list, never, s, scope, unit, vector} from './ast'
+import {all, Current, list, never, scope, Sym, unit, vector} from './ast'
 import {evaluate, getLogs} from './eval'
+import {s} from './parse'
 import {PreludeEnv} from './prelude'
 
 describe('evaluating literals', () => {
@@ -55,6 +56,12 @@ describe('evaluating simple expression', () => {
 
 	test('(+ 1 2) evaluates to 3', () => {
 		expect(evaluate(list(s`+`, 1, 2))).toBe(3)
+	})
+})
+
+describe('evaluating compound expressions with relative symbols', () => {
+	test('[2 ./0] evaluates to [2 2]', () => {
+		expect(evaluate(vector(2, new Sym([Current, 0])))).toStrictEqual([2, 2])
 	})
 })
 

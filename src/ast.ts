@@ -195,13 +195,6 @@ export class Sym extends BaseExpr {
 }
 
 /**
- * テンプレート構文で s`+` のように呼び出して、Symのインスタンスを返す
- */
-export function s(strings: TemplateStringsArray): Sym {
-	return new Sym(strings.raw, [])
-}
-
-/**
  * 型を表す値。
  */
 export class Type<T = any> extends BaseValue {

@@ -1,7 +1,7 @@
 import {describe, expect, test} from 'vitest'
 
-import {Current, dict, list, Parent, s, Sym, vector} from './ast'
-import {__, parse} from './parse'
+import {Current, dict, list, Parent, Sym, vector} from './ast'
+import {__, parse, s} from './parse'
 import {print} from './print'
 
 describe('parsing delimiter', () => {

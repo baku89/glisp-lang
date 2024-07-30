@@ -128,7 +128,7 @@ function evaluateDict(ast: DictLiteral, env: Env): Dict {
 function evaluateSym(ast: Sym, env: Env): Value {
 	let resolved: {ast: Ast; env?: Env}
 	try {
-		resolved = resolvePath(ast.path, ast, env)
+		resolved = resolvePath(ast.path, env.ast, env.parent)
 	} catch (e) {
 		throwLog({
 			level: 'error',
@@ -144,10 +144,9 @@ function evaluateSym(ast: Sym, env: Env): Value {
 }
 
 function evaluateScope(ast: Scope, env: Env): Value {
-	const innerEnv = env.pushed(ast)
-	if (ast.ret) {
-		return evaluate(ast.ret, innerEnv)
-	} else {
+	if (!ast.ret) {
 		return unit
 	}
+
+	return evaluate(ast.ret, env.pushed(ast))
 }

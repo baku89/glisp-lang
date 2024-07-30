@@ -1,6 +1,6 @@
 import {describe, expect, test} from 'vitest'
 
-import {s} from './ast'
+import {s} from './parse'
 import {print} from './print'
 
 describe('print symbol', () => {

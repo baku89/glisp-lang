@@ -128,7 +128,7 @@ interface IParser {
 	DictLiteral: DictLiteral
 }
 
-const Parser = P.createLanguage<IParser>({
+export const Parser = P.createLanguage<IParser>({
 	Program(r) {
 		return P.alt(
 			P.seqMap(_, r.Ast, _, (before, ast) => ast),
@@ -217,6 +217,14 @@ const Parser = P.createLanguage<IParser>({
 
 export function parse(input: string): Ast {
 	return Parser.Program.tryParse(input)
+}
+
+/**
+ * テンプレート構文で s`+` のように呼び出して、Symのインスタンスを返す
+ */
+export function s(strings: TemplateStringsArray): Sym {
+	const str = strings.raw[0]
+	return Parser.Symbol.tryParse(str)
 }
 
 const ParseInfo = new WeakMap<

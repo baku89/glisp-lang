@@ -47,4 +47,4 @@ const Prelude = scope({
 	E: Math.E,
 })
 
-export const PreludeEnv = new (Env as any)(Prelude)
+export const PreludeEnv = new (Env as any)(Prelude) as Env
