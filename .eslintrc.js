@@ -4,7 +4,6 @@ module.exports = {
 	env: {
 		node: true,
 		commonjs: true,
-		'jest/globals': true,
 	},
 	extends: [
 		'eslint:recommended',
@@ -17,7 +16,7 @@ module.exports = {
 		ecmaVersion: 2022,
 		sourceType: 'module',
 	},
-	plugins: ['jest', 'simple-import-sort', 'unused-imports'],
+	plugins: ['simple-import-sort', 'unused-imports'],
 	rules: {
 		'no-console': 'warn',
 		'no-debugger': 'warn',
