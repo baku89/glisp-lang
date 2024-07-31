@@ -1,4 +1,6 @@
-import {isAstObject, unit, Value} from './ast'
+import {mapValues} from 'lodash'
+
+import {isAstObject, isDict, unit, Value} from './ast'
 
 export function defaultOf(type: Value): Value {
 	switch (typeof type) {
@@ -26,4 +28,14 @@ export function defaultOf(type: Value): Value {
 				throw new Error('Not yet implemented')
 		}
 	}
+
+	if (Array.isArray(type)) {
+		return type.map(defaultOf)
+	}
+
+	if (isDict(type)) {
+		return mapValues(type, defaultOf)
+	}
+
+	throw new Error('Default value not found')
 }

@@ -1,4 +1,4 @@
-import ordinal from 'ordinal'
+import {range} from 'lodash'
 
 import {
 	Ast,
@@ -10,6 +10,7 @@ import {
 	List,
 	Scope,
 	Sym,
+	Unit,
 	unit,
 	Value,
 	Vector,
@@ -22,7 +23,6 @@ import {PreludeEnv} from './prelude'
 import {resolvePath} from './resolvePath'
 import {isInstance} from './TypeOperations'
 import {NestedWeakMap, NestedWeakSet} from './util/NestedWeak'
-import {range} from 'lodash'
 
 /**
  * The cache for the evaluation result
@@ -116,31 +116,47 @@ function evaluateList(ast: List, env: Env): Value {
 	}
 
 	// 型検査。引数の評価後の型が正しいか
-	const {fnType} = f
+	const expectedTypes = f.fnType.argsByLength(args.length)
 
-	const expectedTypes = fnType.argsByLength(args.length)
+	// 必須引数が足りない場合
+	if (args.length < expectedTypes.length) {
+		throwLog({
+			level: 'error',
+			reason: [
+				`Too few arguments. Expected ${expectedTypes.length}, but got ${args.length}`,
+			],
+			callstack: {ast, env},
+		})
+	}
 
 	for (const index of range(expectedTypes.length)) {
 		const arg = args[index]
 		const [name, expectedType] = expectedTypes[index]
 
-		if (!isInstance(arg, expectedType)) {
-			// 実引数の型が仮引数の型と一致しない場合、ログを出力してデフォルト値を使う
-			const defaultValue = defaultOf(expectedType)
-
-			throwLog(
-				argTypeMismatchLog({
-					index,
-					name,
-					arg,
-					expectedType,
-					defaultValue,
-					callstack: {ast, env},
-				})
-			)
-
-			args[index] = defaultValue
+		if (isInstance(arg, expectedType)) {
+			continue
 		}
+
+		// 実引数の型が仮引数の型と一致しない場合, デフォルト値を用いる
+		const defaultValue = defaultOf(expectedType)
+		args[index] = defaultValue
+
+		// ユニット値の場合、無警告でスルー
+		if (arg instanceof Unit) {
+			continue
+		}
+
+		// それ以外の場合、方の不一致エラーを出力
+		throwLog(
+			argTypeMismatchLog({
+				index,
+				name,
+				arg,
+				expectedType,
+				defaultValue,
+				callstack: {ast, env},
+			})
+		)
 	}
 
 	return f.fn(...args)
