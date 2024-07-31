@@ -6,7 +6,8 @@
 		"baseUrl": "./",
 		"paths": {
 			"@glisp/lang": ["../src/index.ts"]
-		}
+		},
+		"lib": ["esnext", "dom"]
 	},
 	"include": ["./**/*.vue", "./**/*.ts"]
 }

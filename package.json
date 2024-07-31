@@ -38,6 +38,7 @@
 		"stylus": "^0.63.0",
 		"typescript": "^5.5.4",
 		"vitest": "^2.0.4",
+		"vue": "^3.4.35",
 		"vue-eslint-parser": "^9.4.3",
 		"vuepress": "2.0.0-rc.1"
 	}

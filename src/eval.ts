@@ -43,10 +43,13 @@ function throwLog(log: Log): void {
 	})
 }
 
-export function getLogs(ast: Ast, env: Env): Log[] {
+export function getLogs(ast: Ast, env = PreludeEnv): Log[] {
 	if (isValue(ast)) {
 		return []
 	}
+
+	evaluate(ast, env)
+
 	return EvalLog.get(env, ast) ?? []
 }
 

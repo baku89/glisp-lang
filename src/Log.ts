@@ -11,7 +11,7 @@ export interface Log {
 	 * ログの内容。['Symbol ', s`s`, ' is not defined']のように、式を保持したままログを出力する
 	 */
 	reason: (string | Ast)[]
-	callstack: CallStack
+	callstack?: CallStack
 }
 
 /**
