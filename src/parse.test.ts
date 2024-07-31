@@ -100,10 +100,10 @@ describe('parsing symbols', () => {
 	testParsing('_', s`_`)
 	testParsing('->', s`->`)
 	testParsing('try', s`try`)
+	testParsing('/', s`/`)
 
 	testErrorParsing('10deg')
 	testErrorParsing('10 20')
-	testErrorParsing('/')
 	testErrorParsing('@')
 	testErrorParsing('=>')
 	testErrorParsing('baku?')

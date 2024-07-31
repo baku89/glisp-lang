@@ -162,8 +162,11 @@ export const Parser = P.createLanguage<IParser>({
 		const RestKey = P.alt<Key>(PParentPath, PCurrentPath, NameKey, IndexKey)
 
 		// Paths (xx/yy/zz/1/2/3)
-		const Path = P.seq(FirstKey, P.string('/').then(RestKey).many()).map<Key[]>(
-			([first, rest]) => [first, ...rest]
+		const Path = P.alt(
+			P.string('/').result(['/']),
+			P.seq(FirstKey, P.string('/').then(RestKey).many()).map<Key[]>(
+				([first, rest]) => [first, ...rest]
+			)
 		)
 
 		// PropKeys (.y.z.1.2.3)
