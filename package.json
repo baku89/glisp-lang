@@ -1,7 +1,7 @@
 {
 	"name": "glisp-lang",
 	"version": "0.0.0",
-	"description": "The core library for Glisp language (https://glisp.app)",
+	"description": "The core library for Glisp",
 	"type": "module",
 	"module": "./lib/index.js",
 	"types": "./lib/index.d.ts",
@@ -10,15 +10,14 @@
 	"license": "MIT",
 	"scripts": {
 		"build": "tsc",
-		"dev": "yarn workspace demo run dev",
-		"lint": "eslint src demo --ext .ts,.vue",
+		"dev": "vuepress dev docs",
+		"lint": "eslint src docs --ext .ts,.vue",
 		"test": "vitest",
 		"serve": "yarn run test -- --watch"
 	},
 	"dependencies": {
 		"@types/parsimmon": "^1.10.6",
 		"eventemitter3": "^5.0.0",
-		"iterable-weak": "^1.0.4",
 		"lodash": "^4.17.21",
 		"ordinal": "^1.0.3",
 		"parsimmon": "^1.18.1"
@@ -27,18 +26,19 @@
 		"@types/lodash": "^4.14.191",
 		"@typescript-eslint/eslint-plugin": "^5.53.0",
 		"@typescript-eslint/parser": "^5.53.0",
-		"eslint": "^8.35.0",
-		"eslint-config-prettier": "^8.6.0",
-		"eslint-plugin-jest": "^27.2.1",
-		"eslint-plugin-prettier-vue": "^4.2.0",
-		"eslint-plugin-simple-import-sort": "^10.0.0",
-		"eslint-plugin-unused-imports": "^2.0.0",
+		"@vuepress/bundler-vite": "2.0.0-rc.2",
+		"@vuepress/plugin-palette": "^2.0.0-rc.14",
+		"@vuepress/theme-default": "2.0.0-rc.1",
+		"eslint": "^9.8.0",
+		"eslint-config-prettier": "^9.1.0",
+		"eslint-plugin-prettier-vue": "^5.0.0",
+		"eslint-plugin-simple-import-sort": "^12.1.1",
+		"eslint-plugin-unused-imports": "^4.0.1",
 		"eslint-plugin-vue": "^9.10.0",
-		"ts-jest": "^29.0.5",
-		"ts-node": "^10.9.1",
-		"typescript": "^5.5.3",
+		"stylus": "^0.63.0",
+		"typescript": "^5.5.4",
 		"vitest": "^2.0.4",
-		"vue": "^3.4.33",
-		"vue-eslint-parser": "^9.1.0"
+		"vue-eslint-parser": "^9.4.3",
+		"vuepress": "2.0.0-rc.1"
 	}
 }

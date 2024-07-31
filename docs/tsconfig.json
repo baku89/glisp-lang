@@ -1,0 +1,12 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"resolveJsonModule": true,
+		"esModuleInterop": true,
+		"baseUrl": "./",
+		"paths": {
+			"@glisp/lang": ["../src/index.ts"]
+		}
+	},
+	"include": ["./**/*.vue", "./**/*.ts"]
+}
