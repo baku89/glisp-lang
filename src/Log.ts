@@ -10,7 +10,7 @@ export interface Log {
 	/**
 	 * ログの内容。['Symbol ', s`s`, ' is not defined']のように、式を保持したままログを出力する
 	 */
-	reason: (string | Ast)[]
+	reason: ([type: 'string', value: string] | [type: 'ast', value: Ast])[]
 	callstack?: CallStack
 }
 
@@ -37,12 +37,12 @@ export function argTypeMismatchLog({
 	return {
 		level: 'error',
 		reason: [
-			`${ord} argument \`${name}\` expects type `,
-			expectedType,
-			', but got ',
-			arg,
-			'. Usees a default value ',
-			defaultValue,
+			['string', `The ${ord} argument \`${name}\` expects type `],
+			['ast', expectedType],
+			['string', ', but got '],
+			['ast', arg],
+			['string', '. Uses a default value '],
+			['ast', defaultValue],
 		],
 		callstack,
 	}

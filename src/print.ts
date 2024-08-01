@@ -31,6 +31,8 @@ export function print(ast: Ast): string {
 						return printScope(ast)
 					case 'Atom':
 						return print(ast.toAst())
+					case 'Type':
+						return ast.id
 				}
 			}
 	}

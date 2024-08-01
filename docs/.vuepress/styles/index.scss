@@ -321,7 +321,7 @@ p {
 		& > div {
 			height: calc(100% - var(--navbar-height) - 2rem);
 			display: grid;
-			grid-template-rows: 1fr 1fr;
+			grid-template-rows: min-content 1fr;
 		}
 	}
 }

@@ -126,7 +126,10 @@ function evaluateList(ast: List, env: Env): Value {
 		throwLog({
 			level: 'error',
 			reason: [
-				`Too few arguments. Expected ${expectedTypes.length}, but got ${args.length}`,
+				[
+					'string',
+					`Too few arguments. Expected ${expectedTypes.length}, but got ${args.length}`,
+				],
 			],
 			callstack: {ast, env},
 		})
@@ -185,7 +188,11 @@ function evaluateSym(ast: Sym, env: Env): Value {
 	} catch (e) {
 		throwLog({
 			level: 'error',
-			reason: ['Symbol ', ast, ' is not defined'],
+			reason: [
+				['string', 'Symbol '],
+				['ast', ast],
+				['string', ' is not defined'],
+			],
 			callstack: {ast, env},
 		})
 		return unit

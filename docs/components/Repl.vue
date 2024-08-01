@@ -1,9 +1,15 @@
 <script lang="ts" setup>
-import {Ast, print, scope} from '@glisp/lang'
-import {computed, ref} from 'vue'
+import {Ast, Key, PreludeEnv, print, scope} from '@glisp/lang'
+import {computed, ref, shallowRef} from 'vue'
 import Console from './Console.vue'
 
-const ast = ref<Ast>(scope({a: 1, b: 2}))
+const ast = shallowRef(scope({a: 1, b: 2}))
+
+const pwd = ref<Key[]>([])
+
+const env = computed(() => {
+	return PreludeEnv.pushed(ast.value)
+})
 
 const code = computed(() => {
 	return print(ast.value)
@@ -23,7 +29,7 @@ const code = computed(() => {
 			<div class="pane">
 				<div class="title">Console</div>
 				<div class="console-wrapper">
-					<Console />
+					<Console :env="env" />
 				</div>
 			</div>
 		</div>
@@ -36,6 +42,7 @@ const code = computed(() => {
 	display grid
 	grid-template-columns 1fr 1fr
 	gap 1rem
+	font-size .89em
 
 .pane
 	height 85%

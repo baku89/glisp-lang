@@ -4,21 +4,21 @@ import {all, fn, never, scope, Type} from './ast'
 import {Env} from './env'
 
 export const Number = new Type<number>({
-	id: 'number',
+	id: 'Number',
 	defaultValue: 0,
 	toAst: identity,
 	toPrimitive: identity,
 })
 
 export const String = new Type<string>({
-	id: 'string',
+	id: 'String',
 	defaultValue: '',
 	toAst: identity,
 	toPrimitive: identity,
 })
 
 export const Boolean = new Type<boolean>({
-	id: 'boolean',
+	id: 'Boolean',
 	defaultValue: false,
 	toAst: identity,
 	toPrimitive: identity,
