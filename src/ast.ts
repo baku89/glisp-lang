@@ -103,7 +103,10 @@ export function list(...items: Ast[]) {
 export class Scope extends BaseExpr {
 	readonly type = 'Scope' as const
 
-	constructor(readonly vars: Record<string, Ast>, readonly ret?: Ast) {
+	constructor(
+		readonly vars: Record<string, Ast>,
+		readonly ret?: Ast
+	) {
 		super()
 	}
 }
@@ -117,7 +120,10 @@ export type IFn = (...args: any[]) => Value
 export class Fn extends BaseValue {
 	readonly type = 'Fn' as const
 
-	constructor(readonly fn: (...args: any[]) => Value, readonly fnType: FnType) {
+	constructor(
+		readonly fn: (...args: any[]) => Value,
+		readonly fnType: FnType
+	) {
 		super()
 	}
 }
@@ -260,16 +266,22 @@ export class Type<T = any> extends BaseValue {
 export class Typeclass extends BaseValue {
 	readonly type = 'Typeclass' as const
 
-	constructor(readonly id: string, readonly args: readonly Value[]) {
+	constructor(
+		readonly id: string,
+		readonly args: readonly Value[]
+	) {
 		super()
 	}
 }
 
 export class Atom<T = any> extends BaseValue {
-	readonly type = 'Atom' as const;
+	readonly type = 'Atom' as const
 	readonly [Meta] = {}
 
-	constructor(readonly value: T, readonly superType: Type<T>) {
+	constructor(
+		readonly value: T,
+		readonly superType: Type<T>
+	) {
 		super()
 	}
 
@@ -326,6 +338,15 @@ export class DictLiteral extends BaseExpr {
 	}
 }
 
-export function dict(...entries: (readonly [string, Ast])[]) {
-	return new DictLiteral(entries)
+export function dict(
+	first?: Record<string, Ast> | readonly [string, Ast],
+	...rest: readonly [string, Ast][]
+) {
+	if (Array.isArray(first)) {
+		return new DictLiteral([first as readonly [string, Ast], ...rest])
+	} else if (first) {
+		return new DictLiteral(Object.entries(first))
+	} else {
+		return new DictLiteral([])
+	}
 }
