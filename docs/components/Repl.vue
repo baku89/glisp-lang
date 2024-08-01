@@ -52,6 +52,7 @@ const code = computed(() => {
 	padding .4rem 1rem 1rem
 	border 1px solid black
 	border-radius 0.5rem
+
 .Code
 	font-family var(--font-family-code)
 	letter-spacing -0.03em
