@@ -33,6 +33,8 @@ export function print(ast: Ast): string {
 						return print(ast.toAst())
 					case 'Type':
 						return ast.id
+					case 'Fn':
+						return 'ƒ'
 				}
 			}
 	}

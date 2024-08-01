@@ -69,7 +69,7 @@ export function evaluate(ast: Ast, env = PreludeEnv): Value {
 	if (Evaluating.has(env, ast)) {
 		throwLog({
 			level: 'error',
-			reason: ['Cyclic reference'],
+			reason: [['string', 'Cyclic reference']],
 			callstack: {ast, env},
 		})
 		return unit

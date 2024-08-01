@@ -13,7 +13,7 @@ import {PreludeEnv} from './prelude'
 export function resolvePath(
 	path: readonly Key[],
 	ast: Ast,
-	env = PreludeEnv
+	env: Env = PreludeEnv
 ): {ast: Ast; env?: Env} {
 	// path が空の場合
 	if (path.length === 0) {
@@ -70,14 +70,17 @@ export function resolvePath(
 		}
 	} else {
 		// それ以外の場合、Scopeにぶち当たるまで親をたどる
-		let currentEnv: Env | undefined = env
-		while (currentEnv) {
-			if (currentEnv.ast instanceof Scope && first in currentEnv.ast.vars) {
-				const found = currentEnv.ast.vars[first]
-				return resolvePath([Current, ...rest], found, currentEnv)
+		if (ast instanceof Scope) {
+			if (first in ast.vars) {
+				const found = ast.vars[first]
+				const innerEnv = env.pushed(ast)
+				return resolvePath([Current, ...rest], found, innerEnv)
 			}
-			currentEnv = currentEnv.parent
+			if (ast === PreludeEnv.ast) {
+				throw new Error(`Not has ${first} key`)
+			}
 		}
-		throw new Error(`Not found: ${first}`)
+
+		return resolvePath(path, env.ast, env.parent)
 	}
 }

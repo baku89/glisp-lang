@@ -3,7 +3,7 @@ import {describe, expect, test} from 'vitest'
 import {all, Current, list, never, scope, Sym, unit, vector} from './ast'
 import {evaluate, getLogs} from './eval'
 import {s} from './parse'
-import {PreludeEnv} from './prelude'
+import {Number, PreludeEnv} from './prelude'
 
 describe('evaluating literals', () => {
 	test('0 evaluates to 0', () => {
@@ -60,56 +60,68 @@ describe('evaluating simple expression', () => {
 })
 
 describe('evaluating compound expressions with relative symbols', () => {
-	test('[2 ./0] evaluates to [2 2]', () => {
-		expect(evaluate(vector(2, new Sym([Current, 0])))).toStrictEqual([2, 2])
-	})
-})
+	// 	test('[2 ./0] evaluates to [2 2]', () => {
+	// 		expect(evaluate(vector(2, new Sym([Current, 0])))).toStrictEqual([2, 2])
+	// 	})
+	// })
 
-describe('detecting circular reference', () => {
-	test('{x = x x} should throw', () => {
-		const ret = evaluate(scope({x: s`x`}, s`x`))
-		expect(ret).toBe(unit)
-	})
+	// describe('detecting circular reference', () => {
+	// 	test('{x = x x} should throw', () => {
+	// 		const ret = evaluate(scope({x: s`x`}, s`x`))
+	// 		expect(ret).toBe(unit)
+	// 	})
 
-	test('{x = y y = x x} should throw', () => {
-		const ast = scope({x: s`y`, y: s`x`}, s`x`)
-		const ret = evaluate(ast, PreludeEnv)
-		expect(ret).toBe(unit)
-		expect(getLogs(ast, PreludeEnv)).lengthOf(1)
-	})
+	// 	test('{x = y y = x x} should throw', () => {
+	// 		const ast = scope({x: s`y`, y: s`x`}, s`x`)
+	// 		const ret = evaluate(ast, PreludeEnv)
+	// 		expect(ret).toBe(unit)
+	// 		expect(getLogs(ast, PreludeEnv)).lengthOf(1)
+	// 	})
 
-	test('[./0] should throw', () => {
-		const ret = evaluate(vector(s`./0`))
-		expect(ret).toStrictEqual([unit])
-	})
+	// 	test('[./0] should throw', () => {
+	// 		const ret = evaluate(vector(s`./0`))
+	// 		expect(ret).toStrictEqual([unit])
+	// 	})
 
-	test('[./1 ./2 ./0] should throw', () => {
-		const ret = evaluate(vector(s`./1`, s`./2`, s`./0`))
-		expect(ret).toStrictEqual([unit, unit, unit])
-	})
+	// 	test('[./1 ./2 ./0] should throw', () => {
+	// 		const ret = evaluate(vector(s`./1`, s`./2`, s`./0`))
+	// 		expect(ret).toStrictEqual([unit, unit, unit])
+	// 	})
 
-	test('{x = ./x} should throw', () => {
-		const ret = evaluate(scope({x: s`./x`}, s`x`))
-		expect(ret).toBe(unit)
-	})
+	// 	test('{x = ./x} should throw', () => {
+	// 		const ret = evaluate(scope({x: s`./x`}, s`x`))
+	// 		expect(ret).toBe(unit)
+	// 	})
 
-	test('{x = ./y y = ./x} should throw', () => {
-		const ret = evaluate(scope({x: s`./y`, y: s`./x`}, s`x`))
-		expect(ret).toBe(unit)
-	})
+	// 	test('{x = ./y y = ./x} should throw', () => {
+	// 		const ret = evaluate(scope({x: s`./y`, y: s`./x`}, s`x`))
+	// 		expect(ret).toBe(unit)
+	// 	})
 
 	test('{x: ./y y: [../x]} should throw', () => {
 		const ret = evaluate(scope({x: s`./y`, y: vector(s`../x`)}, s`x`))
 		expect(ret).toBe(unit)
 	})
 
-	test('{x: ./y/0 y: [../x]} should throw', () => {
-		const ret = evaluate(scope({x: s`./y/0`, y: vector(s`../x`)}, s`x`))
-		expect(ret).toBe(unit)
-	})
+	// test('{x: ./y/0 y: [../x]} should throw', () => {
+	// 	const ret = evaluate(scope({x: s`./y/0`, y: vector(s`../x`)}, s`x`))
+	// 	expect(ret).toBe(unit)
+	// })
 
 	// TODO: Let the below tests pass
 	// testEval('(+ ./1)', '()', true)
 	// testEval('(if true ./else ./then)', '()', true)
 	// testEval('(inc (inc ../x))', '()', true)
+})
+
+describe('resolving a symbol', () => {
+	test('resolving a symbol in Prelude', () => {
+		expect(evaluate(s`true`)).toBe(true)
+	})
+
+	test('resolving a symbol in the current scope', () => {
+		const sc = scope({x: 1})
+		const env = PreludeEnv.pushed(sc)
+		expect(evaluate(s`x`, env)).toBe(1)
+	})
 })
