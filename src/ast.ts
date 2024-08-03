@@ -276,7 +276,6 @@ export class Typeclass extends BaseValue {
 
 export class Atom<T = any> extends BaseValue {
 	readonly type = 'Atom' as const
-	readonly [Meta] = {}
 
 	constructor(
 		readonly value: T,
@@ -303,7 +302,10 @@ export type Vector = Value[]
 export class VectorLiteral extends BaseExpr {
 	readonly type = 'VectorLiteral' as const
 
-	constructor(readonly items: readonly Ast[]) {
+	constructor(
+		readonly items: readonly Ast[],
+		readonly rest?: Ast
+	) {
 		super()
 	}
 
